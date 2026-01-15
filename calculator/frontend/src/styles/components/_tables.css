@@ -1,0 +1,150 @@
+/* History Container & Tables */
+#historyContainer {
+    background-color: #fff;
+    border-radius: 16px;
+    padding: 8px;
+    max-height: 65vh;
+    overflow-y: auto;
+    border: 1px solid #e5e5e7;
+}
+
+#historyContainer table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#historyContainer th,
+#historyContainer td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-all;
+}
+
+#historyContainer th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+}
+
+#historyContainer .delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+#historyContainer .delete-btn:hover {
+    background: #c82333;
+}
+
+/* History Loading & Empty States */
+#historyContainer .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 16px;
+}
+
+#historyContainer .loading-overlay p {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1d1d1f;
+}
+
+#historyContainer p {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+    color: #86868b;
+}
+
+/* History Cards (New Design) */
+.history-card {
+    border-bottom: 1px solid #e5e5e7;
+    padding: 20px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.history-card:last-child {
+    border-bottom: none;
+}
+
+.history-card:hover {
+    background-color: #f5f5f7;
+}
+
+.history-card-main {
+    flex: 1;
+    min-width: 250px;
+}
+
+.history-card-details {
+    flex: 2;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    min-width: 300px;
+}
+
+.history-card-actions {
+    flex-basis: 120px;
+    text-align: right;
+}
+
+.history-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+}
+
+.history-course {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #007aff;
+    background-color: rgba(0, 122, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 8px;
+}
+
+.detail-item {
+    font-size: 14px;
+}
+
+.detail-item .label {
+    display: block;
+    font-weight: 500;
+    color: #86868b;
+    margin-bottom: 4px;
+}
+
+.detail-item .value {
+    font-weight: 500;
+    color: #1d1d1f;
+}
+
+.detail-item .value.small {
+    font-size: 12px;
+    color: #86868b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

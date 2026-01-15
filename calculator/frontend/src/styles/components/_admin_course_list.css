@@ -1,0 +1,94 @@
+/* Course List */
+.course-group {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.group-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.course-list {
+    display: grid;
+    gap: 10px;
+}
+
+.course-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.course-item:hover {
+    border-color: var(--primary-color);
+    background: #f0f7ff;
+}
+
+.course-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.course-name {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.course-meta {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.course-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.icon-btn:hover {
+    background: #e0e0e0;
+}
+
+.icon-btn.delete:hover {
+    background: #fee;
+    color: var(--danger-color);
+}
+
+.icon-btn.edit:hover {
+    background: #eef;
+    color: var(--primary-color);
+}

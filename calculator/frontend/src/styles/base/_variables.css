@@ -1,0 +1,10 @@
+/* CSS Variables */
+:root {
+    /* Colors - will be populated from admin/style later */
+    --primary-color: #2078bf;
+    --text-color: #333;
+    --bg-color: #f0f2f5;
+
+    /* Layout */
+    --header-height: 60px;
+}

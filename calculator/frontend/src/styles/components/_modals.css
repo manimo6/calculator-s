@@ -1,0 +1,444 @@
+/* Basic Modals (Patch, History, Duplicate Notice) */
+#patchModal,
+#historyModal,
+#duplicateNoticeModal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.28);
+    z-index: 20000;
+    align-items: center;
+    justify-content: center;
+}
+
+#patchModal .modal-content,
+#historyModal .modal-content,
+#duplicateNoticeModal .modal-content {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.13);
+    padding: 38px 32px 32px 32px;
+    max-width: 400px;
+    /* Default max-width */
+    margin: auto;
+    position: relative;
+    animation: patchpop 0.16s cubic-bezier(.68, -0.22, .29, 1.26);
+}
+
+#historyModal .modal-content {
+    max-width: 800px;
+    /* Override for history modal */
+}
+
+/* Animations */
+@keyframes patchpop {
+    0% {
+        transform: scale(0.97) translateY(40px);
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+#patchModal h3,
+#historyModal h3 {
+    margin-top: 0;
+    font-size: 1.22em;
+    font-weight: 800;
+}
+
+#closePatchModal,
+#closeHistoryModal {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    border: none;
+    background: none;
+    font-size: 21px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+
+#patchModal ul {
+    font-size: 16px;
+    margin: 16px 0 0 0;
+    padding-left: 18px;
+}
+
+/* Duplicate Notice Modal Specific */
+#duplicateNoticeModal .modal-content {
+    max-width: 380px;
+    padding: 32px;
+    text-align: center;
+}
+
+#duplicateNoticeModal .notice-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px auto;
+    background-color: #eaf5ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232078bf'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1-8h-2V7h2v2z'/%3E%3C/svg%3E");
+    background-size: 60%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+#duplicateNoticeModal h3 {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+#duplicateNoticeModal p {
+    font-size: 16px;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+#duplicateNoticeModal .modal-actions {
+    justify-content: center;
+}
+
+#duplicateNoticeModal #confirmDuplicateNoticeBtn {
+    max-width: 200px;
+    background: #2078bf;
+    font-weight: bold;
+    padding: 14px;
+    font-size: 17px;
+    margin: 0 auto;
+    transition: background 0.2s;
+}
+
+#duplicateNoticeModal #confirmDuplicateNoticeBtn:hover {
+    background: #12598e;
+}
+
+/* History Modal (Apple-Inspired Overrides) */
+#historyModal .modal-content {
+    max-width: 850px;
+    width: 95%;
+    background-color: #f5f5f7;
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+#historyModal h3 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1d1d1f;
+    margin: 0 0 20px 0;
+    padding-left: 8px;
+}
+
+#closeHistoryModal {
+    color: #86868b;
+    font-size: 28px;
+    font-weight: 300;
+    top: 18px;
+    right: 24px;
+    transition: color 0.2s;
+}
+
+#closeHistoryModal:hover {
+    color: #1d1d1f;
+}
+
+#historySearchContainer {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#historySearchInput {
+    width: 100%;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid #e5e5e7;
+    background-color: #fff;
+    padding: 0 15px 0 45px;
+    font-size: 16px;
+    color: #1d1d1f;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#historySearchInput:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+#historySearchContainer::before {
+    content: '🔍';
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #86868b;
+}
+
+#historySearchBtn {
+    display: none;
+}
+
+/* Reborn Edit Confirmation Modal (Part 1) */
+#editConfirmationModal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 20000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+#editConfirmationModal .modal-content {
+    background: #fcfcfc;
+    color: #1d1d1f;
+    border-radius: 20px;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.2);
+    padding: 32px;
+    width: 90%;
+    max-width: 580px;
+    border: 1px solid #e0e0e0;
+    animation: patchpop 0.25s cubic-bezier(.3, 1.18, .81, 1.18);
+}
+
+#editConfirmationModal h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 8px 0;
+    text-align: center;
+}
+
+#editConfirmationModal .modal-subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 0 0 28px 0;
+    text-align: center;
+}
+
+#editChangesContainer {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.change-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e8e8e8;
+    transition: box-shadow 0.2s;
+}
+
+.change-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.change-item-header span {
+    font-size: 15px;
+    color: #333;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.change-item-content {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+}
+
+.change-value {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-all;
+}
+
+.change-before {
+    background-color: #fdeeee;
+    color: #a13d3d;
+    border: 1px solid #f8d7da;
+}
+
+.change-arrow {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #888;
+    padding: 0 5px;
+}
+
+.change-after {
+    background-color: #eaf7f0;
+    color: #2a643b;
+    border: 1px solid #d1e7dd;
+    font-weight: 600;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.modal-actions button {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0;
+}
+
+.modal-actions button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#confirmEditBtn {
+    background-color: #007AFF;
+    color: white;
+}
+
+#confirmEditBtn:hover {
+    background-color: #0056b3;
+}
+
+#cancelEditBtn {
+    background-color: #fff;
+    color: #555;
+    border: 1px solid #ccc;
+}
+
+#cancelEditBtn:hover {
+    background-color: #f8f8f8;
+    border-color: #bbb;
+}
+
+/* Reborn Edit Confirmation Modal Overrides and Additions (Part 2) */
+#editConfirmationModal {
+    backdrop-filter: blur(8px);
+    background: rgba(80, 80, 80, 0.7);
+}
+
+.modal-content-reborn {
+    background: #fff;
+    color: #1d1d1f;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+    padding: 32px;
+    width: 90%;
+    max-width: 600px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    animation: patchpop 0.3s cubic-bezier(.3, 1.18, .81, 1.18);
+}
+
+.modal-header-reborn h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 8px 0;
+}
+
+.modal-header-reborn p {
+    font-size: 16px;
+    color: #555;
+    margin: 0 0 24px 0;
+}
+
+.changes-grid {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 32px;
+    background: #f0f0f0;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.change-item {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e5e5e7;
+}
+
+.change-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.change-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.change-value {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    min-width: 0;
+}
+
+.change-before {
+    background-color: transparent;
+    color: #555;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.change-arrow {
+    font-size: 20px;
+    color: #86868b;
+}
+
+.change-after {
+    background-color: #e6f7ec;
+    color: #006400;
+    font-weight: 600;
+    text-align: left;
+    border: 1px solid #006400;
+}
+
+.modal-actions-reborn {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}

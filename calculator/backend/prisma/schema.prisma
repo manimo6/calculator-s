@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PermissionEffect {
+  allow
+  deny
+}
+
+model User {
+  id         String   @id @db.Uuid
+  username   String   @unique
+  role       String
+  tokenVersion Int    @default(0)
+  salt       String
+  hash       String
+  iterations Int      @default(100000)
+  keylen     Int      @default(32)
+  digest     String   @default("sha256")
+  mustChangePassword Boolean @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  settings UserSettings?
+  userRoles       UserRole[]
+  userPermissions UserPermission[]
+  categoryAccess  UserCategoryAccess[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  description String?
+  scopeType   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  userId       String @db.Uuid
+  permissionId String @db.Uuid
+  effect       PermissionEffect
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+model UserCategoryAccess {
+  userId              String @db.Uuid
+  courseConfigSetName String
+  categoryKey         String
+  effect              PermissionEffect
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, courseConfigSetName, categoryKey])
+  @@index([courseConfigSetName])
+  @@index([categoryKey])
+  @@map("user_category_access")
+}
+
+model UserSettings {
+  userId    String   @id @db.Uuid
+  settings  Json     @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model RefreshToken {
+  id           String   @id @db.Uuid
+  userId       String   @db.Uuid
+  tokenVersion Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt    DateTime @db.Timestamptz(3)
+  revokedAt    DateTime? @db.Timestamptz(3)
+  replacedById String?  @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenVersion])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model LegacyUserSettings {
+  usernameKey String   @id
+  settings    Json     @db.JsonB
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("legacy_user_settings")
+}
+
+model CourseConfig {
+  key       String   @id
+  data      Json     @db.JsonB
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("course_configs")
+}
+
+model CourseConfigSet {
+  name      String   @id
+  data      Json     @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("presets")
+}
+
+model Registration {
+  id             String    @id @db.Uuid
+  timestamp      DateTime? @db.Timestamptz(3)
+  name           String
+  course         String
+  courseId       String?
+  courseConfigSetName String?
+  startDate      DateTime? @db.Date
+  endDate        DateTime? @db.Date
+  withdrawnAt    DateTime? @db.Date
+  transferFromId String?   @db.Uuid
+  transferToId   String?   @db.Uuid
+  transferAt     DateTime? @db.Date
+  weeks          Int?
+  tuitionFee     Int?
+  skipWeeks      Int[]    @default([])
+  recordingDates String[]  @default([])
+  excludeMath    Boolean  @default(false)
+  importHash     String?   @unique
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  attendanceRecords AttendanceRecord[]
+  extensions        RegistrationExtension[]
+  note              RegistrationNote?
+
+  @@index([timestamp])
+  @@index([name])
+  @@index([course])
+  @@index([courseId])
+  @@index([courseConfigSetName])
+  @@index([name, course])
+  @@index([courseConfigSetName, name, course])
+  @@index([transferFromId])
+  @@index([transferToId])
+  @@map("registrations")
+}
+
+model RegistrationNote {
+  registrationId String   @id @db.Uuid
+  content        String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@map("registration_notes")
+}
+
+model AttendanceRecord {
+  id             String   @id @db.Uuid
+  registrationId String   @db.Uuid
+  date           DateTime @db.Date
+  status         String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, date])
+  @@index([date])
+  @@index([registrationId])
+  @@map("attendance_records")
+}
+
+model RegistrationExtension {
+  id             String   @id @db.Uuid
+  registrationId String   @db.Uuid
+  startDate      DateTime? @db.Date
+  weeks          Int
+  tuitionFee     Int?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@index([startDate])
+  @@map("registration_extensions")
+}
+
+model Notice {
+  id        String   @id @db.Uuid
+  title     String
+  body      String
+  targets   String[] @default([])
+  author    String
+  updatedBy String   @default("")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("notices")
+}
+
+model MergeGroup {
+  id        String   @id
+  name      String   @default("")
+  courses   String[] @default([])
+  weekRanges Json?   @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("merge_groups")
+}
+
+model CourseNote {
+  id        String   @id @db.Uuid
+  category  String   @default("")
+  courses   String[] @default([])
+  title     String
+  content   String   @default("")
+  tags      String[] @default([])
+  author    String   @default("") // 작성자 ID 추가
+  updatedBy String   @default("")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([updatedAt])
+  @@map("course_notes")
+}
+
+model CalendarNote {
+  id        String   @id @db.Uuid
+  date      DateTime @db.Date
+  content   String   @default("")
+  author    String   @default("")
+  updatedBy String   @default("")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([date])
+  @@map("calendar_notes")
+}
+
+
+

@@ -1,0 +1,459 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+@import "tailwindcss";
+
+@font-face {
+    font-family: "GmarketSans";
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff") format("woff");
+}
+
+@font-face {
+    font-family: "GmarketSans";
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff") format("woff");
+}
+
+@font-face {
+    font-family: "GmarketSans";
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff") format("woff");
+}
+
+@font-face {
+    font-family: "NanumSquareNeo";
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/eunchurn/NanumSquareNeo@main/woff2/NanumSquareNeoTTF-bRg.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "NanumSquareNeo";
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/eunchurn/NanumSquareNeo@main/woff2/NanumSquareNeoTTF-cBd.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "NanumSquareNeo";
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.jsdelivr.net/gh/eunchurn/NanumSquareNeo@main/woff2/NanumSquareNeoTTF-dEb.woff2") format("woff2");
+}
+
+@theme {
+    --color-border: hsl(240 6% 90%);
+    --color-input: hsl(240 6% 90%);
+    --color-ring: hsl(211 100% 50%);
+    --color-background: hsl(240 5% 96%);
+    --color-foreground: hsl(240 4% 11%);
+
+    --color-primary: hsl(211 100% 50%);
+    --color-primary-foreground: hsl(0 0% 100%);
+
+    --color-secondary: hsl(240 5% 96%);
+    --color-secondary-foreground: hsl(240 6% 10%);
+
+    --color-destructive: hsl(0 84% 60%);
+    --color-destructive-foreground: hsl(0 0% 98%);
+
+    --color-muted: hsl(240 5% 96%);
+    --color-muted-foreground: hsl(240 4% 46%);
+
+    --color-accent: hsl(240 5% 96%);
+    --color-accent-foreground: hsl(240 6% 10%);
+
+    --color-card: hsl(0 0% 100%);
+    --color-card-foreground: hsl(240 4% 11%);
+
+    --color-popover: hsl(0 0% 100%);
+    --color-popover-foreground: hsl(240 4% 11%);
+
+    --radius: 1rem;
+}
+
+/* Custom Utilities */
+@utility glass {
+    background-color: rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 0.2);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@utility font-display {
+    font-family: var(--font-display);
+}
+
+@utility font-ui {
+    font-family: var(--font-ui);
+}
+
+@utility font-tab {
+    font-family: var(--font-tab);
+}
+
+:root {
+    /* Apple Design - Light Mode Default Variables (referenced by @theme above) */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 211 100% 50%;
+    --background: 240 5% 96%;
+    --foreground: 240 4% 11%;
+
+    --primary: 211 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --radius: 1rem;
+
+    --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --font-display: "GmarketSans", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --font-ui: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --font-tab: "NanumSquareNeo", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+.no-scrollbar {
+    scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes admin-login-shine {
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes admin-login-glow {
+
+    0%,
+    100% {
+        opacity: 0.2;
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: translate3d(2px, -2px, 0);
+    }
+}
+
+@layer components {
+    .admin-login-stage {
+        perspective: 1200px;
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        background: radial-gradient(120% 120% at 50% 0%, #1e293b 0%, #0f172a 45%, #020617 100%);
+    }
+
+    .admin-login-stage::before {
+        content: "";
+        position: absolute;
+        inset: -10%;
+        background: radial-gradient(circle at 50% 38%, rgba(148, 163, 184, 0.2), transparent 60%);
+        opacity: 0.6;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .admin-login-card {
+        position: relative;
+        overflow: hidden;
+        transform-style: preserve-3d;
+        transition: transform 100ms linear, box-shadow 200ms ease;
+        will-change: transform;
+        z-index: 1;
+        /* Apple visionOS "Glass Material" (Strict) */
+        /* High Blur + Luminosity Blend similar to UIBlurEffect.systemMaterial */
+        background: rgba(230, 230, 230, 0.40) !important;
+        backdrop-filter: blur(60px) saturate(180%);
+        -webkit-backdrop-filter: blur(60px) saturate(180%);
+
+        /* Subtle, refined borders (No thick prism effects) */
+        border: 1px solid rgba(255, 255, 255, 0.4);
+
+        /* Soft, ambient shadow (visionOS spec) */
+        box-shadow:
+            0 10px 40px -10px rgba(0, 0, 0, 0.3),
+            inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+
+        transform: rotateY(var(--rx, 0deg)) rotateX(var(--ry, 0deg));
+        color: #000000;
+        /* Apple Glass usually has dark text on light glass */
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+
+        /* Variables for calculation */
+        --mx: 50%;
+        --my: 50%;
+        --posx: 50%;
+        --posy: 50%;
+        --pos: 50% 50%;
+        --hyp: 0;
+        --o: 0;
+        border-radius: 40px;
+        /* visionOS large curvature */
+    }
+
+    .admin-login-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        /* visionOS Specular Highlight */
+        background: radial-gradient(circle at var(--mx) var(--my),
+                rgba(255, 255, 255, 0.4) 0%,
+                rgba(255, 255, 255, 0.0) 60%);
+        background-position: center;
+        background-size: 100% 100%;
+        mix-blend-mode: overlay;
+        opacity: var(--o);
+        pointer-events: none;
+    }
+
+    .admin-login-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        /* Edge highlight */
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+        border-radius: 16px;
+        pointer-events: none;
+        mix-blend-mode: screen;
+    }
+
+    .admin-login-card>* {
+        position: relative;
+        z-index: 1;
+    }
+
+    .admin-login-card:hover {
+        box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-login-holofoil {
+        opacity: 0;
+        background-image:
+            linear-gradient(115deg,
+                transparent 0%,
+                transparent 25%,
+                rgba(255, 255, 255, 0.02) 35%,
+                rgba(255, 255, 255, 0.3) 45%,
+                rgba(255, 255, 255, 0.02) 55%,
+                transparent 60%,
+                transparent 70%,
+                rgba(255, 255, 255, 0.1) 80%,
+                transparent 90%,
+                transparent 100%),
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+        background-size: 200% 200%, 100px 100px;
+        background-position: var(--mx) var(--my), 0 0;
+        background-blend-mode: overlay;
+        /* Blends gradient with noise for dithering */
+        mix-blend-mode: screen;
+        filter: brightness(1.2) contrast(0.9);
+        /* Adjust for noise darkening */
+        transform: translateZ(0);
+        transition: opacity 0.3s ease;
+        will-change: background-position, opacity;
+    }
+
+    .admin-login-card:hover .admin-login-holofoil {
+        opacity: var(--o);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .admin-login-card,
+    .admin-login-card::before,
+    .admin-login-card::after {
+        animation: none;
+        transition: none;
+    }
+}
+
+@layer base {
+    body {
+        font-family: var(--font-sans);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-display);
+        letter-spacing: -0.01em;
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    label {
+        font-family: var(--font-ui);
+    }
+}
+
+/* Schedule-X Apple Style Override */
+:root {
+    --sx-color-primary: #007AFF;
+    --sx-color-on-primary: #fff;
+    --sx-color-primary-container: #eef7ff;
+    --sx-color-on-primary-container: #007AFF;
+    --sx-color-neutral: #e5e5ea;
+    --sx-color-surface: #ffffff;
+    --sx-color-background: #ffffff;
+    --sx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --sx-border-radius: 8px;
+
+    /* Internal overrides for cleaner look */
+    --sx-internal-color-light-gray: #f2f2f7;
+    --sx-internal-color-text: #1c1c1e;
+}
+
+.sx-react-calendar-wrapper {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+
+/* Hide date picker input in header (month view only) */
+.sx__calendar-header .sx__date-picker-wrapper {
+    display: none !important;
+}
+
+/* Hide header border for seamless look */
+.sx__month-grid-day {
+    border-color: var(--sx-internal-color-light-gray) !important;
+}
+
+/* Month grid header: move date to top-left of each cell */
+.sx__month-grid-day__header {
+    align-items: flex-start !important;
+    justify-content: flex-start;
+    padding: 6px;
+    text-align: left;
+}
+
+.sx__month-grid-day__header-day-name {
+    margin-bottom: 2px;
+    text-align: left;
+}
+
+/* Month grid column cues without vertical lines */
+.sx__month-grid-day:not(:last-child) {
+    border-inline-end: none !important;
+}
+
+.sx__month-grid-week .sx__month-grid-day:nth-child(odd):not(.sx__month-grid-day--dragover) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Apple Calendar-like date number */
+.sx__month-grid-day__header-date {
+    font-weight: 500;
+    color: #1c1c1e;
+    font-size: 13px;
+    margin: 0 !important;
+    align-self: flex-start;
+}
+
+/* Today circle */
+.sx__month-grid-day--today .sx__month-grid-day__header-date {
+    background-color: #007AFF;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Outside days / Non-current month days */
+/* Trying multiple known patterns for Schedule-X and other libraries */
+.sx__month-grid-day.is-leading-or-trailing,
+/* Core logic found */
+.sx__month-grid-day--outside,
+.sx__month-grid-day--previous-month,
+.sx__month-grid-day--next-month,
+.sx__month-grid-day[data-is-outside="true"] {
+    opacity: 0.25 !important;
+    background-color: rgba(0, 0, 0, 0.02) !important;
+    pointer-events: none !important;
+}
+
+/* Event Chips */
+.sx__event {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    padding: 1px 4px !important;
+    margin-bottom: 2px !important;
+    font-weight: 500;
+}
+
+/* Weekend Colors */
+/* Assuming Sunday start (first column) -> Red */
+.sx__month-grid-day:nth-child(7n+1) .sx__month-grid-day__header-date {
+    color: #ff3b30;
+    /* Apple Red */
+}
+
+/* Assuming Saturday (last column) -> Blue */
+.sx__month-grid-day:nth-child(7n) .sx__month-grid-day__header-date {
+    color: #007AFF;
+    /* Apple Blue */
+}
+
+/* Holiday Event Style */
+.sx__event--holiday {
+    background-color: transparent !important;
+    color: #ff3b30 !important;
+    box-shadow: none !important;
+    font-weight: bold;
+    font-size: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: right;
+}
+
+/* Week/Day grid column cues without vertical lines */
+.sx__time-grid-day {
+    border-left: none !important;
+}
+
+.sx__time-grid-day.sx__sunday,
+.sx__time-grid-day.sx__tuesday,
+.sx__time-grid-day.sx__thursday,
+.sx__time-grid-day.sx__saturday {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.sx__week-grid__date.sx__sunday,
+.sx__week-grid__date.sx__tuesday,
+.sx__week-grid__date.sx__thursday,
+.sx__week-grid__date.sx__saturday {
+    background-color: rgba(0, 0, 0, 0.02);
+}

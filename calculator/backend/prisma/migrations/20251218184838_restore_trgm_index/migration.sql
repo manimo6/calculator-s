@@ -1,0 +1,1 @@
+-- No-op migration to reconcile history: restore_trgm_index.

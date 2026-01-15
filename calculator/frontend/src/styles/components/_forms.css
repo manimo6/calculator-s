@@ -1,0 +1,241 @@
+/* Basic Form Container */
+form {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    padding: 28px;
+    max-width: 700px;
+}
+
+/* Form Groups & Inputs */
+.form-group {
+    margin-bottom: 28px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+label {
+    font-weight: bold;
+    margin-right: 8px;
+    font-size: 17px;
+    min-width: 110px;
+    text-align: left;
+}
+
+input[type="text"],
+select,
+input[type="date"],
+input[type="button"],
+input[type="number"] {
+    padding: 0 16px;
+    border-radius: 7px;
+    border: 1px solid #bbb;
+    font-size: 17px;
+    height: 48px;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+/* Custom Course Selector */
+#courseSelectorBtn {
+    width: 400px;
+    background: #f6f8fa;
+    text-align: left;
+    cursor: pointer;
+}
+
+#selectedCourseLabel {
+    display: inline-block;
+    width: 330px;
+    vertical-align: middle;
+    font-size: 17px;
+    padding-left: 5px;
+    color: #1a1a1a;
+}
+
+#courseTreeMenuWrap {
+    position: absolute;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    margin-top: 5px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    width: 400px;
+    display: none;
+}
+
+/* Dropdown Positioning */
+#courseTreeMenuWrap {
+    top: 100%;
+    left: 0;
+    max-height: 900px;
+    overflow-y: auto;
+    transform-origin: top center;
+}
+
+#courseSearchBox {
+    width: 96%;
+    margin: 10px 2% 0 2%;
+    height: 38px;
+    font-size: 16px;
+    border: 1px solid #d0d0d0;
+    border-radius: 7px;
+    box-sizing: border-box;
+    padding-left: 12px;
+}
+
+#courseTreeMenu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#courseTreeMenu>ul>li {
+    padding: 12px 18px 11px 14px;
+    font-size: 18px;
+    font-weight: 700;
+    background: #f4f4f7;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+#courseTreeMenu>ul>li:hover {
+    background: #e4ecf5;
+}
+
+#courseTreeMenu ul li ul {
+    background: #fff;
+    border-radius: 0 0 10px 10px;
+    border: none;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 2px;
+}
+
+#courseTreeMenu ul li ul li {
+    font-size: 17px;
+    font-weight: 400;
+    padding: 11px 22px 11px 28px;
+    background: #fff;
+    border-bottom: 1px solid #f2f2f2;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#courseTreeMenu ul li ul li:last-child {
+    border-bottom: none;
+}
+
+#courseTreeMenu ul li ul li:hover {
+    background: #eaf5ff;
+    color: #12598e;
+}
+
+/* Option Groups (Radio/Checkbox) */
+.option-group {
+    margin: 13px 0 0 120px;
+    z-index: 2;
+    position: relative;
+}
+
+.option-row {
+    margin-bottom: 10px;
+}
+
+.option-group label {
+    margin-right: 22px;
+    font-weight: normal;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.option-group input[type="checkbox"],
+.option-group input[type="radio"] {
+    transform: scale(1.12);
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+.checkbox-group label {
+    margin-right: 26px;
+}
+
+/* AP Option Rows */
+.ap-option-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 15px;
+}
+
+.ap-option-row label {
+    min-width: 70px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.ap-option-row select {
+    width: 163px !important;
+    height: 40px !important;
+    font-size: 16px !important;
+    padding: 0 10px !important;
+}
+
+.ap-option-row input[type="radio"] {
+    transform: scale(1);
+}
+
+/* Select2 Overrides */
+.select2-container {
+    font-size: 17px;
+}
+
+.select2-dropdown {
+    z-index: 100000 !important;
+}
+
+.form-group.duration {
+    z-index: 110 !important;
+}
+
+.form-group.discount {
+    z-index: 10 !important;
+}
+
+body,
+form,
+.form-group {
+    overflow: visible !important;
+}
+
+.form-group.duration .select2-container {
+    width: 20% !important;
+    min-width: 88px !important;
+    max-width: 120px !important;
+    text-align: left !important;
+}
+
+.form-group.duration .select2-selection {
+    height: 48px !important;
+    padding: 7px 0 7px 16px !important;
+    font-size: 17px !important;
+    border-radius: 7px;
+    text-align: left !important;
+}
+
+/* AP Multiselect State Helpers */
+.ap-multiselect-active #courseSelectorBtn,
+.ap-multiselect-active #selectedCourseLabel {
+    display: none;
+}
+
+.ap-multiselect-active .form-group.duration {
+    display: none !important;
+}

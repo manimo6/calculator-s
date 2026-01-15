@@ -1,0 +1,30 @@
+/* Header & Title */
+#headerContainer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+#mainTitle {
+    font-size: 2.1em;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin: 0;
+}
+
+/* Image Button Container */
+#linkBox {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
+}
+
+/* Top Right Patch/History/Admin Box */
+#patchBox {
+    position: fixed;
+    top: 80px;
+    right: 80px;
+    z-index: 1050;
+}

@@ -1,0 +1,1 @@
+-- No-op migration to reconcile history: merge_group_ranges.

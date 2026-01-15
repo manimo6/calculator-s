@@ -1,0 +1,82 @@
+/* Recording Toggle Container */
+.recording-toggle-container {
+    position: absolute;
+    right: -100px;
+    top: -20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recording-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Switch Component */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 26px;
+    height: 14px;
+    vertical-align: middle;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Slider Track */
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 26px;
+    height: 14px;
+    background-color: #ccc;
+    border-radius: 14px;
+    transition: background-color 0.3s;
+}
+
+/* Slider Knob */
+.slider:before {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+/* Checked State */
+input:checked+.slider {
+    background-color: #2078bf;
+}
+
+input:checked+.slider:before {
+    transform: translateX(12px);
+}
+
+/* Disabled State */
+input:disabled+.slider {
+    background-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
+input:disabled+.slider:before {
+    background-color: #f5f5f5;
+}
+
+/* AP Card Toggle specific */
+.ap-recording-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}

@@ -1,0 +1,14 @@
+{
+  "admin": {
+    "calendarRange": {
+      "minMonth": "2025-01",
+      "maxMonth": "2025-12"
+    }
+  },
+  "haminone": {
+    "calendarRange": {
+      "minMonth": "2025-12",
+      "maxMonth": ""
+    }
+  }
+}

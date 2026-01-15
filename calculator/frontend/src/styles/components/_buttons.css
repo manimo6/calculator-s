@@ -1,0 +1,215 @@
+/* Main Link Button (Autumn Semester) */
+#linkBtn {
+    width: 200px;
+    height: 50px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s, box-shadow 0.15s;
+    background: url('https://img.freepik.com/free-vector/flat-design-autumnal-background_52683-43406.jpg') no-repeat center center;
+    background-size: cover;
+    background-color: #f7f7f7;
+    color: #e9baaa;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 50px;
+    text-shadow:
+        -1px -1px 0 #000000,
+        1px -1px 0 #000000,
+        -1px 1px 0 #000000,
+        1px 1px 0 #000000;
+    text-indent: 0;
+    overflow: visible;
+    padding: 0;
+}
+
+#linkBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    text-shadow:
+        -1px -1px 0 #000000,
+        1px -1px 0 #000000,
+        -1px 1px 0 #000000,
+        1px 1px 0 #000000,
+        0 0 10px rgba(255, 255, 255, 0.7);
+}
+
+/* Header Buttons (History, Patch) */
+#historyBtn,
+#patchBtn {
+    color: #fff;
+    border-radius: 12px;
+    font-weight: bold;
+    padding: 11px 28px;
+    border: none;
+    font-size: 18px;
+    box-shadow: 0 2px 8px #e0e0e0;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+
+#patchBtn {
+    background: #fae100;
+    color: #333;
+}
+
+#patchBtn:hover {
+    background: #ffe260;
+}
+
+#historyBtn {
+    background: #6c757d;
+    margin-right: 10px;
+}
+
+#historyBtn:hover {
+    background: #5a6268;
+}
+
+/* Generic Button */
+button {
+    background: #2078bf;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 13px 38px;
+    font-size: 17px;
+    margin-top: 12px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #12598e;
+}
+
+/* History Refresh Button */
+#refreshHistoryBtn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+#refreshHistoryBtn:hover {
+    background: #0056b3;
+}
+
+/* Pagination Buttons */
+.pagination-btn {
+    background-color: #e5e5e7;
+    color: #1d1d1f;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background-color: #d1d1d6;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* New History Action Buttons */
+.history-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.edit-btn-new {
+    color: #007aff;
+    margin-right: 5px;
+}
+
+.edit-btn-new:hover {
+    background-color: rgba(0, 122, 255, 0.1);
+}
+
+.delete-btn-new {
+    color: #ff3b30;
+}
+
+.delete-btn-new:hover {
+    background-color: rgba(255, 59, 48, 0.1);
+}
+
+/* Reborn Buttons */
+.btn-reborn {
+    width: 100%;
+    padding: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    /* Base border */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-reborn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-reborn-primary {
+    background-color: #007AFF;
+    color: white;
+}
+
+.btn-reborn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-reborn-secondary {
+    background-color: #d0d0d0;
+    color: #111;
+    border: 1px solid #b0b0b0;
+}
+
+.btn-reborn-secondary:hover {
+    background-color: #c0c0c0;
+    color: #000;
+    border-color: #a0a0a0;
+}
+
+/* AP Remove Button */
+.ap-course-item .remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #f44;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Add AP Course Button */
+#addAPCourseBtn {
+    background: #5cb85c;
+    padding: 10px 20px;
+    margin-left: 124px;
+    margin-top: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}

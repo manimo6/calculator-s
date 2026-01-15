@@ -1,0 +1,1278 @@
+{
+  "2025 겨울특강": {
+    "courseTree": [
+      {
+        "cat": "SAT",
+        "items": [
+          {
+            "val": "sat_1500",
+            "label": "겨울특강 SAT 1500+"
+          },
+          {
+            "val": "sat_1400",
+            "label": "겨울특강 SAT 1400+"
+          },
+          {
+            "val": "sat_bridge",
+            "label": "겨울특강 SAT 브릿지"
+          },
+          {
+            "val": "sat_america",
+            "label": "겨울특강 SAT 아메리카반"
+          },
+          {
+            "val": "sat_europe",
+            "label": "겨울특강 SAT 유럽반"
+          },
+          {
+            "val": "sat_rw",
+            "label": "겨울특강 SAT RW실전반"
+          },
+          {
+            "val": "sat_online_no_test",
+            "label": "겨울특강 SAT 온라인 레벨테스트 미응시"
+          },
+          {
+            "val": "sat_offline_no_test",
+            "label": "겨울특강 SAT 오프라인 레벨테스트 미응시"
+          }
+        ]
+      },
+      {
+        "cat": "TOEFL",
+        "items": [
+          {
+            "val": "toefl_l1",
+            "label": "겨울특강 TOEFL L1"
+          },
+          {
+            "val": "toefl_l2",
+            "label": "겨울특강 TOEFL L2"
+          },
+          {
+            "val": "toefl_america",
+            "label": "겨울특강 TOEFL 미주반"
+          },
+          {
+            "val": "toefl_awesome",
+            "label": "겨울특강 TOEFL 어썸실전"
+          },
+          {
+            "val": "toefl_online_no_test",
+            "label": "겨울특강 TOEFL 온라인 레벨테스트 미응시"
+          },
+          {
+            "val": "toefl_offline_no_test",
+            "label": "겨울특강 TOEFL 오프라인 레벨테스트 미응시"
+          }
+        ]
+      },
+      {
+        "cat": "DRW",
+        "items": [
+          {
+            "val": "drw_morning",
+            "label": "겨울특강 DRW 미주"
+          },
+          {
+            "val": "drw_a",
+            "label": "겨울특강 DRW A"
+          },
+          {
+            "val": "drw_b",
+            "label": "겨울특강 DRW B"
+          },
+          {
+            "val": "drw_no_test",
+            "label": "겨울특강 DRW 레벨테스트 미응시"
+          }
+        ]
+      },
+      {
+        "cat": "W올인원",
+        "items": [
+          {
+            "val": "w_allinone",
+            "label": "겨울특강 Writing 올인원"
+          },
+          {
+            "val": "w_allinone_no_test",
+            "label": "겨울특강 W올인원 레벨테스트 미응시"
+          }
+        ]
+      },
+      {
+        "cat": "Drill Math",
+        "items": [
+          {
+            "val": "dm_alg1",
+            "label": "겨울특강 Algebra 1"
+          },
+          {
+            "val": "dm_alg2",
+            "label": "겨울특강 Algebra 2"
+          },
+          {
+            "val": "dm_alg2adv",
+            "label": "겨울특강 Algebra 2 심화"
+          }
+        ]
+      }
+    ],
+    "courseInfo": {
+      "sat_1500": {
+        "name": "겨울특강 SAT 1500+",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 950000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "sat_1400": {
+        "name": "겨울특강 SAT 1400+",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 950000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "sat_bridge": {
+        "name": "겨울특강 SAT 브릿지",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 950000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "sat_america": {
+        "name": "겨울특강 SAT 아메리카반",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 620000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "sat_europe": {
+        "name": "겨울특강 SAT 유럽반",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 620000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "sat_rw": {
+        "name": "겨울특강 SAT RW실전반",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 248000,
+        "days": [
+          6,
+          0
+        ],
+        "startDays": [
+          6
+        ],
+        "endDay": 0
+      },
+      "sat_online_no_test": {
+        "name": "겨울특강 SAT 온라인 레벨테스트 미응시",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 950000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ],
+        "dynamicOptions": {
+          "미주": "sat_america",
+          "유럽": "sat_europe",
+          "국제": "sat_1500"
+        }
+      },
+      "sat_offline_no_test": {
+        "name": "겨울특강 SAT 오프라인 레벨테스트 미응시",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 950000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "toefl_l1": {
+        "name": "겨울특강 TOEFL L1",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 540000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "toefl_l2": {
+        "name": "겨울특강 TOEFL L2",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 540000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "toefl_america": {
+        "name": "겨울특강 TOEFL 미주반",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 540000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "toefl_awesome": {
+        "name": "겨울특강 TOEFL 어썸실전",
+        "min": 1,
+        "max": 6,
+        "durationType": "week",
+        "fee": 198000,
+        "days": [
+          6,
+          0
+        ],
+        "startDays": [
+          6
+        ],
+        "endDay": 0
+      },
+      "toefl_online_no_test": {
+        "name": "겨울특강 TOEFL 온라인 레벨테스트 미응시",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 540000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ],
+        "dynamicTime": true
+      },
+      "toefl_offline_no_test": {
+        "name": "겨울특강 TOEFL 오프라인 레벨테스트 미응시",
+        "min": 1,
+        "max": 4,
+        "durationType": "week",
+        "fee": 540000,
+        "days": [
+          1
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "drw_morning": {
+        "name": "겨울특강 DRW 미주",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 360000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "drw_a": {
+        "name": "겨울특강 DRW A",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 360000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "drw_b": {
+        "name": "겨울특강 DRW B",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 360000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "drw_no_test": {
+        "name": "겨울특강 DRW 레벨테스트 미응시",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 360000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ],
+        "dynamicTime": true
+      },
+      "w_allinone": {
+        "name": "겨울특강 Writing 올인원",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 480000,
+        "days": [
+          1
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "w_allinone_no_test": {
+        "name": "겨울특강 W올인원 레벨테스트 미응시",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 480000,
+        "days": [
+          1
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "dm_alg1": {
+        "name": "겨울특강 Algebra 1",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 265000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "dm_alg2": {
+        "name": "겨울특강 Algebra 2",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 265000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      },
+      "dm_alg2adv": {
+        "name": "겨울특강 Algebra 2 심화",
+        "min": 1,
+        "max": 3,
+        "durationType": "week",
+        "fee": 265000,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ]
+      }
+    },
+    "timeTable": {
+      "겨울특강 SAT 1500+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 1400+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 브릿지": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 아메리카반": "09:00~13:00",
+      "겨울특강 SAT 유럽반": "17:00~21:00",
+      "겨울특강 SAT RW실전반": "10:00~14:00",
+      "겨울특강 SAT 온라인 레벨테스트 미응시": "13:00~21:00",
+      "겨울특강 SAT 오프라인 레벨테스트 미응시": "09:00~17:00",
+      "겨울특강 TOEFL L1": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL L2": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL 미주반": "09:00~13:00",
+      "겨울특강 TOEFL 어썸실전": "11:00~14:00",
+      "겨울특강 TOEFL 온라인 레벨테스트 미응시": {
+        "미주": "09:00~13:00",
+        "국제": "13:30~17:30"
+      },
+      "겨울특강 TOEFL 오프라인 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 DRW 미주": "10:00~13:00",
+      "겨울특강 DRW A": "19:00~22:00",
+      "겨울특강 DRW B": "20:00~23:00",
+      "겨울특강 DRW 레벨테스트 미응시": {
+        "미주": "10:00~13:00",
+        "국제": "19:00~22:00"
+      },
+      "겨울특강 Writing 올인원": "09:00~13:00",
+      "겨울특강 W올인원 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 Algebra 1": "14:00~16:00",
+      "겨울특강 Algebra 2": {
+        "온라인": "16:10~18:10",
+        "오프라인": "14:00~16:00"
+      },
+      "겨울특강 Algebra 2 심화": "16:10~18:10"
+    },
+    "recordingAvailable": {
+      "sat_1500": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "sat_1400": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "sat_bridge": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "sat_america": true,
+      "sat_europe": true,
+      "sat_rw": false,
+      "sat_online_no_test": true,
+      "sat_offline_no_test": false,
+      "toefl_l1": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "toefl_l2": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "toefl_america": true,
+      "toefl_awesome": false,
+      "toefl_online_no_test": true,
+      "toefl_offline_no_test": false,
+      "drw_morning": true,
+      "drw_a": true,
+      "drw_b": true,
+      "drw_no_test": true,
+      "w_allinone": false,
+      "w_allinone_no_test": false,
+      "dm_alg1": true,
+      "dm_alg2": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "dm_alg2adv": true
+    }
+  },
+  "테스트": {
+    "weekdayName": [
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
+    ],
+    "courseTree": [
+      {
+        "cat": "카테고리 테스트",
+        "items": [
+          {
+            "label": "수학 제외",
+            "val": "c_1764666393262"
+          },
+          {
+            "label": "온라인/오프라인",
+            "val": "c_1764666439214"
+          },
+          {
+            "label": "동적 시간",
+            "val": "c_1764666495099"
+          }
+        ]
+      }
+    ],
+    "courseInfo": {
+      "c_1764666393262": {
+        "fee": 10000,
+        "days": [
+          1,
+          2,
+          3
+        ],
+        "startDays": [
+          1
+        ],
+        "endDays": [
+          3
+        ],
+        "period": 1,
+        "min": 1,
+        "max": 12,
+        "type": "week",
+        "hasMathOption": true,
+        "mathExcludedFee": 8000
+      },
+      "c_1764666439214": {
+        "fee": 99999,
+        "days": [
+          1,
+          3,
+          5
+        ],
+        "startDays": [
+          1
+        ],
+        "endDays": [
+          5
+        ],
+        "period": 1,
+        "min": 1,
+        "max": 7,
+        "type": "week",
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "c_1764666495099": {
+        "fee": 77777,
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          1
+        ],
+        "endDays": [
+          5
+        ],
+        "period": 1,
+        "min": 1,
+        "max": 7,
+        "type": "week",
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      }
+    },
+    "timeTable": {
+      "겨울특강 SAT 1500+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 1400+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 브릿지": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 아메리카반": "09:00~13:00",
+      "겨울특강 SAT 유럽반": "17:00~21:00",
+      "겨울특강 SAT RW실전반": "10:00~14:00",
+      "겨울특강 SAT 온라인 레벨테스트 미응시": "13:00~21:00",
+      "겨울특강 SAT 오프라인 레벨테스트 미응시": "09:00~17:00",
+      "겨울특강 TOEFL L1": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL L2": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL 미주반": "09:00~13:00",
+      "겨울특강 TOEFL 어썸실전": "11:00~14:00",
+      "겨울특강 TOEFL 온라인 레벨테스트 미응시": {
+        "미주": "09:00~13:00",
+        "국제": "13:30~17:30"
+      },
+      "겨울특강 TOEFL 오프라인 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 DRW 미주": "10:00~13:00",
+      "겨울특강 DRW A": "19:00~22:00",
+      "겨울특강 DRW B": "20:00~23:00",
+      "겨울특강 DRW 레벨테스트 미응시": {
+        "미주": "10:00~13:00",
+        "국제": "19:00~22:00"
+      },
+      "겨울특강 Writing 올인원": "09:00~13:00",
+      "겨울특강 W올인원 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 Algebra 1": "14:00~16:00",
+      "겨울특강 Algebra 2": {
+        "온라인": "16:10~18:10",
+        "오프라인": "14:00~16:00"
+      },
+      "겨울특강 Algebra 2 심화": "16:10~18:10",
+      "c_1764666393262": "09:00~12:00",
+      "c_1764666439214": {
+        "type": "onoff",
+        "online": "09:00~12:00",
+        "offline": "07:00~17:00"
+      },
+      "c_1764666495099": {
+        "type": "dynamic",
+        "options": [
+          {
+            "label": "1번",
+            "time": "07:77~17:77"
+          },
+          {
+            "label": "7번",
+            "time": "01:11~11:11"
+          }
+        ]
+      }
+    },
+    "recordingAvailable": {
+      "c_1764666439214": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "c_1764666495099": true
+    }
+  },
+  "빈종이": {
+    "weekdayName": [
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
+    ],
+    "courseTree": [],
+    "courseInfo": {},
+    "timeTable": {
+      "겨울특강 SAT 1500+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 1400+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 브릿지": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 아메리카반": "09:00~13:00",
+      "겨울특강 SAT 유럽반": "17:00~21:00",
+      "겨울특강 SAT RW실전반": "10:00~14:00",
+      "겨울특강 SAT 온라인 레벨테스트 미응시": "13:00~21:00",
+      "겨울특강 SAT 오프라인 레벨테스트 미응시": "09:00~17:00",
+      "겨울특강 TOEFL L1": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL L2": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL 미주반": "09:00~13:00",
+      "겨울특강 TOEFL 어썸실전": "11:00~14:00",
+      "겨울특강 TOEFL 온라인 레벨테스트 미응시": {
+        "미주": "09:00~13:00",
+        "국제": "13:30~17:30"
+      },
+      "겨울특강 TOEFL 오프라인 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 DRW 미주": "10:00~13:00",
+      "겨울특강 DRW A": "19:00~22:00",
+      "겨울특강 DRW B": "20:00~23:00",
+      "겨울특강 DRW 레벨테스트 미응시": {
+        "미주": "10:00~13:00",
+        "국제": "19:00~22:00"
+      },
+      "겨울특강 Writing 올인원": "09:00~13:00",
+      "겨울특강 W올인원 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 Algebra 1": "14:00~16:00",
+      "겨울특강 Algebra 2": {
+        "온라인": "16:10~18:10",
+        "오프라인": "14:00~16:00"
+      },
+      "겨울특강 Algebra 2 심화": "16:10~18:10"
+    },
+    "recordingAvailable": {}
+  },
+  "간트차트": {
+    "weekdayName": [
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
+    ],
+    "courseTree": [
+      {
+        "cat": "월~금",
+        "items": [
+          {
+            "val": "course_1765944157621",
+            "label": "월~금 기본"
+          },
+          {
+            "val": "course_1765944168268",
+            "label": "월~금 온라인/오프라인"
+          },
+          {
+            "val": "course_1765944239652",
+            "label": "월~금 동적시간"
+          }
+        ]
+      },
+      {
+        "cat": "토~일",
+        "items": [
+          {
+            "val": "course_1765944295529",
+            "label": "토~일 기본"
+          },
+          {
+            "val": "course_1765944316732",
+            "label": "토~일 온라인/오프라인"
+          },
+          {
+            "val": "course_1765944354336",
+            "label": "토~일 동적시간"
+          }
+        ]
+      },
+      {
+        "cat": "화,목",
+        "items": [
+          {
+            "val": "course_1765944528208",
+            "label": "화,목 기본"
+          },
+          {
+            "val": "course_1765944727495",
+            "label": "화,목 온라인/오프라인"
+          },
+          {
+            "val": "course_1765944761192",
+            "label": "화,목 동적시간"
+          }
+        ]
+      }
+    ],
+    "courseInfo": {
+      "course_1765944157621": {
+        "name": "월~금 기본",
+        "fee": 500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944168268": {
+        "name": "월~금 온라인/오프라인",
+        "fee": 1000,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944239652": {
+        "name": "월~금 동적시간",
+        "fee": 1500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          2,
+          1,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0,
+        "dynamicTime": true
+      },
+      "course_1765944295529": {
+        "name": "토~일 기본",
+        "fee": 500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944316732": {
+        "name": "토~일 온라인/오프라인",
+        "fee": 1000,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          6,
+          0
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944354336": {
+        "name": "토~일 동적시간",
+        "fee": 1500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          6,
+          0
+        ],
+        "startDays": [
+          6
+        ],
+        "endDays": [
+          0
+        ],
+        "endDay": 0,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0,
+        "dynamicTime": true
+      },
+      "course_1765944528208": {
+        "name": "화,목 기본",
+        "fee": 500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          2,
+          4
+        ],
+        "startDays": [
+          2
+        ],
+        "endDays": [
+          4
+        ],
+        "endDay": 4,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944727495": {
+        "name": "화,목 온라인/오프라인",
+        "fee": 1000,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          2,
+          4
+        ],
+        "startDays": [
+          2
+        ],
+        "endDays": [
+          4
+        ],
+        "endDay": 4,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0
+      },
+      "course_1765944761192": {
+        "name": "화,목 동적시간",
+        "fee": 1500,
+        "textbook": {
+          "defaultOption": "none",
+          "defaultAmount": 0,
+          "onlineOption": "none",
+          "onlineAmount": 0,
+          "offlineOption": "none",
+          "offlineAmount": 0,
+          "customNote": ""
+        },
+        "days": [
+          2,
+          4
+        ],
+        "startDays": [
+          2
+        ],
+        "endDays": [
+          4
+        ],
+        "endDay": 4,
+        "min": 1,
+        "max": 12,
+        "minDuration": 1,
+        "maxDuration": 12,
+        "hasMathOption": false,
+        "mathExcludedFee": 0,
+        "dynamicTime": true
+      }
+    },
+    "timeTable": {
+      "겨울특강 SAT 1500+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 1400+": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 브릿지": {
+        "온라인": "13:00~21:00",
+        "오프라인": "09:00~17:00"
+      },
+      "겨울특강 SAT 아메리카반": "09:00~13:00",
+      "겨울특강 SAT 유럽반": "17:00~21:00",
+      "겨울특강 SAT RW실전반": "10:00~14:00",
+      "겨울특강 SAT 온라인 레벨테스트 미응시": "13:00~21:00",
+      "겨울특강 SAT 오프라인 레벨테스트 미응시": "09:00~17:00",
+      "겨울특강 TOEFL L1": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL L2": {
+        "온라인": "13:30~17:30",
+        "오프라인": "09:00~13:00"
+      },
+      "겨울특강 TOEFL 미주반": "09:00~13:00",
+      "겨울특강 TOEFL 어썸실전": "11:00~14:00",
+      "겨울특강 TOEFL 온라인 레벨테스트 미응시": {
+        "미주": "09:00~13:00",
+        "국제": "13:30~17:30"
+      },
+      "겨울특강 TOEFL 오프라인 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 DRW 미주": "10:00~13:00",
+      "겨울특강 DRW A": "19:00~22:00",
+      "겨울특강 DRW B": "20:00~23:00",
+      "겨울특강 DRW 레벨테스트 미응시": {
+        "미주": "10:00~13:00",
+        "국제": "19:00~22:00"
+      },
+      "겨울특강 Writing 올인원": "09:00~13:00",
+      "겨울특강 W올인원 레벨테스트 미응시": "09:00~13:00",
+      "겨울특강 Algebra 1": "14:00~16:00",
+      "겨울특강 Algebra 2": {
+        "온라인": "16:10~18:10",
+        "오프라인": "14:00~16:00"
+      },
+      "겨울특강 Algebra 2 심화": "16:10~18:10",
+      "월~금 기본": "09:00~12:00",
+      "월~금 온라인/오프라인": {
+        "온라인": "09:00~12:00",
+        "오프라인": "21:00~09:00"
+      },
+      "월~금 동적시간": {
+        "오전": "09:00~12:00",
+        "오후": "21:00~09:00"
+      },
+      "토~일 기본": "09:00~12:00",
+      "토~일 온라인/오프라인": {
+        "온라인": "09:00~12:00",
+        "오프라인": "21:00~09:00"
+      },
+      "토~일 동적시간": {
+        "오전": "09:00~12:00",
+        "오후": "21:00~09:00"
+      },
+      "화,목 기본": "09:00~12:00",
+      "화,목 온라인/오프라인": {
+        "온라인": "09:00~12:00",
+        "오프라인": "21:00~09:00"
+      },
+      "화,목 동적시간": {
+        "오전": "09:00~13:00",
+        "오후": "21:00~09:00"
+      }
+    },
+    "recordingAvailable": {
+      "course_1765944157621": false,
+      "course_1765944168268": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "course_1765944239652": false,
+      "course_1765944295529": false,
+      "course_1765944316732": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "course_1765944354336": false,
+      "course_1765944528208": false,
+      "course_1765944727495": {
+        "온라인": true,
+        "오프라인": false
+      },
+      "course_1765944761192": false
+    }
+  }
+}

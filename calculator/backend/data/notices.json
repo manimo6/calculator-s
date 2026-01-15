@@ -1,0 +1,15 @@
+[
+  {
+    "id": "281d1f3d-cb07-452e-80aa-e5c2060a0f7d",
+    "title": "asdf",
+    "body": "asdf",
+    "targets": [
+      "admin",
+      "teacher",
+      "parttime"
+    ],
+    "author": "haminone",
+    "createdAt": "2025-12-04T20:15:38.641Z",
+    "updatedAt": "2025-12-04T20:15:38.641Z"
+  }
+]

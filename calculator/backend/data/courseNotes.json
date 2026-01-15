@@ -1,0 +1,46 @@
+[
+  {
+    "id": "d496c217-8ea6-4af3-af5e-d2dc5f7bc43c",
+    "category": "SAT",
+    "course": "겨울특강 SAT 유럽반",
+    "title": "정원",
+    "content": "15",
+    "tags": [
+      "ㅇㅇ"
+    ],
+    "updatedAt": "2025-12-05T17:47:11.751Z"
+  },
+  {
+    "id": "17cf2607-a436-47d9-85aa-8c1e8a471496",
+    "category": "Drill Math",
+    "course": "겨울특강 Algebra 1",
+    "title": "수업",
+    "content": "민",
+    "tags": [],
+    "updatedAt": "2025-12-05T17:43:14.680Z"
+  },
+  {
+    "id": "d45e5f87-9444-428e-a0d4-e2e0aa34c954",
+    "category": "Drill Math",
+    "courses": [
+      "겨울특강 Algebra 1",
+      "겨울특강 Algebra 2"
+    ],
+    "title": "dd",
+    "content": "dd",
+    "tags": [],
+    "updatedAt": "2025-12-05T18:10:23.706Z"
+  },
+  {
+    "id": "1b369619-ad4b-4208-94e8-9f3f873c8f83",
+    "category": "SAT",
+    "courses": [
+      "겨울특강 SAT 1400+",
+      "겨울특강 SAT 1500+"
+    ],
+    "title": "aa",
+    "content": "aa",
+    "tags": [],
+    "updatedAt": "2025-12-05T18:11:17.006Z"
+  }
+]

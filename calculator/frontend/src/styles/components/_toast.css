@@ -1,0 +1,20 @@
+/* Toast Notification */
+#toast {
+    visibility: hidden;
+    background: #222;
+    color: #fff;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 8px;
+    padding: 20px 40px;
+    opacity: 0;
+    z-index: 10000;
+    transition: opacity .5s, visibility .5s;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
