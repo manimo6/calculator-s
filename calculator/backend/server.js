@@ -1,3 +1,6 @@
+// Node 20.6+ native env loading fallback
+try { process.loadEnvFile(); } catch (e) { /* ignore if missing */ }
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
