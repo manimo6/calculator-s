@@ -9,7 +9,7 @@ let timeTable = {};
 let recordingAvailable = {};
 
 // API URL (환경 변수 또는 하드코딩)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // 서버에서 수업 데이터 가져오기
 async function fetchCourseData() {
