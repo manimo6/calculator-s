@@ -17,8 +17,7 @@ export default function NotesList({
     onNewNote,
     noteReadMap,
     currentUser,
-    categoryFilter,
-    courseFilter,
+    selectedCourseConfigSet,
     className
 }) {
     const username = currentUser?.username || ""
@@ -29,7 +28,7 @@ export default function NotesList({
         return date
     }
 
-    const canCreate = Boolean(categoryFilter && courseFilter)
+    const canCreate = Boolean(selectedCourseConfigSet)
 
 
     return (

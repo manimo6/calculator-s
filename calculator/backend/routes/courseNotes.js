@@ -52,6 +52,10 @@ router.get('/', async (req, res) => {
     const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
     const indexMap = buildCourseConfigSetIndexMap(setRows);
     const index = indexMap.get(setName);
+    const courseCategory = course && index
+      ? resolveCategoryForCourse({ courseName: course }, index)
+      : '';
+
     const all = await prisma.courseNote.findMany();
     const filtered = all
       .map((n) => ({
@@ -65,7 +69,15 @@ router.get('/', async (req, res) => {
       .filter((n) => {
         if (category && n.category !== category) return false;
         if (!isCategoryAllowed(n.category, access)) return false;
-        if (course && !n.courses.includes(course)) return false;
+        if (course && !n.courses.includes(course)) {
+          if (n.courses.length === 0) {
+            if (!category && (!courseCategory || n.category !== courseCategory)) {
+              return false;
+            }
+          } else {
+            return false;
+          }
+        }
         if (search) {
           const s = search.toLowerCase();
           const hay = `${n.title || ''} ${n.content || ''} ${Array.isArray(n.tags) ? n.tags.join(' ') : ''}`.toLowerCase();
@@ -127,15 +139,17 @@ router.post('/', async (req, res) => {
     const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
     const indexMap = buildCourseConfigSetIndexMap(setRows);
     const index = indexMap.get(setName);
+
     const courseList = Array.isArray(courses)
       ? courses.filter(Boolean)
       : course
         ? [course]
         : [];
-    if (!courseList.length || !title) {
-      return res.status(400).json({ status: '?¤íŒ¨', message: 'ê³¼ëª©(??ê³??œëª©?€ ?„ìˆ˜?…ë‹ˆ??' });
+    const categoryKey = String(category || '').trim();
+    if (!title || (!courseList.length && !categoryKey)) {
+      return res.status(400).json({ status: 'fail', message: 'Title and course or category are required.' });
     }
-    if (!isCategoryAllowed(category, access)) {
+    if (!isCategoryAllowed(categoryKey, access)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
     }
     if (index && courseList.length) {
@@ -154,7 +168,7 @@ router.post('/', async (req, res) => {
 
     const note = {
       id: uuidv4(),
-      category: category || '',
+      category: categoryKey,
       courses: courseList,
       title,
       content: content || '',
@@ -211,6 +225,7 @@ router.put('/:id', async (req, res) => {
     const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
     const indexMap = buildCourseConfigSetIndexMap(setRows);
     const index = indexMap.get(setName);
+
     const existing = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '?¤íŒ¨', message: 'ë©”ëª¨ë¥?ì°¾ì„ ???†ìŠµ?ˆë‹¤.' });
 
@@ -219,11 +234,13 @@ router.put('/:id', async (req, res) => {
       : course
         ? [course]
         : existing.courses || [];
-    if (!courseList.length) {
-      return res.status(400).json({ status: '?¤íŒ¨', message: 'ê³¼ëª©(???€ ë¹„ìš¸ ???†ìŠµ?ˆë‹¤.' });
+    const normalizedCategory = category !== undefined ? String(category || '').trim() : undefined;
+    const finalCategory = normalizedCategory !== undefined ? normalizedCategory : String(existing.category || '').trim();
+    if (!courseList.length && !finalCategory) {
+      return res.status(400).json({ status: 'fail', message: 'Course or category is required.' });
     }
 
-    if (category !== undefined && !isCategoryAllowed(category, access)) {
+    if (!isCategoryAllowed(finalCategory, access)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
     }
     if (index && courseList.length) {
@@ -240,7 +257,7 @@ router.put('/:id', async (req, res) => {
       where: { id },
       data: {
         courses: courseList,
-        ...(category !== undefined ? { category: category || '' } : {}),
+        ...(normalizedCategory !== undefined ? { category: normalizedCategory } : {}),
         ...(title ? { title } : {}),
         ...(content !== undefined ? { content } : {}),
         ...(tags !== undefined ? { tags: Array.isArray(tags) ? tags : [] } : {}),
@@ -286,6 +303,7 @@ router.delete('/:id', async (req, res) => {
     const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
     const indexMap = buildCourseConfigSetIndexMap(setRows);
     const index = indexMap.get(setName);
+
     const existing = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '?¤íŒ¨', message: 'ë©”ëª¨ë¥?ì°¾ì„ ???†ìŠµ?ˆë‹¤.' });
     if (!isCategoryAllowed(existing.category, access)) {
@@ -309,6 +327,9 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
 
 
 

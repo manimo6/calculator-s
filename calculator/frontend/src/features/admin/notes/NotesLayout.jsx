@@ -86,8 +86,7 @@ export default function NotesLayout({
                         onNewNote={startNewNote}
                         noteReadMap={noteReadMap}
                         currentUser={currentUser}
-                        categoryFilter={categoryFilter}
-                        courseFilter={courseFilter}
+                        selectedCourseConfigSet={selectedCourseConfigSet}
                         className="bg-transparent"
                     />
                 </ResizablePanel>

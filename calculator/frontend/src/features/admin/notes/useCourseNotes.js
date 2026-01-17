@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+﻿import { useCallback, useEffect, useMemo, useState } from "react"
 import { apiClient } from "@/api-client"
 import {
   extractCategoriesFromCourseTree,
@@ -33,6 +33,10 @@ export function useCourseNotes() {
   const courseConfigSetCategories = useMemo(
     () => extractCategoriesFromCourseTree(courseConfigSetTree),
     [courseConfigSetTree]
+  )
+  const courseConfigSetCategorySet = useMemo(
+    () => new Set(courseConfigSetCategories),
+    [courseConfigSetCategories]
   )
 
   const [loading, setLoading] = useState(false)
@@ -90,7 +94,11 @@ export function useCourseNotes() {
       const results = res?.results || []
       const filtered = results.filter((n) => {
         const courses = Array.isArray(n.courses) ? n.courses : []
-        return courses.some((c) => courseConfigSetCourseSet.has(c))
+        if (courses.length > 0) {
+          return courses.some((c) => courseConfigSetCourseSet.has(c))
+        }
+        const category = String(n?.category || "").trim()
+        return category ? courseConfigSetCategorySet.has(category) : false
       })
       setNotes(filtered)
     } catch (e) {
@@ -103,6 +111,7 @@ export function useCourseNotes() {
     categoryFilter,
     courseFilter,
     courseConfigSetCourseSet,
+    courseConfigSetCategorySet,
     search,
     selectedCourseConfigSet,
   ])
@@ -187,27 +196,33 @@ export function useCourseNotes() {
     }
 
     const title = formTitle.trim()
+    const category = String(formCategory || "").trim()
     const courses = (formCourses || []).filter(Boolean)
-    if (!courses.length || !title) {
-      setError("과목(1개 이상)과 제목은 필수입니다.")
+    const hasCourses = courses.length > 0
+    if (!title) {
+      setError("제목은 필수입니다.")
       return
     }
-
-    const invalid = courses.find((c) => !courseConfigSetCourseSet.has(c))
-    if (invalid) {
-      setError("선택한 설정 세트에 없는 과목이 포함되어 있습니다.")
+    if (!hasCourses && !category) {
+      setError("과목(1개 이상) 또는 카테고리를 선택하세요.")
       return
+    }
+    if (hasCourses) {
+      const invalid = courses.find((c) => !courseConfigSetCourseSet.has(c))
+      if (invalid) {
+        setError("선택한 과정에 포함되지 않는 과목이 있습니다.")
+        return
+      }
     }
 
     const payload = {
-      category: (formCategory || "").trim(),
+      category,
       courses,
-      course: courses[0],
+      ...(hasCourses ? { course: courses[0] } : {}),
       title,
       content: formContent || "",
       courseConfigSetName: selectedCourseConfigSet,
     }
-
     try {
       if (selectedNoteId && !isCreating) {
         // Update
@@ -294,3 +309,4 @@ export function useCourseNotes() {
     deleteNote,
   }
 }
+
