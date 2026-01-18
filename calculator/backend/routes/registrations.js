@@ -168,15 +168,7 @@ router.get(
         { createdAt: 'asc' },
       ],
     });
-
-    const setNames = rows
-      .map((row) => String(row.courseConfigSetName || '').trim())
-      .filter(Boolean);
-    const { accessMap, indexMap } = await loadAccessContext(authUser.id, setNames, isCategoryAccessBypassed(authUser));
-
-    const filteredRows = rows.filter((row) =>
-      isRegistrationAllowed(row, accessMap, indexMap, isCategoryAccessBypassed(authUser))
-    );
+    const filteredRows = rows;
     const rootIds = Array.from(
       new Set(
         filteredRows
@@ -636,20 +628,11 @@ router.get(
       _count: { course: true },
     });
 
-    const { accessMap, indexMap } = await loadAccessContext(authUser.id, [
-      courseConfigSetName,
-    ], isCategoryAccessBypassed(authUser));
-
     const results = rows
       .map((row) => ({
         course: row.course || '',
         count: Number(row._count?.course || 0),
       }))
-      .filter(
-        (row) =>
-          row.course &&
-          isCourseNameAllowed(row.course, courseConfigSetName, accessMap, indexMap, isCategoryAccessBypassed(authUser))
-      )
       .sort((a, b) => a.course.localeCompare(b.course, 'ko-KR'));
 
     res.json({ status: '?±ê³µ', results });

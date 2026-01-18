@@ -149,18 +149,9 @@ router.get('/', async (req, res) => {
       where: registrationWhere,
       select: { id: true, courseId: true, course: true, courseConfigSetName: true },
     });
-    const setNames = registrations
-      .map((row) => String(row.courseConfigSetName || '').trim())
-      .filter(Boolean);
-    const { accessMap, indexMap } = await loadAccessContext(authUser.id, setNames, isCategoryAccessBypassed(authUser));
-    const allowedSet = new Set(
-      registrations
-        .filter((row) => isRegistrationAllowed(row, accessMap, indexMap, isCategoryAccessBypassed(authUser)))
-        .map((row) => row.id)
-    );
     const filteredIds = registrationIds.length
-      ? registrationIds.filter((id) => allowedSet.has(id))
-      : Array.from(allowedSet);
+      ? registrationIds
+      : registrations.map((row) => row.id);
     if (filteredIds.length === 0) {
       return res.json({ status: 'success', results: [] });
     }
