@@ -8,6 +8,8 @@ function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
+let defaultCourseConfigSetName = '';
+
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, 'utf8');
   return JSON.parse(raw);
@@ -19,11 +21,18 @@ function normalizeCourseNote(note) {
     : note.course
       ? [note.course].filter(Boolean)
       : [];
+  const courseConfigSetName = String(
+    note.courseConfigSetName ||
+      note.course_config_set_name ||
+      defaultCourseConfigSetName ||
+      ""
+  );
 
   return {
     id: note.id,
     category: note.category || '',
     courses,
+    courseConfigSetName,
     title: note.title || '',
     content: note.content || '',
     tags: Array.isArray(note.tags) ? note.tags.filter(Boolean) : [],
@@ -65,6 +74,7 @@ async function main() {
     skipDuplicates: true,
   });
 
+  defaultCourseConfigSetName = Object.keys(courseConfigSetsObj ?? {})[0] || '';
   const courseConfigSetRows = Object.entries(courseConfigSetsObj ?? {}).map(
     ([name, data]) => ({
     name,

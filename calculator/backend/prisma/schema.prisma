@@ -281,6 +281,7 @@ model CourseNote {
   id        String   @id @db.Uuid
   category  String   @default("")
   courses   String[] @default([])
+  courseConfigSetName String
   title     String
   content   String   @default("")
   tags      String[] @default([])
@@ -290,6 +291,7 @@ model CourseNote {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([updatedAt])
+  @@index([courseConfigSetName])
   @@map("course_notes")
 }
 

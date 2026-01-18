@@ -60,7 +60,9 @@ router.get('/', async (req, res) => {
       ? resolveCategoryForCourse({ courseName: course }, index)
       : '';
 
-    const all = await prisma.courseNote.findMany();
+    const all = await prisma.courseNote.findMany({
+      where: { courseConfigSetName: setName },
+    });
     const filtered = all
       .map((n) => ({
         ...n,
@@ -172,6 +174,7 @@ router.post('/', async (req, res) => {
 
     const note = {
       id: uuidv4(),
+      courseConfigSetName: setName,
       category: categoryKey,
       courses: courseList,
       title,
@@ -232,6 +235,9 @@ router.put('/:id', async (req, res) => {
 
     const existing = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '?¤íŒ¨', message: 'ë©”ëª¨ë¥?ì°¾ì„ ???†ìŠµ?ˆë‹¤.' });
+    if (existing.courseConfigSetName !== setName) {
+      return res.status(404).json({ status: 'fail', message: 'Note not found.' });
+    }
 
     const courseList = Array.isArray(courses)
       ? courses.filter(Boolean)
@@ -306,6 +312,9 @@ router.delete('/:id', async (req, res) => {
 
     const existing = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '?¤íŒ¨', message: 'ë©”ëª¨ë¥?ì°¾ì„ ???†ìŠµ?ˆë‹¤.' });
+    if (existing.courseConfigSetName !== setName) {
+      return res.status(404).json({ status: 'fail', message: 'Note not found.' });
+    }
     if (!isCategoryAllowed(existing.category, access)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
     }
