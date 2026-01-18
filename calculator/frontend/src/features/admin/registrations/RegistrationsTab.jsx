@@ -132,6 +132,7 @@ export default function RegistrationsTab({ user }) {
     selectCourseConfigSet,
     courseConfigSetCategories,
     courseConfigSetCourseSet,
+    courseConfigSetBaseCourses,
     courseConfigSetIdToLabel,
     courseOptions,
     loadCourseConfigSets,
@@ -139,6 +140,7 @@ export default function RegistrationsTab({ user }) {
     loading,
     error,
     setError,
+    registrations,
     filteredRegistrations,
     baseRegistrations,
     variantTabs,
@@ -215,15 +217,41 @@ export default function RegistrationsTab({ user }) {
   const mergeCourseOptions = useMemo(() => {
     const seen = new Set()
     const list = []
-    for (const course of courseOptions || []) {
-      const label = typeof course === "string" ? course : course?.label
-      const key = String(label || "").trim()
-      if (!key || seen.has(key)) continue
-      seen.add(key)
-      list.push(key)
+    const selectedConfig = String(selectedCourseConfigSet || "").trim()
+    for (const registration of registrations || []) {
+      if (selectedConfig) {
+        const configName = String(registration?.courseConfigSetName || "").trim()
+        if (configName !== selectedConfig) continue
+      }
+      const courseName = String(registration?.course || "").trim()
+      if (!courseName || seen.has(courseName)) continue
+      seen.add(courseName)
+      list.push(courseName)
+    }
+    for (const course of mergeCourses || []) {
+      const courseName = String(course || "").trim()
+      if (!courseName || seen.has(courseName)) continue
+      seen.add(courseName)
+      list.push(courseName)
+    }
+    return list.sort((a, b) => a.localeCompare(b, "ko-KR"))
+  }, [mergeCourses, registrations, selectedCourseConfigSet])
+
+  const mergeCourseTabs = useMemo(() => {
+    const list = []
+    const seen = new Set()
+    for (const base of courseConfigSetBaseCourses || []) {
+      const label = String(base || "").trim()
+      if (!label || seen.has(label)) continue
+      const hasMatch = mergeCourseOptions.some((course) =>
+        String(course || "").startsWith(label)
+      )
+      if (!hasMatch) continue
+      seen.add(label)
+      list.push(label)
     }
     return list
-  }, [courseOptions])
+  }, [courseConfigSetBaseCourses, mergeCourseOptions])
 
   const transferCourseLabelMap = useMemo(() => {
     const map = new Map()
@@ -835,6 +863,7 @@ export default function RegistrationsTab({ user }) {
       {mergeManagerOpen && selectedCourseConfigSet && canManageMerges ? (
         <MergeManagerCard
           courseOptions={mergeCourseOptions}
+          courseTabs={mergeCourseTabs}
           mergeName={mergeName}
           onMergeNameChange={setMergeName}
           mergeCourses={mergeCourses}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
   SelectContent,
@@ -16,6 +17,8 @@ import {
 } from "@/components/ui/select"
 
 import { ChevronDown, X } from "lucide-react"
+
+const ALL_TAB = "__all__"
 
 function formatWeekRanges(ranges) {
   if (!Array.isArray(ranges) || ranges.length === 0) {
@@ -28,6 +31,7 @@ function formatWeekRanges(ranges) {
 
 export default function MergeManagerCard({
   courseOptions,
+  courseTabs,
   mergeName,
   onMergeNameChange,
   mergeCourses,
@@ -43,18 +47,53 @@ export default function MergeManagerCard({
   onDeleteMerge,
 }) {
   const [search, setSearch] = useState("")
+  const [courseTab, setCourseTab] = useState(ALL_TAB)
+
+  const availableTabs = useMemo(() => {
+    const bases = Array.isArray(courseTabs) ? courseTabs.filter(Boolean) : []
+    if (!bases.length) return []
+    const out = []
+    for (const base of bases) {
+      const label = String(base || "").trim()
+      if (!label) continue
+      const hasMatch = (courseOptions || []).some((course) =>
+        String(course || "").startsWith(label)
+      )
+      if (hasMatch) out.push(label)
+    }
+    return out
+  }, [courseOptions, courseTabs])
+
+  useEffect(() => {
+    if (!availableTabs.length) {
+      if (courseTab !== ALL_TAB) setCourseTab(ALL_TAB)
+      return
+    }
+    if (courseTab !== ALL_TAB && !availableTabs.includes(courseTab)) {
+      setCourseTab(ALL_TAB)
+    }
+  }, [availableTabs, courseTab])
 
   const selectedSet = useMemo(
     () => new Set((mergeCourses || []).filter(Boolean)),
     [mergeCourses]
   )
+  const tabFilteredCourses = useMemo(() => {
+    if (courseTab === ALL_TAB) return courseOptions
+    const base = String(courseTab || "").trim()
+    if (!base) return courseOptions
+    return (courseOptions || []).filter((course) =>
+      String(course || "").startsWith(base)
+    )
+  }, [courseOptions, courseTab])
   const filteredCourses = useMemo(() => {
     const query = search.trim().toLowerCase()
-    if (!query) return courseOptions
-    return courseOptions.filter((course) =>
+    const source = tabFilteredCourses || []
+    if (!query) return source
+    return source.filter((course) =>
       String(course || "").toLowerCase().includes(query)
     )
-  }, [courseOptions, search])
+  }, [tabFilteredCourses, search])
 
   const toggleCourse = (course) => {
     const value = String(course || "").trim()
@@ -143,6 +182,20 @@ export default function MergeManagerCard({
               </PopoverTrigger>
               <PopoverContent align="start" className="w-[360px] p-3">
                 <div className="space-y-3">
+                  {availableTabs.length ? (
+                    <Tabs value={courseTab} onValueChange={setCourseTab}>
+                      <div className="min-w-0 overflow-x-auto pb-1">
+                        <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
+                          <TabsTrigger value={ALL_TAB}>전체</TabsTrigger>
+                          {availableTabs.map((tab) => (
+                            <TabsTrigger key={tab} value={tab}>
+                              {tab}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                      </div>
+                    </Tabs>
+                  ) : null}
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
