@@ -31,6 +31,16 @@ const WEEK_MS = 7 * DAY_MS
 const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6]
 const API_URL = import.meta.env.VITE_API_URL || ""
 
+function getSocketBaseUrl(apiUrl) {
+  if (!apiUrl) return window.location.origin
+  try {
+    const parsed = new URL(apiUrl, window.location.origin)
+    return parsed.origin
+  } catch (err) {
+    return window.location.origin
+  }
+}
+
 const STATUS_STYLES = [
   {
     key: "pending",
@@ -378,7 +388,9 @@ export default function AttendanceBoard({
 
   useEffect(() => {
     const token = getToken()
-    const socket = io(API_URL || undefined, {
+    const socketBase = getSocketBaseUrl(API_URL)
+    const socket = io(socketBase, {
+      path: "/socket.io",
       withCredentials: true,
       auth: token ? { token } : undefined,
     })
