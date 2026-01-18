@@ -42,6 +42,7 @@ export function useCourseNotes() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [notes, setNotes] = useState([])
+  const [allNotes, setAllNotes] = useState([])
 
   const [categoryFilter, setCategoryFilter] = useState("")
   const [courseFilter, setCourseFilter] = useState("")
@@ -125,6 +126,39 @@ export function useCourseNotes() {
   useEffect(() => {
     loadNotes()
   }, [loadNotes])
+
+  const loadAllNotes = useCallback(async () => {
+    if (!selectedCourseConfigSet) {
+      setAllNotes([])
+      return
+    }
+    try {
+      const res = await apiClient.listCourseNotes({
+        courseConfigSetName: selectedCourseConfigSet,
+      })
+      const results = res?.results || []
+      const filtered = results.filter((n) => {
+        const courses = Array.isArray(n.courses) ? n.courses : []
+        const category = String(n?.category || "").trim()
+        if (courses.length > 0) {
+          return courses.some((c) => courseConfigSetCourseSet.has(c))
+        }
+        if (category) return courseConfigSetCategorySet.has(category)
+        return true
+      })
+      setAllNotes(filtered)
+    } catch (e) {
+      setAllNotes([])
+    }
+  }, [
+    courseConfigSetCourseSet,
+    courseConfigSetCategorySet,
+    selectedCourseConfigSet,
+  ])
+
+  useEffect(() => {
+    loadAllNotes()
+  }, [loadAllNotes])
 
   // 필터가 바뀌면 선택 초기화
   useEffect(() => {
@@ -236,10 +270,12 @@ export function useCourseNotes() {
         // Update
         await apiClient.updateCourseNote(selectedNoteId, payload)
         await loadNotes() // 목록 갱신
+        await loadAllNotes()
       } else {
         // Create
         const res = await apiClient.createCourseNote(payload)
         await loadNotes()
+        await loadAllNotes()
         setIsCreating(false)
         if (res && res.id) {
           setSelectedNoteId(res.id)
@@ -257,6 +293,7 @@ export function useCourseNotes() {
     formContent,
     formCourses,
     formTitle,
+    loadAllNotes,
     loadNotes,
     courseConfigSetCourseSet,
     selectedCourseConfigSet,
@@ -270,10 +307,11 @@ export function useCourseNotes() {
       await apiClient.deleteCourseNote(id, { courseConfigSetName: selectedCourseConfigSet })
       setSelectedNoteId(null) // 선택 해제
       await loadNotes()
+      await loadAllNotes()
     } catch (e) {
       setError(e?.message || "삭제에 실패했습니다.")
     }
-  }, [selectedNoteId, isCreating, loadNotes, selectedCourseConfigSet])
+  }, [selectedNoteId, isCreating, loadAllNotes, loadNotes, selectedCourseConfigSet])
 
   return {
     courseConfigSetLoading,
@@ -290,6 +328,7 @@ export function useCourseNotes() {
     loading,
     error,
     notes,
+    allNotes,
     visibleNotes,
     loadNotes,
 

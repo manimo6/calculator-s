@@ -32,6 +32,10 @@ export default function NotesLayout({
     visibleNotes,
     loadNotes, // Refresh용
 
+    noteScope,
+    onNoteScopeChange,
+    hasUnreadNotes,
+
     selectedNoteId,
     isCreating,
     startNewNote,
@@ -68,6 +72,9 @@ export default function NotesLayout({
                         onCategoryChange={setCategoryFilter}
                         courseFilter={courseFilter}
                         onCourseChange={setCourseFilter}
+                        noteScope={noteScope}
+                        onNoteScopeChange={onNoteScopeChange}
+                        hasUnreadNotes={hasUnreadNotes}
                         className="bg-transparent"
                     />
                 </ResizablePanel>

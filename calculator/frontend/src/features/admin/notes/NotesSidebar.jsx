@@ -3,6 +3,7 @@ import {
     Folder,
     FolderOpen,
     Layers,
+    Bell,
     FileText,
     ChevronRight,
     Library
@@ -30,9 +31,15 @@ export default function NotesSidebar({
     onCategoryChange,
     courseFilter,
     onCourseChange,
+    noteScope,
+    onNoteScopeChange,
+    hasUnreadNotes,
     className
 }) {
     const hasTree = courseConfigSetTree && courseConfigSetTree.length > 0
+    const showUnreadTab = Boolean(hasUnreadNotes)
+    const isUnreadSelected = noteScope === "unread"
+    const isOverallSelected = !isUnreadSelected && !categoryFilter && !courseFilter
 
     return (
         <div className={cn("flex h-full flex-col bg-secondary/30", className)}>
@@ -52,12 +59,13 @@ export default function NotesSidebar({
                 {/* 1. 전체 메모 (All Notes) */}
                 <div className="mb-6">
                     <Button
-                        variant={!categoryFilter && !courseFilter ? "secondary" : "ghost"}
+                        variant={isOverallSelected ? "secondary" : "ghost"}
                         className={cn(
                             "w-full justify-start gap-2 h-9 px-2 font-medium text-sm transition-colors",
-                            !categoryFilter && !courseFilter ? "bg-primary/10 text-primary hover:bg-primary/15" : "text-muted-foreground hover:text-foreground"
+                            isOverallSelected ? "bg-primary/10 text-primary hover:bg-primary/15" : "text-muted-foreground hover:text-foreground"
                         )}
                         onClick={() => {
+                            onNoteScopeChange?.("all")
                             onCategoryChange("")
                             onCourseChange("")
                         }}
@@ -68,6 +76,28 @@ export default function NotesSidebar({
                 </div>
 
                 {/* 2. 카테고리 트리 */}
+                {showUnreadTab ? (
+                    <div className="mb-6">
+                        <Button
+                            variant={isUnreadSelected ? "secondary" : "ghost"}
+                            className={cn(
+                                "w-full justify-start gap-2 h-9 px-2 font-medium text-sm transition-colors",
+                                isUnreadSelected
+                                    ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                            onClick={() => {
+                                onNoteScopeChange?.("unread")
+                                onCategoryChange("")
+                                onCourseChange("")
+                            }}
+                        >
+                            <Bell className="h-4 w-4" />
+                            안읽은 메모
+                        </Button>
+                    </div>
+                ) : null}
+
                 {hasTree ? (
                     <div className="space-y-1">
                         <div className="px-2 text-[11px] font-bold text-muted-foreground/50 uppercase tracking-wider mb-2">
@@ -75,8 +105,8 @@ export default function NotesSidebar({
                         </div>
                         <Accordion type="single" collapsible className="w-full space-y-1">
                             {courseConfigSetTree.map((group) => {
-                                const isCategorySelected = categoryFilter === group.cat && !courseFilter
-                                const isAnyChildSelected = categoryFilter === group.cat && courseFilter
+                                const isCategorySelected = !isUnreadSelected && categoryFilter === group.cat && !courseFilter
+                                const isAnyChildSelected = !isUnreadSelected && categoryFilter === group.cat && courseFilter
 
                                 return (
                                     <AccordionItem key={group.cat} value={group.cat} className="border-none">
@@ -90,6 +120,7 @@ export default function NotesSidebar({
                                             )}
                                             onClick={(e) => {
                                                 // 여기서는 카테고리만 선택
+                                                onNoteScopeChange?.("all")
                                                 onCategoryChange(group.cat)
                                                 onCourseChange("")
                                             }}
@@ -105,7 +136,7 @@ export default function NotesSidebar({
                                         <AccordionContent className="pb-1 pt-0.5">
                                             <div className="flex flex-col ml-4 border-l border-border/50 pl-2 mt-1 space-y-0.5">
                                                 {group.items.map((item) => {
-                                                    const isCourseSelected = courseFilter === item.label
+                                                    const isCourseSelected = !isUnreadSelected && courseFilter === item.label
                                                     return (
                                                         <Button
                                                             key={item.label}
@@ -119,6 +150,7 @@ export default function NotesSidebar({
                                                             )}
                                                             onClick={(e) => {
                                                                 e.stopPropagation()
+                                                                onNoteScopeChange?.("all")
                                                                 onCategoryChange(group.cat)
                                                                 onCourseChange(item.label)
                                                             }}
