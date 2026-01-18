@@ -170,8 +170,11 @@ function isPermissionDeniedError(error) {
 }
 
 export function useRegistrations(options = {}) {
-  const { loadMerges: shouldLoadMerges = true, loadExtensions: shouldLoadExtensions = true } =
-    options
+  const {
+    loadMerges: shouldLoadMerges = true,
+    loadExtensions: shouldLoadExtensions = true,
+    enableVariants = false,
+  } = options
   const [courseConfigSetLoading, setCourseConfigSetLoading] = useState(true)
   const [courseConfigSetError, setCourseConfigSetError] = useState("")
   const [courseConfigSets, setCourseConfigSets] = useState([])
@@ -259,6 +262,7 @@ export function useRegistrations(options = {}) {
   const [categoryFilter, setCategoryFilter] = useState("")
   const [courseFilter, setCourseFilter] = useState("")
   const [search, setSearch] = useState("")
+  const [variantFilter, setVariantFilter] = useState("")
 
   const [mergeManagerOpen, setMergeManagerOpen] = useState(false)
   const [mergeName, setMergeName] = useState("")
@@ -584,7 +588,7 @@ export function useRegistrations(options = {}) {
     })
   }, [categoryFilter, courseOptions, getCategoryForCourseValue])
 
-  const baseRegistrations = useMemo(() => {
+  const preVariantRegistrations = useMemo(() => {
     if (!selectedCourseConfigSet) return []
     if (courseConfigSetCourseSet.size === 0 && courseConfigSetCourseIdSet.size === 0) return []
 
@@ -639,6 +643,49 @@ export function useRegistrations(options = {}) {
     search,
     selectedCourseConfigSet,
   ])
+
+  const variantTabs = useMemo(() => {
+    if (!enableVariants) return []
+    const map = new Map()
+    for (const registration of preVariantRegistrations || []) {
+      const courseName = normalizeCourse(registration?.course)
+      if (!courseName) continue
+      const entry = map.get(courseName)
+      if (entry) {
+        entry.count += 1
+        continue
+      }
+      map.set(courseName, { key: courseName, label: courseName, count: 1 })
+    }
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.label.localeCompare(b.label, "ko-KR")
+    )
+  }, [enableVariants, preVariantRegistrations])
+
+  useEffect(() => {
+    if (!enableVariants) {
+      if (variantFilter) setVariantFilter("")
+      return
+    }
+    if (!variantTabs.length) {
+      if (variantFilter) setVariantFilter("")
+      return
+    }
+    if (!variantFilter || !variantTabs.some((tab) => tab.key === variantFilter)) {
+      setVariantFilter(variantTabs[0].key)
+    }
+  }, [enableVariants, variantFilter, variantTabs])
+
+  const baseRegistrations = useMemo(() => {
+    if (!enableVariants) return preVariantRegistrations
+    const fallbackVariant = variantTabs[0]?.key || ""
+    const activeVariant = normalizeCourse(variantFilter || fallbackVariant)
+    if (!activeVariant) return []
+    return (preVariantRegistrations || []).filter(
+      (registration) => normalizeCourse(registration?.course) === activeVariant
+    )
+  }, [enableVariants, preVariantRegistrations, variantFilter, variantTabs])
 
   const filteredRegistrations = useMemo(() => {
     if (!courseFilter) return baseRegistrations
@@ -759,6 +806,7 @@ export function useRegistrations(options = {}) {
     setCategoryFilter("")
     setCourseFilter("")
     setSearch("")
+    setVariantFilter("")
   }, [])
 
   const changeCategoryFilter = useCallback((nextCategory) => {
@@ -789,6 +837,9 @@ export function useRegistrations(options = {}) {
     extensionsError,
     baseRegistrations,
     filteredRegistrations,
+    variantTabs,
+    variantFilter,
+    setVariantFilter,
     loadRegistrations,
     loadExtensions,
 

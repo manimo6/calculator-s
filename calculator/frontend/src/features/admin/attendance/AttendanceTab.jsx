@@ -1,6 +1,8 @@
 ﻿import React, { useCallback, useMemo } from "react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { courseInfo, courseTree } from "@/utils/data"
 
@@ -72,6 +74,9 @@ export default function AttendanceTab({ user }) {
     loading,
     error,
     filteredRegistrations,
+    variantTabs,
+    variantFilter,
+    setVariantFilter,
     loadRegistrations,
 
     mergeOptionsForFilter,
@@ -84,7 +89,7 @@ export default function AttendanceTab({ user }) {
     setSearch,
 
     courseOptionsForFilter,
-  } = useRegistrations({ loadMerges: false, loadExtensions: false })
+  } = useRegistrations({ loadMerges: false, loadExtensions: false, enableVariants: true })
 
   const selectedCourseConfigSetObj = useMemo(
     () =>
@@ -142,10 +147,54 @@ export default function AttendanceTab({ user }) {
         onSearchChange={setSearch}
         loading={loading}
         onRefresh={loadRegistrations}
-        showCourseFilter
+        showCourseFilter={false}
         showSearch
         showMergeManager={false}
       />
+
+      {variantTabs.length ? (
+        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+          <Tabs
+            value={variantFilter}
+            onValueChange={setVariantFilter}
+            className="w-full"
+          >
+            <div className="min-w-0 overflow-x-auto pb-1 no-scrollbar">
+              <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
+                {variantTabs.map((tab) => {
+                  const isActive = variantFilter === tab.key
+                  const tabClassName = isActive
+                    ? "group flex max-w-[240px] items-center gap-2 rounded-full border border-slate-300/60 bg-[linear-gradient(135deg,#FAD6FF_0%,#D9E7FF_52%,#FFE7C7_100%)] px-3 py-2 text-xs font-normal leading-tight text-slate-900 shadow-md"
+                    : "group flex max-w-[240px] items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-2 text-xs font-normal leading-tight text-muted-foreground shadow-sm transition hover:bg-muted/60"
+
+                  return (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className={tabClassName}
+                      title={tab.label}
+                    >
+                      <span className="min-w-0 truncate font-tab font-bold tracking-[0.008em]">
+                        {tab.label}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className={`h-5 rounded-full px-2 text-[11px] font-semibold leading-tight ${
+                          isActive
+                            ? "bg-white/70 text-slate-900"
+                            : "bg-background/70 text-muted-foreground"
+                        }`}
+                      >
+                        {tab.count}
+                      </Badge>
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+            </div>
+          </Tabs>
+        </div>
+      ) : null}
 
       {!selectedCourseConfigSet ? (
         <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
