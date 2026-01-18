@@ -9,8 +9,10 @@ import {
 } from "date-fns"
 import { ko } from "date-fns/locale"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { io } from "socket.io-client"
 
 import { apiClient } from "@/api-client"
+import { getToken } from "@/auth-store"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -27,6 +29,7 @@ const ROW_HEIGHT_PX = 50
 const DAY_MS = 24 * 60 * 60 * 1000
 const WEEK_MS = 7 * DAY_MS
 const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6]
+const API_URL = import.meta.env.VITE_API_URL || ""
 
 const STATUS_STYLES = [
   {
@@ -187,6 +190,11 @@ export default function AttendanceBoard({
         .filter(Boolean),
     [registrations]
   )
+  const registrationIdSet = useMemo(
+    () => new Set(registrationIds),
+    [registrationIds]
+  )
+  const monthKey = useMemo(() => format(month, "yyyy-MM"), [month])
 
   const rowMetaMap = useMemo(() => {
     const resolver =
@@ -331,6 +339,61 @@ export default function AttendanceBoard({
       }
     })
   }, [])
+
+  const applySocketUpdates = useCallback(
+    (updates) => {
+      if (!Array.isArray(updates) || updates.length === 0) return
+      setCellStatuses((prev) => {
+        let next = prev
+        for (const update of updates) {
+          const registrationId = String(update?.registrationId || "").trim()
+          const dateKey = String(update?.date || "").trim()
+          const status = String(update?.status || "").trim()
+          if (!registrationId || !dateKey || !status) continue
+          if (!registrationIdSet.has(registrationId)) continue
+          if (monthKey && !dateKey.startsWith(monthKey)) continue
+
+          const rowStatus = next[registrationId] || {}
+          const existing = rowStatus[dateKey]
+          if (status === "pending") {
+            if (!existing) continue
+            if (next === prev) next = { ...prev }
+            const updatedRow = { ...rowStatus }
+            delete updatedRow[dateKey]
+            next[registrationId] = updatedRow
+            continue
+          }
+          if (existing === status) continue
+          if (next === prev) next = { ...prev }
+          next[registrationId] = {
+            ...rowStatus,
+            [dateKey]: status,
+          }
+        }
+        return next
+      })
+    },
+    [monthKey, registrationIdSet]
+  )
+
+  useEffect(() => {
+    const token = getToken()
+    const socket = io(API_URL || undefined, {
+      withCredentials: true,
+      auth: token ? { token } : undefined,
+    })
+
+    const handleUpdate = (payload) => {
+      applySocketUpdates(payload?.updates)
+    }
+
+    socket.on("attendance:update", handleUpdate)
+
+    return () => {
+      socket.off("attendance:update", handleUpdate)
+      socket.disconnect()
+    }
+  }, [applySocketUpdates])
 
   const persistAttendance = useCallback(async (registrationId, dateKey, status) => {
     if (!registrationId) return

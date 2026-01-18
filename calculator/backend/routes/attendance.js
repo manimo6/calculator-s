@@ -14,6 +14,7 @@ const {
   isCategoryAccessBypassed,
   resolveCategoryForCourse,
 } = require('../services/categoryAccessService');
+const { emitAttendanceUpdates } = require('../realtime/socket');
 
 const router = express.Router();
 
@@ -284,7 +285,14 @@ router.post('/', async (req, res) => {
       return { upserted, deleted };
     });
 
+    const updates = normalized.map((entry) => ({
+      registrationId: entry.registrationId,
+      date: formatDateOnly(entry.date),
+      status: entry.status,
+    }));
+
     res.json({ status: 'success', ...result });
+    void emitAttendanceUpdates({ updates, registrations });
   } catch (error) {
     console.error('Failed to save attendance records:', error);
     res.status(500).json({

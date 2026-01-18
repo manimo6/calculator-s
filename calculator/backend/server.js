@@ -2,10 +2,12 @@
 try { process.loadEnvFile(); } catch (e) { /* ignore if missing */ }
 
 const express = require('express');
+const { createServer } = require('http');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { CORS_ORIGIN, TRUST_PROXY } = require('./config');
 const { csrfMiddleware } = require('./middleware/csrfMiddleware');
+const { initSocket } = require('./realtime/socket');
 
 const studentRoutes = require('./routes/students');
 const courseRoutes = require('./routes/courses');
@@ -63,7 +65,10 @@ app.use('/api/calendar-notes', calendarNotesRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/registration-extensions', registrationExtensionsRoutes);
 
-app.listen(port, () => {
+const httpServer = createServer(app);
+initSocket(httpServer, allowedOrigins);
+
+httpServer.listen(port, () => {
   console.log(`
     ===============================================================
           🔥 백엔드 서버가 성공적으로 작동했습니다! 🔥
