@@ -1,6 +1,6 @@
 import React, { useState, useReducer, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { applyCourseConfigSetData, courseConfigSetName, courseInfo } from '../../utils/data.js';
+import { applyCourseConfigSetData, courseConfigSetName, courseInfo, resetCourseConfigSetData } from '../../utils/data.js';
 import { createCartItem, calculateTotalFee } from '../../utils/calculatorLogic.js';
 import { generateClipboardText } from '../../utils/clipboardUtils.js';
 import { loadClipboardHistory, saveClipboardHistoryEntry, CLIPBOARD_HISTORY_LIMIT } from '../../utils/clipboardHistory.js';
@@ -382,12 +382,27 @@ const StudentForm = () => {
     const [courseConfigSetMap, setCourseConfigSetMap] = useState({});
     const [selectedCourseConfigSet, setSelectedCourseConfigSet] = useState(() => {
         const stored = readStoredCourseConfigSet(storageScope);
-        return stored || courseConfigSetName;
+        return stored;
     });
     const [isCourseConfigSetLoading, setIsCourseConfigSetLoading] = useState(false);
     const [isSetPickerOpen, setIsSetPickerOpen] = useState(false);
     const refreshCooldownRef = useRef(0);
     const courseConfigSetLoadingRef = useRef(false);
+
+    useEffect(() => {
+        const stored = readStoredCourseConfigSet(storageScope);
+        setSelectedCourseConfigSet(stored);
+        if (!stored) {
+            resetCourseConfigSetData();
+            setEditingId(null);
+            setErrorMsg(null);
+            setIsHistoryOpen(false);
+            setIsClipboardHistoryOpen(false);
+            setSavedClipboardText('');
+            setCanCopy(false);
+            dispatch({ type: 'RESET_FOR_CONFIG' });
+        }
+    }, [storageScope]);
 
     // Helper: Trigger Legacy Toast
     const showToast = useCallback((message) => {
@@ -439,15 +454,11 @@ const StudentForm = () => {
             if (storedSelected && !storedValid) {
                 writeStoredCourseConfigSet(storageScope, "");
             }
-            const fallback =
-                courseConfigSetName && names.includes(courseConfigSetName)
-                    ? courseConfigSetName
-                    : '';
             const nextSelected = storedValid
                 ? storedSelected
                 : selectedCourseConfigSet && names.includes(selectedCourseConfigSet)
                     ? selectedCourseConfigSet
-                    : fallback;
+                    : '';
             if (nextSelected !== selectedCourseConfigSet) {
                 setSelectedCourseConfigSet(nextSelected);
             }
@@ -458,6 +469,8 @@ const StudentForm = () => {
             const shouldApply = forceApply || !hasProgress;
             if (nextSelected && map[nextSelected] && shouldApply) {
                 applyCourseConfigSetData(nextSelected, map[nextSelected]);
+            } else if (!nextSelected && shouldApply) {
+                resetCourseConfigSetData();
             }
         } catch (e) {
             setCourseConfigSetList([]);
@@ -473,6 +486,7 @@ const StudentForm = () => {
         showToast,
         state.cart.length,
         state.mainCourseKey,
+        resetCourseConfigSetData,
         storageScope,
     ]);
 
@@ -864,7 +878,11 @@ const StudentForm = () => {
                             {/* Course Selection */}
                             <div className="space-y-2">
                                 <Label className="text-muted-foreground ml-1">수강 과목</Label>
-                                {!state.mainCourseKey ? (
+                                {!selectedCourseConfigSet ? (
+                                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+                                        <span>설정 세트를 먼저 선택하세요.</span>
+                                    </div>
+                                ) : !state.mainCourseKey ? (
                                     <CourseSelector key={selectedCourseConfigSet || 'default'} onSelect={handleSelectCourse} />
                                 ) : (
                                     <div className="flex justify-between items-center p-4 bg-secondary/30 border border-border rounded-xl">

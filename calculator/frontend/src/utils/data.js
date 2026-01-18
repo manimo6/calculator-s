@@ -3,7 +3,8 @@
 // data.js 파일
 
 // 초기값은 빈 상태로 시작, fetchCourseData()를 통해 서버에서 로드됨
-let weekdayName = ['일', '월', '화', '수', '목', '금', '토']; // 요일은 고정이어도 무방하지만 일관성을 위해
+const DEFAULT_WEEKDAY_NAME = ['일', '월', '화', '수', '목', '금', '토']; // 요일은 고정이어도 무방하지만 일관성을 위해
+let weekdayName = [...DEFAULT_WEEKDAY_NAME];
 let courseTree = [];
 let courseToCatMap = {};
 let courseInfo = {};
@@ -46,6 +47,20 @@ function applyCourseConfigSetData(name, data) {
   }
 
   return true;
+}
+
+function resetCourseConfigSetData() {
+  setCourseConfigSetName('');
+
+  weekdayName.length = 0;
+  weekdayName.push(...DEFAULT_WEEKDAY_NAME);
+
+  courseTree.length = 0;
+
+  Object.keys(courseInfo).forEach(key => delete courseInfo[key]);
+  Object.keys(timeTable).forEach(key => delete timeTable[key]);
+  Object.keys(recordingAvailable).forEach(key => delete recordingAvailable[key]);
+  Object.keys(courseToCatMap).forEach(key => delete courseToCatMap[key]);
 }
 
 // 서버에서 수업 데이터 가져오기
@@ -113,6 +128,7 @@ export {
   courseConfigSetName,
   setCourseConfigSetName,
   applyCourseConfigSetData,
+  resetCourseConfigSetData,
   fetchCourseData, // Export fetch function
   getCourseName // Export helper function
 };
