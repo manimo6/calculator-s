@@ -149,9 +149,23 @@ router.get('/', async (req, res) => {
       where: registrationWhere,
       select: { id: true, courseId: true, course: true, courseConfigSetName: true },
     });
+    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
+    const setNames = registrations
+      .map((row) => String(row.courseConfigSetName || '').trim())
+      .filter(Boolean);
+    const { accessMap, indexMap } = await loadAccessContext(
+      authUser.id,
+      setNames,
+      bypassCategoryAccess
+    );
+    const allowedIds = new Set(
+      registrations
+        .filter((row) => isRegistrationAllowed(row, accessMap, indexMap, bypassCategoryAccess))
+        .map((row) => row.id)
+    );
     const filteredIds = registrationIds.length
-      ? registrationIds
-      : registrations.map((row) => row.id);
+      ? registrationIds.filter((id) => allowedIds.has(id))
+      : registrations.map((row) => row.id).filter((id) => allowedIds.has(id));
     if (filteredIds.length === 0) {
       return res.json({ status: 'success', results: [] });
     }

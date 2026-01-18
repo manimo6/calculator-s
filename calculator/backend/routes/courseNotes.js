@@ -37,12 +37,23 @@ router.get('/', async (req, res) => {
       });
     }
 
+    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
+    const accessPromise = bypassCategoryAccess
+      ? Promise.resolve([])
+      : prisma.userCategoryAccess.findMany({
+          where: { userId: authUser.id, courseConfigSetName: setName },
+          select: { courseConfigSetName: true, categoryKey: true, effect: true },
+        });
     const setPromise = prisma.courseConfigSet.findMany({
       where: { name: { in: [setName] } },
       select: { name: true, data: true },
     });
-    const setRows = await setPromise;
-    const access = getAccessForSet(new Map(), setName, true);
+    const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
+    const access = getAccessForSet(
+      buildCategoryAccessMap(accessRows),
+      setName,
+      bypassCategoryAccess
+    );
     const indexMap = buildCourseConfigSetIndexMap(setRows);
     const index = indexMap.get(setName);
     const courseCategory = course && index

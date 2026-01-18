@@ -168,7 +168,18 @@ router.get(
         { createdAt: 'asc' },
       ],
     });
-    const filteredRows = rows;
+    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
+    const setNames = rows
+      .map((row) => String(row.courseConfigSetName || '').trim())
+      .filter(Boolean);
+    const { accessMap, indexMap } = await loadAccessContext(
+      authUser.id,
+      setNames,
+      bypassCategoryAccess
+    );
+    const filteredRows = rows.filter((row) =>
+      isRegistrationAllowed(row, accessMap, indexMap, bypassCategoryAccess)
+    );
     const rootIds = Array.from(
       new Set(
         filteredRows
@@ -628,7 +639,23 @@ router.get(
       _count: { course: true },
     });
 
-    const results = rows
+    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
+    const { accessMap, indexMap } = await loadAccessContext(
+      authUser.id,
+      [courseConfigSetName],
+      bypassCategoryAccess
+    );
+    const allowedRows = rows.filter((row) =>
+      isCourseNameAllowed(
+        row.course || '',
+        courseConfigSetName,
+        accessMap,
+        indexMap,
+        bypassCategoryAccess
+      )
+    );
+
+    const results = allowedRows
       .map((row) => ({
         course: row.course || '',
         count: Number(row._count?.course || 0),

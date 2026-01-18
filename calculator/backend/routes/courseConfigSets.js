@@ -9,6 +9,7 @@ const {
 } = require('../middleware/permissionMiddleware');
 const {
   buildCategoryAccessMap,
+  filterCourseConfigSetData,
   getAccessForSet,
   getAllowedCategories,
   isCategoryAccessBypassed,
@@ -35,13 +36,24 @@ router.get(
         return res.status(401).json({ status: 'fail', message: 'Missing auth.' });
       }
 
+      const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
       const rows = await prisma.courseConfigSet.findMany({
         select: { name: true, data: true },
       });
 
+      const setNames = rows.map((row) => row.name).filter(Boolean);
+      const accessRows = bypassCategoryAccess || setNames.length === 0
+        ? []
+        : await prisma.userCategoryAccess.findMany({
+            where: { userId: authUser.id, courseConfigSetName: { in: setNames } },
+            select: { courseConfigSetName: true, categoryKey: true, effect: true },
+          });
+      const accessMap = buildCategoryAccessMap(accessRows);
+
       const courseConfigSets = {};
       for (const row of rows) {
-        courseConfigSets[row.name] = row.data;
+        const access = getAccessForSet(accessMap, row.name, bypassCategoryAccess);
+        courseConfigSets[row.name] = filterCourseConfigSetData(row.data || {}, access);
       }
 
       res.json(courseConfigSets);
