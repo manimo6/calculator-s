@@ -92,13 +92,19 @@ export function useCourseNotes() {
 
       const res = await apiClient.listCourseNotes(params)
       const results = res?.results || []
+      const isOverallView = !categoryFilter && !courseFilter
       const filtered = results.filter((n) => {
         const courses = Array.isArray(n.courses) ? n.courses : []
+        const category = String(n?.category || "").trim()
+
+        if (isOverallView) {
+          return courses.length === 0 && !category
+        }
         if (courses.length > 0) {
           return courses.some((c) => courseConfigSetCourseSet.has(c))
         }
-        const category = String(n?.category || "").trim()
-        return category ? courseConfigSetCategorySet.has(category) : false
+        if (category) return courseConfigSetCategorySet.has(category)
+        return false
       })
       setNotes(filtered)
     } catch (e) {
@@ -204,8 +210,10 @@ export function useCourseNotes() {
       return
     }
     if (!hasCourses && !category) {
-      setError("과목(1개 이상) 또는 카테고리를 선택하세요.")
-      return
+      if (categoryFilter || courseFilter) {
+        setError("전체 메모는 전체 메모 탭에서만 작성할 수 있습니다.")
+        return
+      }
     }
     if (hasCourses) {
       const invalid = courses.find((c) => !courseConfigSetCourseSet.has(c))
@@ -243,6 +251,8 @@ export function useCourseNotes() {
   }, [
     selectedNoteId,
     isCreating,
+    categoryFilter,
+    courseFilter,
     formCategory,
     formContent,
     formCourses,

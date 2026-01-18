@@ -139,10 +139,10 @@ router.post('/', async (req, res) => {
         ? [course]
         : [];
     const categoryKey = String(category || '').trim();
-    if (!title || (!courseList.length && !categoryKey)) {
-      return res.status(400).json({ status: 'fail', message: 'Title and course or category are required.' });
+    if (!title) {
+      return res.status(400).json({ status: 'fail', message: 'Title is required.' });
     }
-    if (!isCategoryAllowed(categoryKey, access)) {
+    if (categoryKey && !isCategoryAllowed(categoryKey, access)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
     }
     if (index && courseList.length) {
@@ -229,11 +229,7 @@ router.put('/:id', async (req, res) => {
         : existing.courses || [];
     const normalizedCategory = category !== undefined ? String(category || '').trim() : undefined;
     const finalCategory = normalizedCategory !== undefined ? normalizedCategory : String(existing.category || '').trim();
-    if (!courseList.length && !finalCategory) {
-      return res.status(400).json({ status: 'fail', message: 'Course or category is required.' });
-    }
-
-    if (!isCategoryAllowed(finalCategory, access)) {
+    if (finalCategory && !isCategoryAllowed(finalCategory, access)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
     }
     if (index && courseList.length) {
