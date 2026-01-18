@@ -12,6 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const areArraysEqual = (a = [], b = []) => a.length === b.length && a.every((v, i) => v === b[i]);
@@ -315,6 +316,44 @@ const SingleCourseOptions = ({
         return `${d.getMonth() + 1}/${d.getDate()}(${weekdayName[d.getDay()]})`;
     };
 
+    const getWeekRangeLabel = (weekIndex) => {
+        if (!inputs.startDate) return "";
+        const start = parseDateOnly(inputs.startDate);
+        if (!start) return "";
+        const weekStart = new Date(start.getFullYear(), start.getMonth(), start.getDate() + (weekIndex - 1) * 7);
+        const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+        const rawDays =
+            Array.isArray(c.days) && c.days.length > 0
+                ? c.days
+                : allowedStartDays;
+        const classDays = (Array.isArray(rawDays) ? rawDays : [])
+            .map((d) => Number(d))
+            .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+            .sort((a, b) => a - b);
+
+        let classDates = [];
+        if (classDays.length > 0) {
+            classDates = classDays
+                .map((day) => {
+                    const offset = (day - weekStart.getDay() + 7) % 7;
+                    const date = new Date(
+                        weekStart.getFullYear(),
+                        weekStart.getMonth(),
+                        weekStart.getDate() + offset
+                    );
+                    return date >= weekStart && date <= weekEnd ? date : null;
+                })
+                .filter(Boolean)
+                .sort((a, b) => a - b);
+        }
+
+        const rangeStart = classDates.length ? classDates[0] : weekStart;
+        const rangeEnd = classDates.length ? classDates[classDates.length - 1] : weekEnd;
+        const startLabel = format(rangeStart, "M/d(eee)", { locale: ko });
+        const endLabel = format(rangeEnd, "M/d(eee)", { locale: ko });
+        return startLabel === endLabel ? startLabel : `${startLabel} ~ ${endLabel}`;
+    };
+
     const handleCalendarSelect = (date) => {
         if (date) {
             onChange('startDate', format(date, 'yyyy-MM-dd'));
@@ -542,33 +581,44 @@ const SingleCourseOptions = ({
                             <span>+ 휴강 {normalizedSkipWeeks.length}주</span>
                             <span>= 총 {scheduleWeeks}주 일정</span>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {weekChips.map((week) => {
-                                const isSkipped = normalizedSkipWeeks.includes(week);
-                                const isDisabled = week === 1;
-                                return (
-                                    <Button
-                                        key={week}
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={isDisabled}
-                                        aria-pressed={isSkipped}
-                                        onClick={() => handleSkipWeekToggle(week)}
-                                        className={cn(
-                                            "h-8 rounded-full px-3 text-xs font-semibold transition",
-                                            isSkipped
-                                                ? "border-primary bg-primary/10 text-primary shadow-sm"
-                                                : "bg-background",
-                                            isDisabled ? "opacity-40" : "hover:bg-accent"
-                                        )}
-                                        data-state={isSkipped ? "on" : "off"}
-                                    >
-                                        {week}주차
-                                    </Button>
-                                );
-                            })}
-                        </div>
+                        <TooltipProvider delayDuration={180}>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {weekChips.map((week) => {
+                                    const isSkipped = normalizedSkipWeeks.includes(week);
+                                    const isDisabled = week === 1;
+                                    const rangeLabel = getWeekRangeLabel(week);
+                                    return (
+                                        <Tooltip key={week}>
+                                            <TooltipTrigger asChild>
+                                                <span className="inline-flex">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={isDisabled}
+                                                        aria-pressed={isSkipped}
+                                                        onClick={() => handleSkipWeekToggle(week)}
+                                                        className={cn(
+                                                            "h-8 rounded-full px-3 text-xs font-semibold transition",
+                                                            isSkipped
+                                                                ? "border-primary bg-primary/10 text-primary shadow-sm"
+                                                                : "bg-background",
+                                                            isDisabled ? "opacity-40" : "hover:bg-accent"
+                                                        )}
+                                                        data-state={isSkipped ? "on" : "off"}
+                                                    >
+                                                        {week}주차
+                                                    </Button>
+                                                </span>
+                                            </TooltipTrigger>
+                                            {rangeLabel ? (
+                                                <TooltipContent>{rangeLabel}</TooltipContent>
+                                            ) : null}
+                                        </Tooltip>
+                                    );
+                                })}
+                            </div>
+                        </TooltipProvider>
                         <p className="mt-2 text-xs text-muted-foreground">
                             마지막 주차를 휴강으로 선택하면 다음 주차가 자동으로 추가됩니다.
                         </p>
