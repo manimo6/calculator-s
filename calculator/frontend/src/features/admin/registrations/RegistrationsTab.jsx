@@ -180,7 +180,7 @@ export default function RegistrationsTab({ user }) {
   } = useRegistrations({
     loadMerges: canAccessRegistrations,
     loadExtensions: canViewInstallments,
-    enableVariants: true,
+    enableVariants: false,
   })
 
   const selectedCourseConfigSetObj = useMemo(
