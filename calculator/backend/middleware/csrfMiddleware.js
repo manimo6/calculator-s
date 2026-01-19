@@ -7,9 +7,6 @@ function csrfMiddleware(req, res, next) {
   if (SAFE_METHODS.has(req.method)) return next();
   if (EXEMPT_PATHS.has(req.path)) return next();
 
-  const authCookie = req.cookies?.[AUTH_COOKIE_NAME];
-  if (!authCookie) return next();
-
   const csrfCookie = req.cookies?.[CSRF_COOKIE_NAME];
   const csrfHeader = req.headers['x-csrf-token'];
 
@@ -20,6 +17,7 @@ function csrfMiddleware(req, res, next) {
     });
   }
   return next();
+
 }
 
 module.exports = { csrfMiddleware };

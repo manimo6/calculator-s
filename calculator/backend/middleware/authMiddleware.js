@@ -13,21 +13,24 @@ function authMiddleware(requiredRoles = [], options = {}) {
 
       const payload = await verify(token);
       if (payload?.tokenUse === 'refresh') {
-        return res.status(401).json({ status: '?¤íŒ¨', message: 'Invalid token.' });
+        return res.status(401).json({ status: '실패', message: 'Invalid token.' });
       }
+
       const user = await prisma.user.findUnique({
         where: { username: payload.username },
         select: { id: true, username: true, role: true, tokenVersion: true, mustChangePassword: true },
       });
       if (!user) {
-        return res.status(401).json({ status: '?¤íŒ¨', message: 'Missing token.' });
+        return res.status(401).json({ status: '실패', message: 'Missing token.' });
       }
+
       const payloadVersion = Number.isInteger(payload.tokenVersion)
         ? payload.tokenVersion
         : null;
       if (payloadVersion === null || user.tokenVersion !== payloadVersion) {
-        return res.status(401).json({ status: '?¤íŒ¨', message: 'Invalid token.' });
+        return res.status(401).json({ status: '실패', message: 'Invalid token.' });
       }
+
       req.user = {
         ...payload,
         username: user.username,

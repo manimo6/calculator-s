@@ -35,11 +35,12 @@ const allowedOrigins = String(CORS_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowAnyOrigin = allowedOrigins.includes('*');
 const corsOptions = {
-  credentials: true,
+  credentials: !allowAnyOrigin,
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes('*')) return callback(null, true);
+    if (allowAnyOrigin) return callback(null, true);
+    if (!origin) return callback(null, false);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },

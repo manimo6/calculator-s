@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -43,7 +43,7 @@ const CalendarNoteDialog = ({
         try {
             if (editingNoteId) {
                 const updated = await apiClient.updateCalendarNote(editingNoteId, { content: newNoteContent });
-                onNoteSaved(updated);
+                onNoteSaved(updated?.note || updated);
             } else {
                 const dateStr = date ? format(date, "yyyy-MM-dd") : "";
                 const created = await apiClient.createCalendarNote({
@@ -51,8 +51,9 @@ const CalendarNoteDialog = ({
                     content: newNoteContent,
                     author: user?.username || "Unknown"
                 });
-                onNoteSaved(created);
+                onNoteSaved(created?.note || created);
             }
+
             setNewNoteContent("");
             setEditingNoteId(null);
         } catch (error) {

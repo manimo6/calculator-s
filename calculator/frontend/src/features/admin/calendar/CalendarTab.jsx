@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewMonthGrid } from '@schedule-x/calendar';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
@@ -138,11 +138,13 @@ const CalendarTab = ({ user, isActive = true }) => {
         try {
             const monthStr = format(monthDate, "yyyy-MM");
             const fetchedNotes = await apiClient.listCalendarNotes({ month: monthStr });
-            setNotes(fetchedNotes || []);
+            const noteList = fetchedNotes?.notes || fetchedNotes || [];
+            setNotes(noteList);
             didFetch = true;
 
             // Sync with Schedule-X with VALIDATION
-            mappedEvents = (fetchedNotes || [])
+            mappedEvents = (noteList || [])
+
                 .filter(note => note && note.date) // Basic check
                 .map(note => {
                     try {

@@ -1,4 +1,4 @@
-﻿import { apiClient } from '../api-client.js';
+import { apiClient } from '../api-client.js';
 
 // data.js 파일
 
@@ -93,11 +93,13 @@ async function fetchCourseData() {
 
     // courseToCatMap 재생성
     Object.keys(courseToCatMap).forEach(key => delete courseToCatMap[key]);
-    for (const group of courseTree) {
-      for (const item of group.items) {
-        courseToCatMap[item.val] = group.cat;
-      }
+  for (const group of courseTree) {
+    const items = Array.isArray(group.items) ? group.items : [];
+    for (const item of items) {
+      courseToCatMap[item.val] = group.cat;
     }
+  }
+
 
     console.log('Course data loaded successfully:', courseTree.length, 'categories');
     return true;
@@ -111,12 +113,14 @@ async function fetchCourseData() {
 // 과목 키로 과목 이름 가져오기 (courseTree에서 검색)
 function getCourseName(courseKey) {
   for (const group of courseTree) {
-    const item = group.items.find(i => i.val === courseKey);
+    const items = Array.isArray(group.items) ? group.items : [];
+    const item = items.find(i => i.val === courseKey);
     if (item) return item.label;
   }
   // 기존 데이터 호환성: courseInfo에 name이 있으면 사용
   return courseInfo[courseKey]?.name || courseKey;
 }
+
 
 export {
   weekdayName,

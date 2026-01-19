@@ -9,7 +9,11 @@ const StudentPage = () => {
     useEffect(() => {
         const loadData = async () => {
             const success = await fetchCourseData();
-            if (success) setDataLoaded(true);
+            if (success) {
+                setDataLoaded(true);
+                return;
+            }
+            setDataLoaded(false);
         };
         loadData();
     }, []);
@@ -19,10 +23,13 @@ const StudentPage = () => {
             {dataLoaded ? (
                 <StudentForm />
             ) : (
-                <div style={{ textAlign: 'center', padding: '50px' }}>Loading Data...</div>
+                <div style={{ textAlign: 'center', padding: '50px' }}>
+                    데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.
+                </div>
             )}
         </Layout>
     );
+
 };
 
 export default StudentPage;

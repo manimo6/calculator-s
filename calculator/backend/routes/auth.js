@@ -209,6 +209,15 @@ router.post('/reauth', authMiddleware(), async (req, res) => {
 // POST /api/auth/password
 router.post('/password', authMiddleware([], { allowPasswordChange: true }), async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
+  const ip = getClientIp(req);
+  const username = req.user?.username;
+  const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'password' });
+  if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
+    return res.status(429).json({
+      status: 'fail',
+      message: 'Too many password change attempts. Please try again later.',
+    });
+  }
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ status: 'fail', message: 'Current and new passwords are required.' });
   }
@@ -240,6 +249,7 @@ router.post('/password', authMiddleware([], { allowPasswordChange: true }), asyn
     const { token: refreshToken } = await issueRefreshToken(updated);
     setAuthCookies(res, { accessToken, refreshToken });
     const userPayload = await buildUserPayload(updated);
+    await clearAttempts(rateLimitKeys);
     return res.json({ status: 'success', token: accessToken, user: userPayload });
   } catch (error) {
     console.error('Password change failed:', error);
@@ -247,12 +257,30 @@ router.post('/password', authMiddleware([], { allowPasswordChange: true }), asyn
   }
 });
 
+
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
   const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!refreshToken) {
     clearAuthCookies(res);
     return res.status(401).json({ status: 'fail', message: 'Missing refresh token.' });
+  }
+  let payload = null;
+  try {
+    payload = await verify(refreshToken);
+  } catch (error) {
+    clearAuthCookies(res);
+    return res.status(401).json({ status: 'fail', message: 'Invalid refresh token.' });
+  }
+
+  const ip = getClientIp(req);
+  const username = payload?.username;
+  const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'refresh' });
+  if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
+    return res.status(429).json({
+      status: 'fail',
+      message: 'Too many refresh attempts. Please try again later.',
+    });
   }
   try {
     const rotated = await rotateRefreshToken(refreshToken);
@@ -265,12 +293,14 @@ router.post('/refresh', async (req, res) => {
     });
     setAuthCookies(res, { accessToken, refreshToken: rotated.token });
     const userPayload = await buildUserPayload(rotated.user);
+    await clearAttempts(rateLimitKeys);
     return res.json({ status: 'success', token: accessToken, user: userPayload });
   } catch (error) {
     clearAuthCookies(res);
     return res.status(401).json({ status: 'fail', message: 'Invalid refresh token.' });
   }
 });
+
 
 // POST /api/auth/logout
 router.post('/logout', async (req, res) => {

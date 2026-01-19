@@ -33,54 +33,62 @@ async function refreshSession() {
   return refreshPromise;
 }
 
-async function request(path, options = {}) {
-  const url = `${API_URL}${path}`;
-  const token = getToken();
-  const csrfToken = getCookie('csrf_token');
-  const {
-    skipRefresh: skipRefreshRaw,
-    headers: extraHeaders,
-    ...fetchOptions
-  } = options;
-  const skipRefresh = skipRefreshRaw === true;
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-    ...(extraHeaders || {}),
-  };
-  const resp = await fetch(url, {
-    credentials: 'include',
-    ...fetchOptions,
-    headers,
-  });
+  async function request(path, options = {}) {
+    const url = `${API_URL}${path}`;
+    const token = getToken();
+    const csrfToken = getCookie('csrf_token');
+    const {
+      skipRefresh: skipRefreshRaw,
+      headers: extraHeaders,
+      ...fetchOptions
+    } = options;
+    const skipRefresh = skipRefreshRaw === true;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+      ...(extraHeaders || {}),
+    };
+    const resp = await fetch(url, {
+      credentials: 'include',
+      ...fetchOptions,
+      headers,
+    });
 
-  if (!resp.ok) {
-    if (resp.status === 401 && !skipRefresh && !isAuthPath(path)) {
-      try {
-        await refreshSession();
-        return request(path, { ...fetchOptions, skipRefresh: true });
-      } catch (refreshError) {
-        // fall through to original error
+    if (!resp.ok) {
+      if (resp.status === 401 && !skipRefresh && !isAuthPath(path)) {
+        try {
+          await refreshSession();
+          return request(path, { ...fetchOptions, skipRefresh: true });
+        } catch (refreshError) {
+          // fall through to original error
+        }
       }
+      let detail = '';
+      let statusCode = resp.status;
+      try {
+        const data = await resp.json();
+        detail = data?.message || '';
+        if (Number.isFinite(data?.statusCode)) {
+          statusCode = data.statusCode;
+        }
+      } catch (e) {
+        /* ignore parse error */
+      }
+      const error = new Error(detail || `HTTP ${resp.status}`);
+      error.status = resp.status;
+      error.statusCode = statusCode;
+      throw error;
     }
-    let detail = '';
+
+    // 빈 응답을 허용하기 위해 상태코드만 체크 후 JSON 시도
     try {
-      const data = await resp.json();
-      detail = data?.message || '';
+      return await resp.json();
     } catch (e) {
-      /* ignore parse error */
+      return null;
     }
-    throw new Error(detail || `HTTP ${resp.status}`);
   }
 
-  // 빈 응답을 허용하기 위해 상태코드만 체크 후 JSON 시도
-  try {
-    return await resp.json();
-  } catch (e) {
-    return null;
-  }
-}
 
 export const apiClient = {
   // Auth

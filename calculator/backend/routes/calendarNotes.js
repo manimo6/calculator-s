@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
+const { prisma } = require('../db/prisma');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { requirePermissions } = require('../middleware/permissionMiddleware');
 
-const prisma = new PrismaClient();
 
 router.use(authMiddleware());
 router.use(requirePermissions('tabs.calendar'));
@@ -19,6 +18,12 @@ router.get('/', async (req, res) => {
         if (month) {
             // month format: "2023-10"
             const startDate = new Date(`${month}-01`);
+            if (Number.isNaN(startDate.getTime())) {
+                return res.status(400).json({
+                    status: '실패',
+                    message: 'Invalid month format. Use YYYY-MM.',
+                });
+            }
             const endDate = new Date(startDate);
             endDate.setMonth(endDate.getMonth() + 1);
 
@@ -36,12 +41,13 @@ router.get('/', async (req, res) => {
                 createdAt: 'asc',
             },
         });
-        res.json(notes);
+        res.json({ status: '성공', notes });
     } catch (error) {
         console.error('Error fetching calendar notes:', error);
-        res.status(500).json({ error: 'Failed to fetch notes' });
+        res.status(500).json({ status: '실패', message: 'Failed to fetch notes' });
     }
 });
+
 
 // POST /api/calendar-notes
 router.post('/', async (req, res) => {
@@ -49,21 +55,29 @@ router.post('/', async (req, res) => {
         const { date, content, author } = req.body;
 
         if (!date || !content) {
-            return res.status(400).json({ error: 'Date and content are required' });
+            return res.status(400).json({ status: '실패', message: 'Date and content are required' });
+        }
+
+        const parsedDate = new Date(date);
+        if (Number.isNaN(parsedDate.getTime())) {
+            return res.status(400).json({ status: '실패', message: 'Invalid date format.' });
         }
 
         const newNote = await prisma.calendarNote.create({
             data: {
                 id: uuidv4(),
-                date: new Date(date), // Expecting ISO string or YYYY-MM-DD
+                date: parsedDate, // Expecting ISO string or YYYY-MM-DD
                 content,
                 author: author || '',
             },
         });
-        res.json(newNote);
+        res.json({ status: '성공', note: newNote });
+
+
     } catch (error) {
         console.error('Error creating calendar note:', error);
-        res.status(500).json({ error: 'Failed to create note' });
+        res.status(500).json({ status: '실패', message: 'Failed to create note' });
+
     }
 });
 
@@ -74,17 +88,20 @@ router.put('/:id', async (req, res) => {
         const { content } = req.body; // Usually only content is updated
 
         if (!content) {
-            return res.status(400).json({ error: 'Content is required' });
+            return res.status(400).json({ status: '실패', message: 'Content is required' });
+
         }
 
         const updatedNote = await prisma.calendarNote.update({
             where: { id },
             data: { content },
         });
-        res.json(updatedNote);
+        res.json({ status: '성공', note: updatedNote });
+
     } catch (error) {
         console.error('Error updating calendar note:', error);
-        res.status(500).json({ error: 'Failed to update note' });
+        res.status(500).json({ status: '실패', message: 'Failed to update note' });
+
     }
 });
 
@@ -95,10 +112,12 @@ router.delete('/:id', async (req, res) => {
         await prisma.calendarNote.delete({
             where: { id },
         });
-        res.json({ success: true });
+        res.json({ status: '성공' });
+
     } catch (error) {
         console.error('Error deleting calendar note:', error);
-        res.status(500).json({ error: 'Failed to delete note' });
+        res.status(500).json({ status: '실패', message: 'Failed to delete note' });
+
     }
 });
 
