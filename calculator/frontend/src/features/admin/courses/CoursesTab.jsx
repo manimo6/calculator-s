@@ -18,6 +18,7 @@ import { useReauthDialog } from "../components/useReauthDialog"
 export default function CoursesTab({ user, onDirtyChange }) {
   const {
     loading,
+    lastUpdated,
     toast,
     showToast,
     isConfigDirty,
@@ -112,6 +113,7 @@ export default function CoursesTab({ user, onDirtyChange }) {
         </div>
       ) : (
         <CourseTreeAccordion
+          key={`${selectedCourseConfigSet || "default"}-${lastUpdated}`}
           courseTree={courseTree}
           courseInfo={courseInfo}
           onEditCategory={(cat) =>

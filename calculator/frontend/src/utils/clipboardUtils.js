@@ -276,7 +276,24 @@ export function generateClipboardText({
             detailLines.push(`• 녹화수강일: ${recDates}`);
         }
         detailLines.push(`• 수업시간: ${item.details.timeStr || '-'}`);
-        detailLines.push(`• 수강료: ${item.finalFee.toLocaleString()}원`);
+        const discountRate = Number(item?.discount || 0);
+        const discountLabel =
+            discountRate > 0 ? `(${Math.round(discountRate * 100)}%할인)` : '';
+        detailLines.push(`• 수강료: ${item.finalFee.toLocaleString()}원${discountLabel}`);
+
+        const recordingDays = Number(item?.recordingDays || 0);
+        const totalDays = Number(item?.totalDays || 0);
+        if (recordingDays > 0) {
+            const normalDays = Math.max(totalDays - recordingDays, 0);
+            const normalFee = Number(item?.normalFee || 0);
+            const recordingFee = Number(item?.recordingFee || 0);
+            detailLines.push(
+                `= 실시간수업(${normalDays}일): ${normalFee.toLocaleString()}원`
+            );
+            detailLines.push(
+                `+ 녹화강의(${recordingDays}일): ${recordingFee.toLocaleString()}원 (정가의 40%)`
+            );
+        }
 
         if (hasMultipleCourses) {
             const { option, amount, note } = resolveTextbookForItem(

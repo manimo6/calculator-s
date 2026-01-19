@@ -2,6 +2,21 @@ import { useCallback, useEffect, useState } from "react"
 
 import { apiClient } from "@/api-client"
 
+const SETTINGS_UPDATED_KEY = "settings.updatedAt"
+
+const notifySettingsUpdated = () => {
+  if (typeof window === "undefined") return
+  const updatedAt = String(Date.now())
+  try {
+    localStorage.setItem(SETTINGS_UPDATED_KEY, updatedAt)
+  } catch {
+    // Ignore storage errors
+  }
+  window.dispatchEvent(
+    new CustomEvent("settings:updated", { detail: { updatedAt } })
+  )
+}
+
 export function useSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -55,6 +70,7 @@ export function useSettings() {
       const res = await apiClient.saveSettings(nextSettings)
       syncFromSettings(res?.settings || nextSettings)
       setMessage("설정이 저장되었습니다.")
+      notifySettingsUpdated()
     } catch (e) {
       setError(e?.message || "저장에 실패했습니다.")
     } finally {

@@ -134,6 +134,12 @@ const SingleCourseOptions = ({
     const rawSkipWeeks = Array.isArray(inputs.skipWeeks) ? inputs.skipWeeks : [];
     const skipWeeksEnabled = Boolean(inputs.skipWeeksEnabled || rawSkipWeeks.length > 0);
     const endDay = Array.isArray(c.endDays) && c.endDays.length > 0 ? c.endDays[0] : c.endDay;
+    const selectedStartDate = useMemo(
+        () => (inputs.startDate ? parseDateOnly(inputs.startDate) : null),
+        [inputs.startDate]
+    );
+    const calendarDefaultDate = selectedStartDate || calendarMinDate || undefined;
+    const calendarKey = calendarMinDate ? calendarMinDate.toISOString() : "calendar-default";
     const scheduleMeta = useMemo(
         () =>
             getScheduleWeeks({
@@ -390,11 +396,13 @@ const SingleCourseOptions = ({
                             align="start"
                         >
                             <Calendar
+                                key={calendarKey}
                                 mode="single"
                                 selected={inputs.startDate ? new Date(inputs.startDate) : undefined}
                                 onSelect={handleCalendarSelect}
                                 minDate={calendarMinDate || undefined}
                                 maxDate={calendarMaxDate || undefined}
+                                defaultDate={calendarDefaultDate}
                                 initialFocus
                                 disabled={disabledStartDays ? { dayOfWeek: disabledStartDays } : undefined}
                             />

@@ -16,6 +16,7 @@ import {
 import { normalizeCourseConfigSets } from "../courseConfigSets/utils"
 
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/
+const COURSE_CONFIG_SETS_UPDATED_KEY = "courseConfigSets.updatedAt"
 
 function isValidDateKey(value) {
   if (!DATE_KEY_RE.test(value)) return false
@@ -43,6 +44,19 @@ function normalizeBreakRanges(ranges) {
 
   cleaned.sort((a, b) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate))
   return { ranges: cleaned, error: "" }
+}
+
+const notifyCourseConfigSetsUpdated = () => {
+  if (typeof window === "undefined") return
+  const updatedAt = String(Date.now())
+  try {
+    localStorage.setItem(COURSE_CONFIG_SETS_UPDATED_KEY, updatedAt)
+  } catch {
+    // Ignore storage errors
+  }
+  window.dispatchEvent(
+    new CustomEvent("course-config-sets:updated", { detail: { updatedAt } })
+  )
 }
 
 export function useCourseManager() {
@@ -409,6 +423,7 @@ export function useCourseManager() {
       }
       await apiClient.saveCourses(payload)
       showToast("서버에 저장되었습니다.")
+      notifyCourseConfigSetsUpdated()
     } catch (e) {
       alert("저장 실패: " + e.message)
     }
@@ -421,6 +436,7 @@ export function useCourseManager() {
     try {
       await apiClient.saveCourseConfigSet(name, data)
       showToast(`설정 세트 '${name}'이(가) 저장되었습니다.`)
+      notifyCourseConfigSetsUpdated()
       await loadCourseConfigSets()
     } catch (e) {
       showToast(e.message || "설정 세트 저장 실패")
@@ -488,6 +504,7 @@ export function useCourseManager() {
     try {
       await apiClient.saveCourseConfigSet(name, data)
       showToast(`설정 세트 '${name}'에 덮어썼습니다.`)
+      notifyCourseConfigSetsUpdated()
       setIsConfigDirty(false)
       await loadCourseConfigSets()
     } catch (e) {
@@ -554,6 +571,7 @@ export function useCourseManager() {
     try {
       await apiClient.deleteCourseConfigSet(name)
       showToast("설정 세트가 삭제되었습니다.")
+      notifyCourseConfigSetsUpdated()
       setSelectedCourseConfigSet("")
       await loadCourseConfigSets()
     } catch (e) {

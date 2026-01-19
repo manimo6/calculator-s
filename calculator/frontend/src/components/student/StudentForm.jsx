@@ -24,6 +24,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ClipboardClock, Copy, Layers, Plus, Save, History, ShoppingCart, AlertCircle, Undo2, UserRoundCog } from "lucide-react";
 
 const COURSE_CONFIG_SET_STORAGE_KEY = "courseConfigSet.selected:calculator";
+const SETTINGS_UPDATED_KEY = "settings.updatedAt";
+const COURSE_CONFIG_SETS_UPDATED_KEY = "courseConfigSets.updatedAt";
 
 const getCourseConfigSetStorageKey = (scope) => {
     const safeScope = String(scope || "").trim();
@@ -519,6 +521,36 @@ const StudentForm = () => {
         return () => {
             window.removeEventListener('focus', handleRefresh);
             document.removeEventListener('visibilitychange', handleRefresh);
+        };
+    }, [loadCalendarRange, loadCourseConfigSets]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const handleSettingsUpdated = () => {
+            loadCalendarRange();
+        };
+        const handleCourseConfigSetsUpdated = () => {
+            loadCourseConfigSets({ forceApply: true });
+        };
+        const handleStorage = (event) => {
+            if (!event) return;
+            if (event.key === SETTINGS_UPDATED_KEY) {
+                handleSettingsUpdated();
+            }
+            if (event.key === COURSE_CONFIG_SETS_UPDATED_KEY) {
+                handleCourseConfigSetsUpdated();
+            }
+        };
+
+        window.addEventListener('settings:updated', handleSettingsUpdated);
+        window.addEventListener('course-config-sets:updated', handleCourseConfigSetsUpdated);
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            window.removeEventListener('settings:updated', handleSettingsUpdated);
+            window.removeEventListener('course-config-sets:updated', handleCourseConfigSetsUpdated);
+            window.removeEventListener('storage', handleStorage);
         };
     }, [loadCalendarRange, loadCourseConfigSets]);
 
