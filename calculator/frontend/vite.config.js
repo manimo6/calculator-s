@@ -22,5 +22,20 @@ export default defineConfig({
                 changeOrigin: true,
             }
         }
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return
+                    if (id.includes('react') || id.includes('react-dom')) return 'react-vendor'
+                    if (id.includes('mantine') || id.includes('radix') || id.includes('lucide-react')) return 'ui-vendor'
+                    if (id.includes('date-fns')) return 'date-vendor'
+                    if (id.includes('socket.io-client')) return 'socket-vendor'
+                    if (id.includes('lottie-web')) return 'lottie-vendor'
+                    return 'vendor'
+                }
+            }
+        }
     }
 })
