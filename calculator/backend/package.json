@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node --env-file=.env server.js",
+    "start": "node --env-file=.env dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "db:seed:json": "node --env-file=.env scripts/seedJsonToDb.js",
-    "db:seed:permissions": "node --env-file=.env scripts/seedPermissions.js"
+    "db:seed:json": "npm run build && node --env-file=.env dist/scripts/seedJsonToDb.js",
+    "db:seed:permissions": "npm run build && node --env-file=.env dist/scripts/seedPermissions.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,8 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "prisma": "^6.17.1"
+    "prisma": "^6.17.1",
+    "typescript": "^5.6.3",
+    "@types/node": "^22.13.4"
   }
 }
