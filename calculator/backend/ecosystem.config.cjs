@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "backend",
-      script: "server.js",
+      script: "dist/server.js",
       cwd: __dirname,
       node_args: "--env-file=.env",
       env: {
