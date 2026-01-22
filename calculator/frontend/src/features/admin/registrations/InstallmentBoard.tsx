@@ -69,6 +69,7 @@ type InstallmentRow = {
   registration: RegistrationRow
   courseLabel: string
   maxWeeks: number
+  studentMaxWeeks: number
   weeks: number
   remainingWeeks: number
   courseDays: number[]
@@ -158,6 +159,16 @@ function resolveEndDay(info: CourseInfo | null | undefined) {
   const endDay = info?.endDay
   if (Number.isInteger(endDay)) return endDay
   return 5
+}
+
+function getWeekOffset(
+  studentStartDate: Date | null,
+  courseStartDate: Date | null
+): number {
+  if (!studentStartDate || !courseStartDate) return 0
+  const diffMs = studentStartDate.getTime() - courseStartDate.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  return Math.max(0, Math.floor(diffDays / 7))
 }
 
 function isDateInBreakRanges(
@@ -370,6 +381,22 @@ export default function InstallmentBoard({
     return map
   }, [extensions])
 
+  const courseEarliestStartMap = useMemo(() => {
+    const map = new Map<string, Date>()
+    for (const registration of registrations || []) {
+      const courseId = registration?.courseId
+      if (courseId === undefined || courseId === null) continue
+      const key = String(courseId)
+      const startDate = parseDate(registration?.startDate)
+      if (!startDate) continue
+      const existing = map.get(key)
+      if (!existing || startDate.getTime() < existing.getTime()) {
+        map.set(key, startDate)
+      }
+    }
+    return map
+  }, [registrations])
+
   const installmentRows = useMemo(() => {
     const today = startOfDay(new Date())
     const list = (registrations || [])
@@ -381,9 +408,15 @@ export default function InstallmentBoard({
         const maxWeeks = resolveMaxWeeks(info)
         const weeks = Number(registration?.weeks || 0)
         if (!maxWeeks || !Number.isFinite(weeks) || weeks <= 0) return null
-        if (weeks >= maxWeeks) return null
 
         const courseIdKey = courseId !== undefined && courseId !== null ? String(courseId) : ""
+        const studentStartDate = parseDate(registration?.startDate)
+        const courseStartDate = courseEarliestStartMap.get(courseIdKey) || null
+        const weekOffset = getWeekOffset(studentStartDate, courseStartDate)
+        const studentMaxWeeks = Math.max(maxWeeks - weekOffset, 1)
+
+        if (weeks >= studentMaxWeeks) return null
+
         const courseLabel =
           String(registration?.course || "").trim() ||
           (courseIdToLabel instanceof Map ? courseIdToLabel.get(courseIdKey) : "") ||
@@ -395,7 +428,7 @@ export default function InstallmentBoard({
         const courseDays = infoDays.length ? infoDays : fallbackDays.length ? fallbackDays : []
         const endDay = resolveEndDay(info)
         const endDate = registration?.endDate || ""
-        const remainingWeeks = Math.max(maxWeeks - weeks, 0)
+        const remainingWeeks = Math.max(studentMaxWeeks - weeks, 0)
         const breakRanges = normalizeBreakRanges(info?.breakRanges) as BreakRangeInput[]
         const isWithdrawn = Boolean(registration?.withdrawnAt)
 
@@ -424,6 +457,7 @@ export default function InstallmentBoard({
           registration,
           courseLabel,
           maxWeeks,
+          studentMaxWeeks,
           weeks,
           remainingWeeks,
           courseDays,
@@ -472,6 +506,7 @@ export default function InstallmentBoard({
     return list
   }, [
     courseConfigSet,
+    courseEarliestStartMap,
     courseIdToLabel,
     extensionsByRegistration,
     registrations,
@@ -482,7 +517,7 @@ export default function InstallmentBoard({
 
   useEffect(() => {
     if (!selectedRow) return
-    setExtendWeeks(DEFAULT_EXTEND_WEEKS)
+    setExtendWeeks(Math.min(DEFAULT_EXTEND_WEEKS, selectedRow.remainingWeeks))
     const baseFee = selectedRow.registration?.tuitionFee
     setExtendFee(baseFee !== null && baseFee !== undefined ? String(baseFee) : "")
     setStartDateOverride(selectedRow.nextStartDate || "")
@@ -574,6 +609,10 @@ export default function InstallmentBoard({
     const weeksValue = Number(extendWeeks)
     if (!Number.isFinite(weeksValue) || weeksValue <= 0) {
       setSaveError("연장 주수를 확인해 주세요.")
+      return
+    }
+    if (weeksValue > selectedRow.remainingWeeks) {
+      setSaveError(`남은 주수(${selectedRow.remainingWeeks}주)를 초과할 수 없습니다.`)
       return
     }
     const feeValueRaw = String(extendFee || "").replace(/,/g, "").trim()
@@ -723,7 +762,12 @@ export default function InstallmentBoard({
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-semibold text-slate-900">
-                        {row.weeks} / {row.maxWeeks}
+                        {row.weeks} / {row.studentMaxWeeks}
+                        {row.studentMaxWeeks !== row.maxWeeks && (
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            ({row.maxWeeks}주 수업)
+                          </span>
+                        )}
                       </div>
                       <Badge variant="secondary" className="mt-1 rounded-full px-2 text-[11px]">
                         남은 {row.remainingWeeks}주
@@ -802,7 +846,14 @@ export default function InstallmentBoard({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">최대 주수</div>
-                  <div className="font-semibold">{selectedRow.maxWeeks}주</div>
+                  <div className="font-semibold">
+                    {selectedRow.studentMaxWeeks}주
+                    {selectedRow.studentMaxWeeks !== selectedRow.maxWeeks && (
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        ({selectedRow.maxWeeks}주 수업)
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">남은 주수</div>
@@ -818,15 +869,22 @@ export default function InstallmentBoard({
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="extendWeeks">연장 주수</Label>
+                  <Label htmlFor="extendWeeks">
+                    연장 주수
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                      (최대 {selectedRow.remainingWeeks}주)
+                    </span>
+                  </Label>
                   <Input
                     id="extendWeeks"
                     type="number"
                     min={1}
+                    max={selectedRow.remainingWeeks}
                     value={extendWeeks}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setExtendWeeks(Number(e.target.value) || 0)
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = Number(e.target.value) || 0
+                      setExtendWeeks(Math.min(value, selectedRow.remainingWeeks))
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
