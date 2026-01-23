@@ -33,13 +33,13 @@ import { courseInfo, courseTree } from "@/utils/data"
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
 import type { AuthUser } from "@/auth-routing"
 
-import FiltersCard from "./FiltersCard"
+import RegistrationsHeader from "./RegistrationsHeader"
+import RegistrationsSidebar from "./RegistrationsSidebar"
 import CourseOverview from "./CourseOverview"
 import MergeManagerCard from "./MergeManagerCard"
 import InstallmentBoard from "./InstallmentBoard"
 import RegistrationCardGrid from "./RegistrationCardGrid"
 import RegistrationsGantt from "./RegistrationsGantt"
-import SummaryCards from "./SummaryCards"
 import { useRegistrations } from "./useRegistrations"
 import { formatDateYmd, formatTimestampKo, parseDate } from "./utils"
 
@@ -165,6 +165,9 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
   const canManageTransfers =
     canAccessRegistrations && hasPermission(user, PERMISSION_KEYS.buttons.transfers)
 
+  // Track where the course filter came from
+  const [viewSource, setViewSource] = useState<'card' | 'sidebar' | null>(null)
+
   const {
     courseConfigSetLoading,
     courseConfigSetError,
@@ -232,10 +235,12 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
   )
 
   const [activeGanttTab, setActiveGanttTab] = useState("")
-  const [activeMainTab, setActiveMainTab] = useState("dashboard")
+  // activeMainTab removed as we switch views based on courseFilter
   const [installmentMode, setInstallmentMode] = useState(false)
-  const ganttTabsScrollRef = useRef<HTMLDivElement | null>(null)
+  
+  // Dialog states
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false)
+
   const [withdrawTarget, setWithdrawTarget] = useState<RegistrationRow | null>(null)
   const [withdrawDate, setWithdrawDate] = useState("")
   const [withdrawPickerOpen, setWithdrawPickerOpen] = useState(false)
@@ -618,31 +623,11 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     [loadRegistrations, setError]
   )
 
-  const handleGanttTabsWheel = useCallback((event: WheelEvent) => {
-    const container = ganttTabsScrollRef.current
-    if (!container || container.scrollWidth <= container.clientWidth) return
-    const target = event.target instanceof Node ? event.target : null
-    if (!target || !container.contains(target)) return
-
-    const delta =
-      Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
-    if (!delta) return
-
-    event.preventDefault()
-    container.scrollLeft += delta
-  }, [])
-
-  useEffect(() => {
-    if (activeMainTab !== "gantt") return undefined
-    const handler = (event: WheelEvent) => handleGanttTabsWheel(event)
-    window.addEventListener("wheel", handler, { passive: false })
-    return () => {
-      window.removeEventListener("wheel", handler)
-    }
-  }, [activeMainTab, handleGanttTabsWheel])
+  // Wheel handler for Gantt tabs removed as tabs are replaced by sidebar
 
   useEffect(() => {
     if (!canManageMerges && mergeManagerOpen) {
+
       setMergeManagerOpen(false)
     }
   }, [canManageMerges, mergeManagerOpen])
@@ -835,48 +820,45 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     [activeGanttTab, ganttGroups]
   )
 
-  const showCourseFilter = installmentMode || activeMainTab !== "gantt"
+
+  const showCourseFilter = installmentMode
+
+  // Wrapper functions to track where courseFilter changes came from
+  const handleCourseFilterFromCard = useCallback((value: string) => {
+    setViewSource('card')
+    setCourseFilter(value)
+  }, [setCourseFilter])
+
+  const handleCourseFilterFromSidebar = useCallback((value: string) => {
+    setViewSource('sidebar')
+    setCourseFilter(value)
+  }, [setCourseFilter])
+
+  // Reset viewSource when filter is cleared
+  useEffect(() => {
+    if (!courseFilter) {
+      setViewSource(null)
+    }
+  }, [courseFilter])
+
+  // Determine which view to show
+  // If courseFilter is set (specific course) -> depends on viewSource
+  //   - from sidebar -> Gantt
+  //   - from card -> filtered overview (no gantt)
+  // If no courseFilter (All) -> Dashboard (Overview + Grid)
+  const isAllView = !courseFilter
+  const showGantt = viewSource === 'sidebar' && !isAllView && !installmentMode
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">등록현황</h2>
-        </div>
-        <Button type="button" variant="outline" onClick={loadCourseConfigSets} disabled={courseConfigSetLoading}>설정 세트 새로고침</Button>
-      </div>
-
-      {courseConfigSetError ? (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-          {courseConfigSetError}
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-          {error}
-        </div>
-      ) : null}
-
-      {installmentMode && extensionsError ? (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-          {extensionsError}
-        </div>
-      ) : null}
-
-      <FiltersCard
+    <div className="flex flex-col h-[calc(100vh-6rem)] -m-6 sm:-m-8">
+      <RegistrationsHeader
         courseConfigSetLoading={courseConfigSetLoading}
         courseConfigSets={courseConfigSets}
         selectedCourseConfigSet={selectedCourseConfigSet}
         onSelectCourseConfigSet={selectCourseConfigSet}
-        storageScope={typeof user?.username === "string" ? user.username : ""}
         courseConfigSetCategories={courseConfigSetCategories}
         categoryFilter={categoryFilter}
         onCategoryChange={changeCategoryFilter}
-        mergeOptions={mergeOptionsForFilter}
-        courseOptions={courseOptionsForFilter}
-        courseFilter={courseFilter}
-        onCourseChange={setCourseFilter}
         search={search}
         onSearchChange={setSearch}
         loading={loading}
@@ -885,196 +867,130 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         onToggleMergeManager={
           canManageMerges ? () => setMergeManagerOpen((v) => !v) : undefined
         }
-        showCourseFilter={showCourseFilter}
-        showSearch
+        showMergeManager={canManageMerges}
         installmentMode={installmentMode}
         onToggleInstallmentMode={
           canViewInstallments ? () => setInstallmentMode((v) => !v) : undefined
         }
-        showMergeManager={canManageMerges}
         showInstallmentToggle={canViewInstallments}
-        installmentPlacement={activeMainTab === "gantt" ? "top" : "bottom"}
       />
 
-      {variantTabs.length ? (
-        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-3">
-          <Tabs
-            value={variantFilter}
-            onValueChange={setVariantFilter}
-            className="w-full"
-          >
-            <div className="min-w-0 overflow-x-auto pb-1 no-scrollbar">
-              <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
-                {variantTabs.map((tab) => {
-                  const isActive = variantFilter === tab.key
-                  const tabClassName = isActive
-                    ? "group flex max-w-[240px] items-center gap-2 rounded-full border border-slate-300/60 bg-[linear-gradient(135deg,#FAD6FF_0%,#D9E7FF_52%,#FFE7C7_100%)] px-3 py-2 text-xs font-normal leading-tight text-slate-900 shadow-md"
-                    : "group flex max-w-[240px] items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-2 text-xs font-normal leading-tight text-muted-foreground shadow-sm transition hover:bg-muted/60"
+      <div className="flex flex-1 overflow-hidden">
+        {selectedCourseConfigSet ? (
+          <RegistrationsSidebar
+            registrations={baseRegistrations}
+            courseFilter={courseFilter}
+            onCourseFilterChange={handleCourseFilterFromSidebar}
+            courseIdToLabel={courseConfigSetIdToLabel}
+            courseVariantRequiredSet={courseVariantRequiredSet}
+            merges={merges || []}
+            variantTabs={variantTabs}
+            variantFilter={variantFilter}
+            onVariantFilterChange={setVariantFilter}
+          />
+        ) : null}
 
-                  return (
-                    <TabsTrigger
-                      key={tab.key}
-                      value={tab.key}
-                      className={tabClassName}
-                      title={tab.label}
-                    >
-                      <span className="min-w-0 truncate font-tab font-bold tracking-[0.008em]">
-                        {tab.label}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className={`h-5 rounded-full px-2 text-[11px] font-semibold leading-tight ${
-                          isActive
-                            ? "bg-white/70 text-slate-900"
-                            : "bg-background/70 text-muted-foreground"
-                        }`}
-                      >
-                        {tab.count}
-                      </Badge>
-                    </TabsTrigger>
-                  )
-                })}
-              </TabsList>
-            </div>
-          </Tabs>
-        </div>
-      ) : null}
-
-      {mergeManagerOpen && selectedCourseConfigSet && canManageMerges ? (
-        <MergeManagerCard
-          courseOptions={mergeCourseOptions}
-          courseTabs={mergeCourseTabs}
-          mergeName={mergeName}
-          onMergeNameChange={setMergeName}
-          mergeCourses={mergeCourses}
-          onMergeCoursesChange={setMergeCourses}
-          mergeWeekMode={mergeWeekMode}
-          onMergeWeekModeChange={setMergeWeekMode}
-          mergeWeekStart={mergeWeekStart}
-          onMergeWeekStartChange={setMergeWeekStart}
-          mergeWeekEnd={mergeWeekEnd}
-          onMergeWeekEndChange={setMergeWeekEnd}
-          onAddMerge={addMerge}
-          merges={merges}
-          onDeleteMerge={deleteMerge}
-        />
-      ) : null}
-
-      {!selectedCourseConfigSet ? (
-        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
-          설정 세트를 먼저 선택하세요.
-        </div>
-      ) : loading ? (
-        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
-          불러오는 중...
-        </div>
-      ) : courseConfigSetCourseSet.size === 0 ? (
-        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
-          선택한 설정 세트에 과목이 없습니다.
-        </div>
-      ) : filteredRegistrations.length === 0 ? (
-        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
-          표시할 데이터가 없습니다.
-        </div>
-      ) : installmentMode && canViewInstallments ? (
-        <InstallmentBoard
-          registrations={filteredRegistrations}
-          extensions={extensions}
-          extensionsLoading={extensionsLoading}
-          courseConfigSet={selectedCourseConfigSetObj}
-          courseIdToLabel={courseConfigSetIdToLabel}
-          resolveCourseDays={resolveCourseDays}
-          onCreateExtension={handleCreateExtension}
-          categoryFilter={categoryFilter}
-          courseFilter={courseFilter}
-        />
-      ) : (
-        <Tabs
-          value={activeMainTab}
-          onValueChange={setActiveMainTab}
-          className="w-full"
-        >
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="dashboard">대시보드</TabsTrigger>
-            <TabsTrigger value="gantt">차트</TabsTrigger>
-          </TabsList>
-          <TabsContent value="dashboard" className="space-y-4">
-            <SummaryCards registrations={filteredRegistrations} />
-            <CourseOverview
-              registrations={baseRegistrations}
-              courseFilter={courseFilter}
-              onCourseFilterChange={setCourseFilter}
-              courseIdToLabel={courseConfigSetIdToLabel}
-              courseVariantRequiredSet={courseVariantRequiredSet}
-            />
-            <RegistrationCardGrid
-              registrations={filteredRegistrations}
-              onWithdraw={openWithdrawDialog}
-              onRestore={handleRestore}
-              onTransfer={canManageTransfers ? openTransferDialog : undefined}
-              onNote={openNoteDialog}
-            />
-          </TabsContent>
-          <TabsContent value="gantt" className="space-y-3">
-            {ganttGroups.length === 0 ? (
-              <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
-                표시할 과목이 없습니다.
+        <main className="flex-1 overflow-y-auto bg-slate-50/50 p-6">
+          <div className="space-y-6">
+            {courseConfigSetError ? (
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                {courseConfigSetError}
               </div>
-            ) : (
-              <Tabs
-                value={activeGanttTab}
-                onValueChange={setActiveGanttTab}
-                className="w-full"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    ref={ganttTabsScrollRef}
-                    className="min-w-0 flex-1 overflow-x-auto pb-2 pt-1 no-scrollbar"
-                  >
-                    <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
-                      {ganttGroups.map((group) => {
-                        const isActive = activeGanttTab === group.key
-                        const tabClassName = isActive
-                          ? "group flex max-w-[240px] items-center gap-2 rounded-full border border-slate-300/60 bg-[linear-gradient(135deg,#FAD6FF_0%,#D9E7FF_52%,#FFE7C7_100%)] px-3 py-2 text-xs font-normal leading-tight text-slate-900 shadow-md"
-                          : "group flex max-w-[240px] items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-2 text-xs font-normal leading-tight text-muted-foreground shadow-sm transition hover:bg-muted/60"
+            ) : null}
 
-                        return (
-                          <TabsTrigger
-                            key={group.key}
-                            value={group.key}
-                            className={tabClassName}
-                            title={group.label}
-                          >
-                            <span className="min-w-0 truncate font-tab font-bold tracking-[0.008em]">
-                              {group.label}
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className={`h-5 rounded-full px-2 text-[11px] font-semibold leading-tight ${
-                                isActive
-                                  ? "bg-white/70 text-slate-900"
-                                  : "bg-background/70 text-muted-foreground"
-                              }`}
-                            >
-                              {group.count}
-                            </Badge>
-                          </TabsTrigger>
-                        )
-                      })}
-                    </TabsList>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="shrink-0 rounded-full border-slate-200/80 bg-white/80 px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-white"
-                    onClick={() => setChartOverlayOpen(true)}
-                    disabled={!activeGanttGroup}
-                  >
-                    차트 크게 보기
-                  </Button>
+            {error ? (
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                {error}
+              </div>
+            ) : null}
+
+            {installmentMode && extensionsError ? (
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                {extensionsError}
+              </div>
+            ) : null}
+
+            {mergeManagerOpen && selectedCourseConfigSet && canManageMerges ? (
+              <MergeManagerCard
+                courseOptions={mergeCourseOptions}
+                courseTabs={mergeCourseTabs}
+                mergeName={mergeName}
+                onMergeNameChange={setMergeName}
+                mergeCourses={mergeCourses}
+                onMergeCoursesChange={setMergeCourses}
+                mergeWeekMode={mergeWeekMode}
+                onMergeWeekModeChange={setMergeWeekMode}
+                mergeWeekStart={mergeWeekStart}
+                onMergeWeekStartChange={setMergeWeekStart}
+                mergeWeekEnd={mergeWeekEnd}
+                onMergeWeekEndChange={setMergeWeekEnd}
+                onAddMerge={addMerge}
+                merges={merges}
+                onDeleteMerge={deleteMerge}
+              />
+            ) : null}
+
+            {!selectedCourseConfigSet ? (
+              <div className="flex h-full flex-col items-center justify-center space-y-4 text-center text-muted-foreground">
+                <div className="rounded-full bg-slate-100 p-6">
+                  <Badge variant="outline" className="scale-150 border-slate-200">
+                    설정 필요
+                  </Badge>
                 </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">설정 세트를 선택하세요</h3>
+                  <p className="mt-1 text-sm">상단 메뉴에서 설정 세트를 선택하면 데이터를 불러옵니다.</p>
+                </div>
+              </div>
+            ) : loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-500" />
+              </div>
+            ) : courseConfigSetCourseSet.size === 0 ? (
+              <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
+                선택한 설정 세트에 과목이 없습니다.
+              </div>
+            ) : filteredRegistrations.length === 0 ? (
+              <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-6 text-sm text-muted-foreground">
+                표시할 데이터가 없습니다.
+              </div>
+            ) : installmentMode && canViewInstallments ? (
+              <InstallmentBoard
+                registrations={filteredRegistrations}
+                extensions={extensions}
+                extensionsLoading={extensionsLoading}
+                courseConfigSet={selectedCourseConfigSetObj}
+                courseIdToLabel={courseConfigSetIdToLabel}
+                resolveCourseDays={resolveCourseDays}
+                onCreateExtension={handleCreateExtension}
+                categoryFilter={categoryFilter}
+                courseFilter={courseFilter}
+              />
+            ) : showGantt ? (
+              // Gantt View for Sidebar Selection
+              <div className="space-y-4">
                 {ganttGroups.map((group) => (
-                  <TabsContent key={group.key} value={group.key}>
+                  <div key={group.key} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        {group.label}
+                        <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                          {group.count}명
+                        </Badge>
+                      </h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={() => {
+                          setActiveGanttTab(group.key)
+                          setChartOverlayOpen(true)
+                        }}
+                      >
+                        크게 보기
+                      </Button>
+                    </div>
                     <RegistrationsGantt
                       registrations={group.registrations}
                       rangeRegistrations={group.registrations}
@@ -1087,21 +1003,47 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                       onTransferCancel={canManageTransfers ? handleTransferCancel : () => {}}
                       onNote={openNoteDialog}
                     />
-                  </TabsContent>
+                  </div>
                 ))}
-              </Tabs>
+              </div>
+            ) : (
+              // Dashboard View (All) or Course Card Selection View
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <CourseOverview
+                  registrations={baseRegistrations}
+                  courseFilter={viewSource === 'card' ? courseFilter : ""}
+                  onCourseFilterChange={handleCourseFilterFromCard}
+                  courseIdToLabel={courseConfigSetIdToLabel}
+                  courseVariantRequiredSet={courseVariantRequiredSet}
+                />
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {isAllView ? "전체 학생 목록" : `${ganttGroups[0]?.label || "과목별"} 학생 목록`}
+                    </h3>
+                  </div>
+                  <RegistrationCardGrid
+                    registrations={filteredRegistrations}
+                    onWithdraw={openWithdrawDialog}
+                    onRestore={handleRestore}
+                    onTransfer={canManageTransfers ? openTransferDialog : undefined}
+                    onNote={openNoteDialog}
+                  />
+                </div>
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
-      )}
+          </div>
+        </main>
+      </div>
 
       <Dialog
         open={chartOverlayOpen}
         onOpenChange={setChartOverlayOpen}
       >
-        <DialogContent className="h-[calc(100vh-3rem)] w-[calc(100vw-3rem)] max-w-[calc(100vw-3rem)] border-slate-200/70 bg-white/90 p-0 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:rounded-[28px] [&>button]:hidden">
-          <div className="flex h-full flex-col">
-            <div className="border-b border-slate-200/70 px-6 py-4">
+        <DialogContent className="h-[calc(100vh-3rem)] w-[calc(100vw-3rem)] max-w-[calc(100vw-3rem)] overflow-hidden border-slate-200/70 bg-white/90 p-0 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:rounded-[28px] [&>button]:hidden">
+          <div className="flex h-full flex-col overflow-hidden">
+            <div className="shrink-0 border-b border-slate-200/70 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs font-semibold text-slate-400">등록현황</div>
@@ -1119,7 +1061,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden px-4 pb-4 pt-4">
+            <div className="min-h-0 flex-1 overflow-auto p-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {activeGanttGroup ? (
                 <RegistrationsGantt
                   registrations={activeGanttGroup.registrations}
@@ -1132,7 +1074,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                   onTransfer={canManageTransfers ? openTransferDialog : () => {}}
                   onTransferCancel={canManageTransfers ? handleTransferCancel : () => {}}
                   onNote={openNoteDialog}
-                  maxHeightClassName="h-full max-h-none"
+                  maxHeightClassName=""
+                  disableCardOverflow={false}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -1143,6 +1086,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           </div>
         </DialogContent>
       </Dialog>
+
 
       <Dialog
         open={noteDialogOpen}

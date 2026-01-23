@@ -207,3 +207,4 @@ calculator/SECURITY_HARDENING_PLAN.md
 calculator/backend/my-app-ssl.nginx.conf
 calculator/backend/my-app.nginx.conf
 calculator/backend/force-reset.js
+table.txt

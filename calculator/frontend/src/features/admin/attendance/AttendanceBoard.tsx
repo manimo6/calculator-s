@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   addMonths,
   eachDayOfInterval,
@@ -8,7 +8,7 @@ import {
   startOfMonth,
 } from "date-fns"
 import { ko } from "date-fns/locale"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, Paintbrush, EyeOff } from "lucide-react"
 import { io } from "socket.io-client"
 
 import { apiClient } from "@/api-client"
@@ -37,37 +37,37 @@ const STATUS_STYLES = [
     key: "pending",
     label: "미입력",
     shortLabel: "",
-    className: "border-border/70 bg-background/60 text-muted-foreground",
+    className: "border-slate-300/80 bg-slate-50/80 text-slate-400 hover:bg-slate-100/80",
     cellClassName:
-      "border-slate-400/80 bg-white text-transparent border-2 border-dashed",
+      "border-slate-300/60 bg-white/80 text-transparent border-2 border-dashed",
   },
   {
     key: "present",
     label: "출석",
     shortLabel: "출",
-    className: "border-emerald-200/80 bg-emerald-50 text-emerald-700",
-    cellClassName: "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+    className: "border-emerald-300/80 bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-600 shadow-sm shadow-emerald-500/10 hover:shadow-md hover:shadow-emerald-500/15",
+    cellClassName: "border-emerald-300/80 bg-gradient-to-br from-emerald-100 to-green-100 text-emerald-700 shadow-sm shadow-emerald-500/20",
   },
   {
     key: "recorded",
     label: "녹화강의",
     shortLabel: "녹",
-    className: "border-sky-200/80 bg-sky-50 text-sky-700",
-    cellClassName: "border-sky-200/80 bg-sky-50 text-sky-700",
+    className: "border-sky-300/80 bg-gradient-to-br from-sky-50 to-blue-50 text-sky-600 shadow-sm shadow-sky-500/10 hover:shadow-md hover:shadow-sky-500/15",
+    cellClassName: "border-sky-300/80 bg-gradient-to-br from-sky-100 to-blue-100 text-sky-700 shadow-sm shadow-sky-500/20",
   },
   {
     key: "late",
     label: "지각",
     shortLabel: "지",
-    className: "border-amber-200/80 bg-amber-50 text-amber-800",
-    cellClassName: "border-amber-200/80 bg-amber-50 text-amber-800",
+    className: "border-amber-300/80 bg-gradient-to-br from-amber-50 to-yellow-50 text-amber-600 shadow-sm shadow-amber-500/10 hover:shadow-md hover:shadow-amber-500/15",
+    cellClassName: "border-amber-300/80 bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-700 shadow-sm shadow-amber-500/20",
   },
   {
     key: "absent",
     label: "결석",
     shortLabel: "결",
-    className: "border-rose-200/80 bg-rose-50 text-rose-700",
-    cellClassName: "border-rose-200/80 bg-rose-50 text-rose-700",
+    className: "border-rose-300/80 bg-gradient-to-br from-rose-50 to-pink-50 text-rose-600 shadow-sm shadow-rose-500/10 hover:shadow-md hover:shadow-rose-500/15",
+    cellClassName: "border-rose-300/80 bg-gradient-to-br from-rose-100 to-pink-100 text-rose-700 shadow-sm shadow-rose-500/20",
   },
 ]
 
@@ -497,16 +497,60 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
   const handleNextMonth = () => setMonth((prev) => addMonths(prev, 1))
 
   return (
-    <Card className="border-border/60 bg-card/70">
-      <CardHeader className="flex flex-col gap-3 border-b border-border/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.9)_0%,rgba(245,244,239,0.85)_55%,rgba(236,240,246,0.9)_100%)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="text-base font-semibold tracking-tight">
-            출석부
-          </CardTitle>
+    <Card className="overflow-hidden rounded-2xl border border-white/40 bg-white/70 shadow-xl shadow-black/5 backdrop-blur-xl">
+      <CardHeader className="flex flex-col gap-4 border-b border-slate-200/60 bg-gradient-to-r from-slate-50/90 via-white/95 to-violet-50/90 px-6 py-5">
+        {/* 상단: 월 네비게이션 */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/25">
+              <Calendar className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-xl border border-slate-200/60 bg-white/80 shadow-sm transition-all hover:bg-white hover:shadow-md"
+                onClick={handlePrevMonth}
+              >
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
+              </Button>
+              <div className="min-w-[140px] rounded-xl border border-slate-200/60 bg-white/90 px-5 py-2 text-center text-base font-bold text-slate-800 shadow-sm">
+                {format(month, "yyyy년 M월", { locale: ko })}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-xl border border-slate-200/60 bg-white/80 shadow-sm transition-all hover:bg-white hover:shadow-md"
+                onClick={handleNextMonth}
+              >
+                <ChevronRight className="h-4 w-4 text-slate-600" />
+              </Button>
+            </div>
+          </div>
+
+          {/* 퇴원 학생 숨기기 토글 */}
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-2.5 shadow-sm">
+            <EyeOff className="h-4 w-4 text-slate-400" />
+            <Switch
+              id="attendance-hide-inactive"
+              checked={hideInactive}
+              onCheckedChange={(value: boolean) => setHideInactive(Boolean(value))}
+            />
+            <Label htmlFor="attendance-hide-inactive" className="cursor-pointer text-sm font-medium text-slate-600">
+              퇴원 학생 숨기기
+            </Label>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+
+        {/* 하단: 페인트 상태 선택 */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+            <Paintbrush className="h-4 w-4" />
+            <span>상태 선택</span>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">페인트</span>
             {PAINTABLE_STATUSES.map((status) => {
               const isActive = paintStatus === status.key
               return (
@@ -514,10 +558,10 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                   key={status.key}
                   type="button"
                   onClick={() => setPaintStatus(status.key)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${status.className} ${
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${status.className} ${
                     isActive
-                      ? "ring-2 ring-primary/40"
-                      : "hover:border-foreground/20"
+                      ? "ring-2 ring-violet-400/60 ring-offset-2"
+                      : "hover:scale-105"
                   }`}
                   aria-pressed={isActive}
                 >
@@ -526,52 +570,18 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
               )
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-white/70 px-3 py-1 text-xs">
-              <Switch
-                id="attendance-hide-inactive"
-                checked={hideInactive}
-                onCheckedChange={(value: boolean) => setHideInactive(Boolean(value))}
-              />
-              <Label htmlFor="attendance-hide-inactive" className="cursor-pointer">
-                퇴원 학생 숨기기
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-full border-border/70 bg-white/80"
-                onClick={handlePrevMonth}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="rounded-full border border-border/70 bg-white/80 px-4 py-1.5 text-sm font-semibold text-foreground/90 shadow-sm">
-                {format(month, "yyyy년 M월", { locale: ko })}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-full border-border/70 bg-white/80"
-                onClick={handleNextMonth}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-2xl border border-border/60 bg-background/80 shadow-sm">
-          <div className="max-h-[560px] overflow-auto no-scrollbar">
+      <CardContent className="p-0">
+        <div className="rounded-b-2xl bg-white/60">
+          <div className="max-h-[600px] overflow-auto no-scrollbar">
             <div style={{ minWidth }} className="select-none">
+              {/* 날짜 헤더 */}
               <div
-                className="sticky top-0 z-20 grid border-b border-border/60 bg-white/90 backdrop-blur"
+                className="sticky top-0 z-20 grid border-b border-slate-200/60 bg-gradient-to-b from-slate-50 to-white/95 backdrop-blur-lg"
                 style={{ gridTemplateColumns }}
               >
-                <div className="sticky left-0 z-30 flex items-center border-r border-border/70 bg-white/95 px-4 py-3 text-xs font-semibold text-muted-foreground">
+                <div className="sticky left-0 z-30 flex items-center border-r border-slate-200/60 bg-gradient-to-r from-slate-100/95 to-slate-50/95 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-lg">
                   학생 / 수업
                 </div>
                 {days.map((day) => {
@@ -580,20 +590,22 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`flex flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-semibold ${
-                        isWeekend ? "text-rose-500/80" : "text-foreground/80"
+                      className={`flex flex-col items-center justify-center gap-1 px-1 py-3 ${
+                        isWeekend ? "bg-rose-50/30" : ""
                       }`}
                     >
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-all ${
                           isToday
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-transparent"
+                            ? "bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30"
+                            : isWeekend
+                              ? "text-rose-500"
+                              : "text-slate-700"
                         }`}
                       >
                         {format(day, "d")}
                       </span>
-                      <span className="text-[10px] text-muted-foreground/70">
+                      <span className={`text-[10px] font-medium ${isWeekend ? "text-rose-400" : "text-slate-400"}`}>
                         {format(day, "EEE", { locale: ko })}
                       </span>
                     </div>
@@ -616,33 +628,33 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                 return (
                   <div
                     key={rowKey}
-                    className={`grid border-b border-border/60 ${
-                      rowIndex % 2 === 1 ? "bg-muted/20" : "bg-transparent"
-                    }`}
+                    className={`group grid border-b border-slate-100 transition-colors ${
+                      rowIndex % 2 === 1 ? "bg-slate-50/40" : "bg-white/60"
+                    } hover:bg-violet-50/30`}
                     style={{ gridTemplateColumns }}
                   >
                     <div
-                      className="sticky left-0 z-10 flex h-full items-center gap-2 border-r border-border/60 bg-white/95 px-4 py-3"
+                      className="sticky left-0 z-10 flex h-full items-center gap-3 border-r border-slate-200/60 bg-gradient-to-r from-white via-white to-transparent px-4 py-3 backdrop-blur-sm transition-colors group-hover:from-violet-50/80 group-hover:via-violet-50/60"
                       style={{ minHeight: ROW_HEIGHT_PX }}
                     >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-bold text-slate-800">
                           {row?.name || "-"}
                         </div>
-                        <div className="mt-1 truncate text-xs text-muted-foreground">
+                        <div className="mt-1 truncate text-xs font-medium text-slate-500">
                           {row?.course || "수업 정보 없음"}
                         </div>
                         {isTransferredOut ? (
                           <Badge
                             variant="outline"
-                            className="mt-2 border-amber-300 bg-amber-50 text-[10px] text-amber-800"
+                            className="mt-2 rounded-lg border-amber-300/80 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
                           >
                             전반
                           </Badge>
                         ) : isWithdrawn ? (
                           <Badge
                             variant="outline"
-                            className="mt-2 border-rose-300 bg-rose-50 text-[10px] text-rose-700"
+                            className="mt-2 rounded-lg border-rose-300/80 bg-gradient-to-r from-rose-50 to-pink-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700"
                           >
                             퇴원
                           </Badge>
@@ -677,29 +689,30 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                         (isRecordedDefault ? "recorded" : "pending")
                       const statusStyle = STATUS_LOOKUP[statusKey] || STATUS_LOOKUP.pending
 
+                      const isWeekendDay = day.getDay() === 0 || day.getDay() === 6
                       const cellBaseClass =
-                        "flex items-center justify-center px-1 py-2"
+                        `flex items-center justify-center px-1 py-2 transition-colors ${isWeekendDay ? "bg-rose-50/20" : ""}`
                       const cellInteractiveClass = isPaintable
-                        ? "cursor-crosshair"
+                        ? "cursor-crosshair hover:bg-violet-100/40"
                         : "cursor-default"
 
                       let cellContent = null
                       if (!hasCourseDay) {
                         cellContent = (
-                          <span className="text-xs text-muted-foreground/50">
+                          <span className="text-xs text-slate-300">
                             {NO_CLASS_LABEL}
                           </span>
                         )
                       } else if (isInactiveDay) {
                         cellContent = (
-                          <span className="text-xs text-muted-foreground/60">
+                          <span className="text-xs text-slate-300">
                             {NO_CLASS_LABEL}
                           </span>
                         )
                       } else if (isBreakDay) {
                         cellContent = (
                           <span
-                            className="text-xs text-muted-foreground/70"
+                            className="text-xs text-slate-400"
                             title="휴강"
                           >
                             {NO_CLASS_LABEL}
@@ -708,7 +721,7 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                       } else if (isSkipDay) {
                         cellContent = (
                           <span
-                            className="rounded-md border border-dashed border-border/70 bg-muted/30 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground"
+                            className="inline-flex items-center justify-center rounded-lg border border-dashed border-slate-300/80 bg-slate-100/50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400"
                             title={OFF_DAY_LABEL}
                           >
                             {OFF_DAY_LABEL}
@@ -717,7 +730,7 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                       } else {
                         cellContent = (
                           <span
-                            className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold ${statusStyle.cellClassName}`}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border text-[10px] font-bold transition-transform hover:scale-110 ${statusStyle.cellClassName}`}
                             title={statusStyle.label}
                           >
                             {statusStyle.shortLabel}
@@ -761,8 +774,12 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
               })}
 
               {!registrations?.length ? (
-                <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-                  표시할 등록 정보가 없습니다.
+                <div className="px-6 py-16 text-center">
+                  <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+                    <Calendar className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <p className="text-base font-medium text-slate-600">표시할 등록 정보가 없습니다</p>
+                  <p className="mt-1 text-sm text-slate-400">필터를 조정하거나 데이터를 확인해주세요</p>
                 </div>
               ) : null}
             </div>
