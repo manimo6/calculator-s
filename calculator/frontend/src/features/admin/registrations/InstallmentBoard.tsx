@@ -300,8 +300,12 @@ function StatusBadge({ status }: { status: InstallmentStatus }) {
     return (
       <Badge
         variant="outline"
-        className="rounded-full border-amber-400 bg-amber-200/80 px-2.5 py-1 text-xs font-semibold text-amber-950 shadow-sm"
+        className="rounded-full border-amber-400 bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 text-xs font-bold text-amber-900 shadow-md shadow-amber-500/20"
       >
+        <span className="relative flex h-2 w-2 mr-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+        </span>
         연장 안내필요
       </Badge>
     )
@@ -310,7 +314,7 @@ function StatusBadge({ status }: { status: InstallmentStatus }) {
     return (
       <Badge
         variant="outline"
-        className="rounded-full border-sky-400 bg-sky-200/80 px-2.5 py-1 text-xs font-semibold text-sky-950 shadow-sm"
+        className="rounded-full border-sky-400 bg-gradient-to-r from-sky-100 to-blue-100 px-3 py-1 text-xs font-bold text-sky-900 shadow-md shadow-sky-500/20"
       >
         연장 안내완료
       </Badge>
@@ -319,7 +323,7 @@ function StatusBadge({ status }: { status: InstallmentStatus }) {
   return (
     <Badge
       variant="outline"
-      className="rounded-full border-emerald-400 bg-emerald-200/80 px-2.5 py-1 text-xs font-semibold text-emerald-950 shadow-sm"
+      className="rounded-full border-emerald-400 bg-gradient-to-r from-emerald-100 to-teal-100 px-3 py-1 text-xs font-bold text-emerald-900 shadow-md shadow-emerald-500/20"
     >
       수강중
     </Badge>
@@ -679,10 +683,10 @@ export default function InstallmentBoard({
       type="button"
       onClick={() => handleSort(sortKey)}
       disabled={disabled}
-      className={`group inline-flex items-center gap-1 text-left text-xs font-semibold uppercase tracking-wide ${
+      className={`group inline-flex items-center gap-1.5 text-left text-xs font-bold uppercase tracking-wider transition-colors ${
         disabled
-          ? "cursor-not-allowed text-muted-foreground/40"
-          : "text-muted-foreground hover:text-slate-800"
+          ? "cursor-not-allowed text-slate-400/60"
+          : "text-slate-600 hover:text-slate-900"
       }`}
     >
       <span>{label}</span>
@@ -699,21 +703,38 @@ export default function InstallmentBoard({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.96)_55%,rgba(224,231,255,0.6)_100%)] px-4 py-3 text-sm text-slate-700 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          <span className="font-semibold">총 {installmentRows.length}명</span>
-          <span className="text-xs text-muted-foreground">분납 대상</span>
+    <div className="space-y-4">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/40 shadow-lg shadow-emerald-500/10 backdrop-blur-sm">
+        <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl"></div>
+        <div className="relative flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
+              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-slate-900">{installmentRows.length}명</span>
+                <Badge className="rounded-full bg-emerald-100 text-emerald-700 shadow-sm">분납 대상</Badge>
+              </div>
+              <p className="text-sm text-slate-600">수강료 분납 관리</p>
+            </div>
+          </div>
+          {extensionsLoading ? (
+            <div className="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 shadow-sm">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
+              <span className="text-xs font-medium text-slate-600">연장 기록 불러오는 중...</span>
+            </div>
+          ) : null}
         </div>
-        {extensionsLoading ? <span className="text-xs">연장 기록 불러오는 중...</span> : null}
       </div>
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm backdrop-blur">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white/90 shadow-xl shadow-slate-200/20 backdrop-blur-xl">
         <div className="overflow-x-auto">
           <Table className="min-w-[860px]">
-            <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="h-11">
+            <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-slate-50/95 to-slate-100/95 backdrop-blur-md">
+              <TableRow className="border-b border-slate-200/60 hover:bg-transparent">
+                <TableHead className="h-12">
                   <SortButton label="학생" sortKey="student" />
                 </TableHead>
                 <TableHead>
@@ -722,13 +743,13 @@ export default function InstallmentBoard({
                 <TableHead>
                   <SortButton label="기간" sortKey="period" />
                 </TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-slate-600">
                   등록/최대
                 </TableHead>
                 <TableHead>
                   <SortButton label="상태" sortKey="status" />
                 </TableHead>
-                <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-slate-600">
                   연장
                 </TableHead>
               </TableRow>
@@ -737,39 +758,38 @@ export default function InstallmentBoard({
               {installmentRows.map((row) => {
                 const tone =
                   row.isWithdrawn
-                    ? "bg-rose-100/80"
+                    ? "bg-rose-50/60 hover:bg-rose-100/70"
                     : row.status === "notice_needed"
-                      ? "bg-amber-100/85"
+                      ? "bg-amber-50/60 hover:bg-amber-100/70"
                       : row.status === "notice_done"
-                        ? "bg-sky-100/85"
-                        : "bg-emerald-100/70"
+                        ? "bg-sky-50/60 hover:bg-sky-100/70"
+                        : "bg-emerald-50/40 hover:bg-emerald-100/60"
                 return (
                   <TableRow
                     key={row.registration?.id}
-                    className={`group border-b border-border/60 transition-colors hover:bg-muted/40 ${tone}`}
+                    className={`group border-b border-slate-200/50 transition-all ${tone}`}
                   >
-                    <TableCell className="font-semibold text-slate-900">
+                    <TableCell className="font-bold text-slate-900">
                       {row.registration?.name || "-"}
                     </TableCell>
-                    <TableCell className="text-slate-700">
+                    <TableCell className="font-medium text-slate-700">
                       {row.courseLabel || "-"}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <div className="font-medium text-slate-800">
-                        {formatDateYmd(row.registration?.startDate) || "-"} ~
-                        {formatDateYmd(row.endDate) || "-"}
+                    <TableCell>
+                      <div className="rounded-lg bg-white/60 px-2 py-1 text-xs font-medium text-slate-700 shadow-sm">
+                        {formatDateYmd(row.registration?.startDate) || "-"} ~ {formatDateYmd(row.endDate) || "-"}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-bold text-slate-900">
                         {row.weeks} / {row.studentMaxWeeks}
                         {row.studentMaxWeeks !== row.maxWeeks && (
-                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                          <span className="ml-1 text-xs font-normal text-slate-500">
                             ({row.maxWeeks}주 수업)
                           </span>
                         )}
                       </div>
-                      <Badge variant="secondary" className="mt-1 rounded-full px-2 text-[11px]">
+                      <Badge variant="secondary" className="mt-1.5 rounded-full bg-slate-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 shadow-sm">
                         남은 {row.remainingWeeks}주
                       </Badge>
                     </TableCell>
@@ -778,7 +798,7 @@ export default function InstallmentBoard({
                         {row.isWithdrawn ? (
                           <Badge
                             variant="outline"
-                            className="rounded-full border-rose-300 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700"
+                            className="rounded-full border-rose-400 bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700 shadow-sm"
                           >
                             중도퇴원
                           </Badge>
@@ -787,7 +807,10 @@ export default function InstallmentBoard({
                         )}
                       </div>
                       {row.extensionCount ? (
-                        <div className="mt-1 text-xs text-muted-foreground">
+                        <div className="mt-2 flex items-center gap-1 text-xs font-medium text-slate-600">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
                           연장 {row.extensionCount}회
                         </div>
                       ) : null}
@@ -796,7 +819,7 @@ export default function InstallmentBoard({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-full px-3 text-xs font-semibold"
+                        className="h-9 rounded-full border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 text-xs font-bold text-emerald-700 shadow-sm transition-all hover:shadow-md disabled:opacity-50"
                         onClick={() => handleOpen(row)}
                         disabled={row.isWithdrawn}
                       >
@@ -821,47 +844,56 @@ export default function InstallmentBoard({
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>분납 연장</DialogTitle>
-            <DialogDescription>
-              연장 주수와 수강료를 입력하고 안내문을 복사하세요.
-            </DialogDescription>
+        <DialogContent className="max-w-2xl border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl sm:rounded-[24px]">
+          <DialogHeader className="space-y-3 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-slate-900">분납 연장</DialogTitle>
+                <DialogDescription className="text-sm text-slate-600">
+                  연장 주수와 수강료를 입력하고 안내문을 복사하세요.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedRow ? (
-            <div className="space-y-4 text-sm">
-              <div className="grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-4 md:grid-cols-2">
-                <div>
-                  <div className="text-xs text-muted-foreground">학생</div>
-                  <div className="font-semibold">{selectedRow.registration?.name || "-"}</div>
+            <div className="space-y-5 text-sm">
+              <div className="grid gap-4 rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50/50 to-white p-5 shadow-sm md:grid-cols-2">
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">학생</div>
+                  <div className="text-base font-bold text-slate-900">{selectedRow.registration?.name || "-"}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">과목</div>
-                  <div className="font-semibold">{selectedRow.courseLabel || "-"}</div>
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">과목</div>
+                  <div className="text-base font-bold text-slate-900">{selectedRow.courseLabel || "-"}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">현재 등록 주수</div>
-                  <div className="font-semibold">{selectedRow.weeks}주</div>
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">현재 등록 주수</div>
+                  <div className="text-base font-bold text-emerald-700">{selectedRow.weeks}주</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">최대 주수</div>
-                  <div className="font-semibold">
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">최대 주수</div>
+                  <div className="text-base font-bold text-slate-900">
                     {selectedRow.studentMaxWeeks}주
                     {selectedRow.studentMaxWeeks !== selectedRow.maxWeeks && (
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                      <span className="ml-1 text-xs font-normal text-slate-500">
                         ({selectedRow.maxWeeks}주 수업)
                       </span>
                     )}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">남은 주수</div>
-                  <div className="font-semibold">{selectedRow.remainingWeeks}주</div>
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">남은 주수</div>
+                  <div className="text-base font-bold text-amber-600">{selectedRow.remainingWeeks}주</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">지난 수강료</div>
-                  <div className="font-semibold">
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">지난 수강료</div>
+                  <div className="text-base font-bold text-slate-900">
                     {formatFee(selectedRow.registration?.tuitionFee)}
                   </div>
                 </div>
@@ -869,9 +901,9 @@ export default function InstallmentBoard({
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="extendWeeks">
+                  <Label htmlFor="extendWeeks" className="text-sm font-semibold text-slate-700">
                     연장 주수
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    <span className="ml-1.5 text-xs font-normal text-slate-500">
                       (최대 {selectedRow.remainingWeeks}주)
                     </span>
                   </Label>
@@ -885,10 +917,11 @@ export default function InstallmentBoard({
                       const value = Number(e.target.value) || 0
                       setExtendWeeks(Math.min(value, selectedRow.remainingWeeks))
                     }}
+                    className="h-11 rounded-xl border-slate-200/70 bg-white shadow-sm transition-shadow focus-visible:shadow-md focus-visible:ring-emerald-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="extendFee">연장 수강료 (원)</Label>
+                  <Label htmlFor="extendFee" className="text-sm font-semibold text-slate-700">연장 수강료 (원)</Label>
                   <Input
                     id="extendFee"
                     value={extendFee}
@@ -896,10 +929,11 @@ export default function InstallmentBoard({
                       setExtendFee(e.target.value)
                     }
                     placeholder="예: 120000"
+                    className="h-11 rounded-xl border-slate-200/70 bg-white shadow-sm transition-shadow focus-visible:shadow-md focus-visible:ring-emerald-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">연장 시작일</Label>
+                  <Label htmlFor="startDate" className="text-sm font-semibold text-slate-700">연장 시작일</Label>
                   <Popover
                     open={startPickerOpen}
                     onOpenChange={setStartPickerOpen}
@@ -909,7 +943,7 @@ export default function InstallmentBoard({
                         id="startDate"
                         type="button"
                         variant="outline"
-                        className="w-full justify-between text-left font-normal"
+                        className="h-11 w-full justify-between rounded-xl border-slate-200/70 bg-white text-left font-medium shadow-sm transition-shadow hover:shadow-md"
                       >
                         {startDateOverride || "YYYY-MM-DD"}
                       </Button>
@@ -933,39 +967,71 @@ export default function InstallmentBoard({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
-                <div className="text-xs text-muted-foreground">연장 종료일</div>
-                <div className="font-semibold">{extensionEndDate || "-"}</div>
+              <div className="rounded-xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/50 to-teal-50/30 p-4 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  연장 종료일
+                </div>
+                <div className="mt-2 text-lg font-bold text-slate-900">{extensionEndDate || "-"}</div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>안내문</Label>
+                  <Label className="text-sm font-semibold text-slate-700">안내문</Label>
                   <div className="flex items-center gap-2">
                     {copyState ? (
-                      <span className="text-xs text-muted-foreground">{copyState}</span>
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {copyState}
+                      </span>
                     ) : null}
-                    <Button size="sm" variant="outline" onClick={handleCopy}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleCopy}
+                      className="h-8 rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 hover:shadow-md"
+                    >
                       복사
                     </Button>
                   </div>
                 </div>
-                <Textarea value={noticePreview} readOnly className="min-h-[140px]" />
+                <Textarea 
+                  value={noticePreview} 
+                  readOnly 
+                  className="min-h-[140px] rounded-xl border-slate-200/70 bg-white shadow-sm"
+                />
               </div>
             </div>
           ) : null}
 
           {saveError ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {saveError}
+            <div className="flex items-start gap-2 rounded-xl border border-rose-300/60 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
+              <svg className="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium">{saveError}</span>
             </div>
           ) : null}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setDialogOpen(false)}
+              className="rounded-xl border-slate-200/70 shadow-sm transition-all hover:shadow-md"
+            >
               닫기
             </Button>
-            <Button type="button" onClick={handleSave} disabled={!selectedRow}>
+            <Button 
+              type="button" 
+              onClick={handleSave} 
+              disabled={!selectedRow}
+              className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-semibold shadow-lg shadow-emerald-500/30 transition-all hover:shadow-xl hover:shadow-emerald-500/40"
+            >
               연장 확정
             </Button>
           </DialogFooter>
