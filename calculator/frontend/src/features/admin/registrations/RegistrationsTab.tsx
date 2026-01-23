@@ -175,6 +175,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     courseConfigSetCourseSet,
     courseConfigSetBaseCourses,
     courseConfigSetIdToLabel,
+    courseVariantRequiredSet,
     courseOptions,
     loadCourseConfigSets,
 
@@ -750,8 +751,18 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
 
     const getCourseKey = (row: RegistrationRow) => {
       const courseId = normalizeCourse(row?.courseId)
-      if (courseId) return `__courseid__${courseId}`
       const courseName = normalizeCourse(row?.course)
+
+      // 동적시간 수업인 경우 courseName(라벨)을 키로 사용하여 별도 그룹으로 분리
+      if (courseName && courseVariantRequiredSet.size > 0) {
+        for (const base of courseVariantRequiredSet) {
+          if (courseName.startsWith(base)) {
+            return `__coursename__${courseName}`
+          }
+        }
+      }
+
+      if (courseId) return `__courseid__${courseId}`
       return courseName ? `__coursename__${courseName}` : ""
     }
 
@@ -806,6 +817,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     selectedCourseConfigSet,
     selectedCourseConfigSetObj,
     courseConfigSetIdToLabel,
+    courseVariantRequiredSet,
   ])
 
   useEffect(() => {
@@ -993,6 +1005,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
               courseFilter={courseFilter}
               onCourseFilterChange={setCourseFilter}
               courseIdToLabel={courseConfigSetIdToLabel}
+              courseVariantRequiredSet={courseVariantRequiredSet}
             />
             <RegistrationCardGrid
               registrations={filteredRegistrations}

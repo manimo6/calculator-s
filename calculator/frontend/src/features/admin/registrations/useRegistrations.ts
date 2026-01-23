@@ -913,6 +913,7 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     courseConfigSetCourseIdSet,
     courseConfigSetIdToLabel,
     courseConfigSetBaseCourses,
+    courseVariantRequiredSet,
     courseOptions,
     loadCourseConfigSets,
 

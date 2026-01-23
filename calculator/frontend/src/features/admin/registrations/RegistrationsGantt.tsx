@@ -28,10 +28,10 @@ import {
 import { normalizeSkipWeeks } from "@/utils/calculatorLogic"
 
 const LABEL_WIDTH_PX = 256
-const NOTE_WIDTH_PX = 72
+const NOTE_WIDTH_PX = 64
 const WEEK_WIDTH_PX = 88
-const ROW_HEIGHT_PX = 48
-const BAR_HEIGHT_PX = 18
+const ROW_HEIGHT_PX = 44
+const BAR_HEIGHT_PX = 24
 const RECORDING_ICON_PX = 16
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"]
 
@@ -258,17 +258,18 @@ function groupRecordingDates(
 function StatusPill({ status }: { status: string }) {
   const Icon =
     status === "active" ? CheckCircle2 : status === "pending" ? Clock : TimerOff
-  const className =
+  const styles =
     status === "active"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 ring-1 ring-emerald-500/20"
       : status === "pending"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-zinc-200 bg-zinc-50 text-zinc-700"
+        ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 ring-1 ring-amber-500/20"
+        : "bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20 ring-1 ring-zinc-500/20"
+  
   return (
-    <Badge variant="outline" className={className}>
-      <Icon className="mr-1 h-3.5 w-3.5" />
+    <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${styles}`}>
+      <Icon className="h-3 w-3" />
       {getStatusLabel(status)}
-    </Badge>
+    </div>
   )
 }
 
@@ -477,7 +478,7 @@ export default function RegistrationsGantt({
       : ""
 
   const gridBackgroundImage = useMemo(() => {
-    const line = "hsl(var(--foreground) / 0.12)"
+    const line = "hsl(var(--foreground) / 0.06)"
     const step = Math.max(2, model.unitWidth)
     return `repeating-linear-gradient(to right, transparent 0, transparent ${step - 1}px, ${line} ${step - 1}px, ${line} ${step}px)`
   }, [model.unitWidth])
@@ -538,379 +539,374 @@ export default function RegistrationsGantt({
 
   return (
     <>
-    <Card className="border-border/60 bg-card/60">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <div>
-          <CardTitle className="text-base">등록현황 차트</CardTitle>
-          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarRange className="h-3.5 w-3.5" />
+    <Card className="overflow-hidden border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 dark:bg-zinc-900/40 dark:shadow-black/20 dark:ring-zinc-800/50">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/5 pb-6 pt-6">
+        <div className="space-y-1">
+          <CardTitle className="text-xl font-semibold tracking-tight text-foreground/90">등록현황 차트</CardTitle>
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/80">
+            <CalendarRange className="h-3.5 w-3.5 opacity-70" />
             {model.range ? (
               <span>
                 {formatDateYmd(model.range.start)} ~ {formatDateYmd(model.range.end)}
               </span>
             ) : (
-              <span>표시할 기간 정보가 없습니다.</span>
+              <span>기간 정보 없음</span>
             )}
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            행을 클릭하면 상세/전반/퇴원 처리를 할 수 있습니다.
-          </div>
         </div>
-        <Badge variant="secondary">주단위</Badge>
+        <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-400">주단위</Badge>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="p-0">
         {!model.range ? (
-          <div className="rounded-xl border border-border/60 bg-background px-4 py-6 text-sm text-muted-foreground">등록현황 차트를 만들 수 있는 날짜 정보가 없습니다.</div>
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">등록현황 차트를 만들 수 있는 날짜 정보가 없습니다.</div>
         ) : !model.weeks.length ? (
-          <div className="rounded-xl border border-border/60 bg-background px-4 py-6 text-sm text-muted-foreground">주차 정보를 계산할 수 없습니다.</div>
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">주차 정보를 계산할 수 없습니다.</div>
         ) : (
-          <TooltipProvider delayDuration={180}>
-            <div className="rounded-xl border border-border/60 bg-background">
+          <TooltipProvider delayDuration={0}>
+            <div className="relative">
               <div
                 ref={ganttScrollRef}
                 className={`overflow-auto no-scrollbar [overscroll-behavior:contain] ${maxHeightClassName}`}
               >
                 <div style={{ minWidth: LABEL_WIDTH_PX + NOTE_WIDTH_PX + timelineWidth }}>
-                <div
-                  className="sticky top-0 z-30 grid border-b border-border/60 bg-background"
-                  style={{ gridTemplateColumns }}
-                >
                   <div
-                    data-gantt-left
-                    className="sticky left-0 z-40 flex items-center border-r-2 border-border/70 bg-background px-3 py-2 text-xs font-semibold text-muted-foreground"
-                  >학생/과목</div>
-                  <div
-                    data-gantt-left
-                    className="sticky left-0 z-30 flex items-center justify-center gap-1 bg-background px-2 py-2 text-xs font-semibold text-muted-foreground relative"
-                    style={{ left: LABEL_WIDTH_PX }}
+                    className="sticky top-0 z-30 grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md dark:bg-zinc-900/90"
+                    style={{ gridTemplateColumns }}
                   >
-                    <span className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-slate-300/80" />
-                    <FileText className="h-3.5 w-3.5" />
-                    메모
-                  </div>
-                  <div
-                    className="grid border-r border-border/60"
-                    style={{
-                      gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
-                      width: timelineWidth,
-                      backgroundImage: gridBackgroundImage,
-                    }}
-                  >
-                    {model.weeks.map((w, i) => (
-                      <div
-                        key={i}
-                        className="overflow-hidden text-ellipsis whitespace-nowrap px-1 py-2 text-center text-xs font-bold leading-none text-foreground"
-                        title={`${formatDateYmd(w.start)} ~ ${formatDateYmd(w.end)}`}
-                      >
-                        {formatWeekLabel(w.start, w.end)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <div
-                    className="pointer-events-none absolute inset-y-0 z-0"
-                    style={{
-                      left: timelineOffset,
-                      width: timelineWidth,
-                      backgroundImage: gridBackgroundImage,
-                    }}
-                  />
-                  {model.rows.map(({ r, start, end, status, isWithdrawn, isTransferredOut, recordingWeeks, courseDays: rowCourseDays, skipWeeks, startIndex, endIndex }, idx) => {
-                  const hasDates = start && end
-                  const globalStartIndex = model.globalStartIndex ?? 0
-                  const courseLabel = stripMathExcludeLabel(r?.course)
-                  const noteText = String(r?.note || "").trim()
-                  const hasNote = noteText.length > 0
-                  const notePreview =
-                    noteText.length > 10 ? `${noteText.slice(0, 10)}...` : noteText
-                  const isMathExcluded =
-                    !!r?.excludeMath || String(r?.course || "").includes("수학 제외")
-
-                  const barClass =
-                    status === "active"
-                      ? "bg-emerald-500/70"
-                      : status === "pending"
-                        ? "bg-amber-500/70"
-                        : status === "completed"
-                          ? "bg-zinc-400/70"
-                          : "bg-muted-foreground/40"
-
-                   const recordingWeekMap = new Map<number, Date[]>()
-                   const recordingDateSet = new Set<number>()
-                  for (const bucket of recordingWeeks || []) {
-                    recordingWeekMap.set(bucket.weekIndex, bucket.dates)
-                    for (const date of bucket.dates) {
-                      recordingDateSet.add(date.getTime())
-                    }
-                  }
-
-                  const hasCourseDays =
-                    Array.isArray(rowCourseDays) && rowCourseDays.length > 0
-                  const segmentBars = []
-                  const recordingMarkers = []
-
-                  const skipWeekSet = new Set(skipWeeks || [])
-
-                  if (hasDates && startIndex !== -1 && endIndex !== -1) {
-                    const pad = 4
-                    for (let weekIndex = startIndex; weekIndex <= endIndex; weekIndex += 1) {
-                      const week = model.weeks[weekIndex]
-                      if (!week) continue
-                      const mergeRelativeWeek = weekIndex - globalStartIndex + 1
-                      if (!isWeekInRanges(mergeRelativeWeek, mergeWeekRangesNormalized)) continue
-                      const studentRelativeWeek = weekIndex - startIndex + 1
-                      if (skipWeekSet.has(studentRelativeWeek)) continue
-
-                      const recordedDates = recordingWeekMap.get(weekIndex) || []
-                      let mode = "none"
-                      let tooltipDates: Date[] = []
-
-                      if (hasCourseDays) {
-                        const classDates = getWeekClassDates(
-                          week,
-                          start,
-                          end,
-                          rowCourseDays
-                        )
-                        if (!classDates.length) continue
-
-                        const recordedInWeek = classDates.filter((date) =>
-                          recordingDateSet.has(date.getTime())
-                        )
-
-                        if (recordedInWeek.length === 0) {
-                          mode = "none"
-                        } else if (recordedInWeek.length >= classDates.length) {
-                          mode = "all"
-                          tooltipDates = recordedInWeek
-                        } else {
-                          mode = "partial"
-                          tooltipDates = recordedInWeek
-                        }
-                      } else if (recordedDates.length) {
-                        mode = "partial"
-                        tooltipDates = recordedDates
-                      }
-
-                      const segmentLeft = weekIndex * model.unitWidth + pad
-                      const segmentWidth = Math.max(
-                        6,
-                        model.unitWidth - pad * 2
-                      )
-                      const iconLeft = weekIndex * model.unitWidth + model.unitWidth / 2
-
-                      if (mode !== "all") {
-                        segmentBars.push(
-                          <div
-                            key={`${r?.id || idx}-bar-${weekIndex}`}
-                            className={`absolute top-1/2 -translate-y-1/2 rounded-none ${barClass}`}
-                            style={{
-                              left: segmentLeft,
-                              width: segmentWidth,
-                              height: BAR_HEIGHT_PX,
-                            }}
-                            title={`${r?.name || "-"} · ${courseLabel || "-"} (${formatDateYmd(start)}~${formatDateYmd(end)})`}
-                          />
-                        )
-                      }
-
-                      if (mode !== "none") {
-                        const markerClassName =
-                          "absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_55%),conic-gradient(from_210deg_at_50%_50%,#F7A83E_0deg,#FB4A75_110deg,#C39CFD_210deg,#6BB5EE_310deg,#F7A83E_360deg)] p-0.5 text-white shadow-sm transition hover:shadow-md"
-                        const tooltipItems: Array<{ key: number; label: string }> = tooltipDates.map((date) => ({
-                          key: date.getTime(),
-                          label: formatDateKorean(date),
-                        }))
-
-                        recordingMarkers.push(
-                          <Tooltip key={`${r?.id || idx}-recording-${weekIndex}`}>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                className={markerClassName}
-                                style={{ left: iconLeft }}
-                                aria-label="녹화 날짜"
-                              >
-                                <Video className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-[200px]">
-                              <div className="space-y-0.5">
-                                {tooltipItems.map((item) => (
-                                  <div key={item.key}>{item.label}</div>
-                                ))}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        )
-                      }
-                    }
-                  }
-
-                  return (
                     <div
-                      key={`${r?.id || idx}`}
-                      className="group relative z-10 grid"
-                      style={{ gridTemplateColumns, height: ROW_HEIGHT_PX }}
-                      onClick={() => openDetail(r)}
+                      data-gantt-left
+                      className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md dark:bg-zinc-900/95"
+                    >학생 / 과목</div>
+                    <div
+                      data-gantt-left
+                      className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md dark:border-zinc-600 dark:bg-zinc-900/95 relative"
+                      style={{ left: LABEL_WIDTH_PX }}
                     >
-                      <div
-                        data-gantt-left
-                        className="sticky left-0 z-30 border-b-2 border-r-2 border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openDetail(r)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault()
-                            openDetail(r)
-                          }
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <div className="truncate text-sm font-semibold">
-                                {r?.name || "-"}
-                              </div>
-                              {isMathExcluded ? (
-                                <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-800">수학 제외</Badge>
-                              ) : null}
-                            </div>
-                            <div className="mt-1 truncate text-xs text-muted-foreground">
-                              {courseLabel || "-"}
-                            </div>
-                          </div>
-                          <div className="shrink-0 pt-0.5">
-                            <div className="flex items-center gap-2">
-                              {isTransferredOut ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-amber-300 bg-amber-50 text-amber-800"
-                                >
-                                  전반
-                                </Badge>
-                              ) : isWithdrawn ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-rose-300 bg-rose-50 text-rose-700"
-                                >
-                                  중도퇴원
-                                </Badge>
-                              ) : (
-                                <StatusPill status={status} />
-                              )}
-                            </div>
-                          </div>
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    </div>
+                    <div
+                      className="grid bg-gradient-to-b from-indigo-50/80 to-slate-50/50 dark:from-indigo-950/30 dark:to-zinc-900/50"
+                      style={{
+                        gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
+                        width: timelineWidth,
+                        backgroundImage: gridBackgroundImage,
+                      }}
+                    >
+                      {model.weeks.map((w, i) => (
+                        <div
+                          key={i}
+                          className="flex flex-col items-center justify-center gap-0.5 overflow-hidden border-l border-slate-200/60 px-0.5 py-2 transition-colors first:border-l-0 hover:bg-indigo-100/50 dark:border-zinc-700/60 dark:hover:bg-indigo-900/30"
+                          title={`${formatDateYmd(w.start)} ~ ${formatDateYmd(w.end)}`}
+                        >
+                          <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
+                            {i + 1}주차
+                          </span>
+                          <span className="text-[12px] font-semibold text-slate-700 dark:text-zinc-300">
+                            {formatWeekLabel(w.start, w.end)}
+                          </span>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  </div>
 
-                      <div
-                        data-gantt-left
-                        className="sticky left-0 z-20 flex items-center justify-center border-b-2 bg-background/95 px-2 relative"
-                        style={{ left: LABEL_WIDTH_PX }}
-                      >
-                        <span className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-slate-300/80" />
-                        {typeof onNote === "function" ? (
-                          hasNote ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                  <div className="relative">
+                    <div
+                      className="pointer-events-none absolute inset-y-0 z-0"
+                      style={{
+                        left: timelineOffset,
+                        width: timelineWidth,
+                        backgroundImage: gridBackgroundImage,
+                      }}
+                    />
+                    {model.rows.map(({ r, start, end, status, isWithdrawn, isTransferredOut, recordingWeeks, courseDays: rowCourseDays, skipWeeks, startIndex, endIndex }, idx) => {
+                      const hasDates = start && end
+                      const globalStartIndex = model.globalStartIndex ?? 0
+                      const courseLabel = stripMathExcludeLabel(r?.course)
+                      const noteText = String(r?.note || "").trim()
+                      const hasNote = noteText.length > 0
+                      const notePreview =
+                        noteText.length > 10 ? `${noteText.slice(0, 10)}...` : noteText
+                      const isMathExcluded =
+                        !!r?.excludeMath || String(r?.course || "").includes("수학 제외")
+
+                      const barClass =
+                        status === "active"
+                          ? "bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-500/20"
+                          : status === "pending"
+                            ? "bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-500/20"
+                            : status === "completed"
+                              ? "bg-gradient-to-r from-zinc-300 to-zinc-400 dark:from-zinc-600 dark:to-zinc-500"
+                              : "bg-muted-foreground/40"
+
+                      const recordingWeekMap = new Map<number, Date[]>()
+                      const recordingDateSet = new Set<number>()
+                      for (const bucket of recordingWeeks || []) {
+                        recordingWeekMap.set(bucket.weekIndex, bucket.dates)
+                        for (const date of bucket.dates) {
+                          recordingDateSet.add(date.getTime())
+                        }
+                      }
+
+                      const hasCourseDays =
+                        Array.isArray(rowCourseDays) && rowCourseDays.length > 0
+                      const segmentBars = []
+                      const recordingMarkers = []
+
+                      const skipWeekSet = new Set(skipWeeks || [])
+
+                      if (hasDates && startIndex !== -1 && endIndex !== -1) {
+                        const pad = 3
+                        for (let weekIndex = startIndex; weekIndex <= endIndex; weekIndex += 1) {
+                          const week = model.weeks[weekIndex]
+                          if (!week) continue
+                          const mergeRelativeWeek = weekIndex - globalStartIndex + 1
+                          if (!isWeekInRanges(mergeRelativeWeek, mergeWeekRangesNormalized)) continue
+                          const studentRelativeWeek = weekIndex - startIndex + 1
+                          if (skipWeekSet.has(studentRelativeWeek)) continue
+
+                          const recordedDates = recordingWeekMap.get(weekIndex) || []
+                          let mode = "none"
+                          let tooltipDates: Date[] = []
+
+                          if (hasCourseDays) {
+                            const classDates = getWeekClassDates(
+                              week,
+                              start,
+                              end,
+                              rowCourseDays
+                            )
+                            if (!classDates.length) continue
+
+                            const recordedInWeek = classDates.filter((date) =>
+                              recordingDateSet.has(date.getTime())
+                            )
+
+                            if (recordedInWeek.length === 0) {
+                              mode = "none"
+                            } else if (recordedInWeek.length >= classDates.length) {
+                              mode = "all"
+                              tooltipDates = recordedInWeek
+                            } else {
+                              mode = "partial"
+                              tooltipDates = recordedInWeek
+                            }
+                          } else if (recordedDates.length) {
+                            mode = "partial"
+                            tooltipDates = recordedDates
+                          }
+
+                          const segmentLeft = weekIndex * model.unitWidth + pad
+                          const segmentWidth = Math.max(
+                            6,
+                            model.unitWidth - pad * 2
+                          )
+                          const iconLeft = weekIndex * model.unitWidth + model.unitWidth / 2
+
+                          if (mode !== "all") {
+                            segmentBars.push(
+                              <div
+                                key={`${r?.id || idx}-bar-${weekIndex}`}
+                                className={`absolute top-1/2 -translate-y-1/2 rounded-full shadow-sm ring-1 ring-white/20 backdrop-blur-sm transition-all hover:scale-[1.02] hover:shadow-md ${barClass}`}
+                                style={{
+                                  left: segmentLeft,
+                                  width: segmentWidth,
+                                  height: BAR_HEIGHT_PX,
+                                }}
+                                title={`${r?.name || "-"} · ${courseLabel || "-"} (${formatDateYmd(start)}~${formatDateYmd(end)})`}
+                              />
+                            )
+                          }
+
+                          if (mode !== "none") {
+                            const markerClassName =
+                              "absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_55%),conic-gradient(from_210deg_at_50%_50%,#F7A83E_0deg,#FB4A75_110deg,#C39CFD_210deg,#6BB5EE_310deg,#F7A83E_360deg)] p-0.5 text-white shadow-sm transition hover:shadow-md hover:scale-110"
+                            const tooltipItems: Array<{ key: number; label: string }> = tooltipDates.map((date) => ({
+                              key: date.getTime(),
+                              label: formatDateKorean(date),
+                            }))
+
+                            recordingMarkers.push(
+                              <Tooltip key={`${r?.id || idx}-recording-${weekIndex}`}>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className={markerClassName}
+                                    style={{ left: iconLeft }}
+                                    aria-label="녹화 날짜"
+                                  >
+                                    <Video className="h-3.5 w-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[200px]">
+                                  <div className="space-y-0.5">
+                                    {tooltipItems.map((item) => (
+                                      <div key={item.key}>{item.label}</div>
+                                    ))}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          }
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={`${r?.id || idx}`}
+                          className="group relative z-10 grid border-b border-border/5 transition-colors hover:bg-slate-50/60 dark:hover:bg-zinc-800/60"
+                          style={{ gridTemplateColumns, height: ROW_HEIGHT_PX }}
+                          onClick={() => openDetail(r)}
+                        >
+                          <div
+                            data-gantt-left
+                            className="sticky left-0 z-30 flex flex-col justify-center border-r border-border/5 bg-white/90 px-4 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openDetail(r)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                openDetail(r)
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <div className="truncate text-sm font-medium text-foreground">
+                                    {r?.name || "-"}
+                                  </div>
+                                  {isMathExcluded ? (
+                                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-[10px] text-sky-700">수학제외</Badge>
+                                  ) : null}
+                                </div>
+                                <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
+                                  {courseLabel || "-"}
+                                </div>
+                              </div>
+                              <div className="shrink-0">
+                                {isTransferredOut ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-200 bg-amber-50 text-[10px] text-amber-700"
+                                  >
+                                    전반
+                                  </Badge>
+                                ) : isWithdrawn ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-rose-200 bg-rose-50 text-[10px] text-rose-700"
+                                  >
+                                    퇴원
+                                  </Badge>
+                                ) : (
+                                  <StatusPill status={status} />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
+                            data-gantt-left
+                            className="sticky left-0 z-20 flex items-center justify-center border-r-2 border-slate-300/80 bg-white/90 px-2 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 dark:border-zinc-600 dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90 relative"
+                            style={{ left: LABEL_WIDTH_PX }}
+                          >
+
+                            {typeof onNote === "function" ? (
+                              hasNote ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-slate-100 text-slate-500 shadow-sm transition-all hover:scale-105 hover:bg-white hover:text-slate-900 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-400"
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        onNote(r)
+                                      }}
+                                      aria-label="메모 보기/수정"
+                                    >
+                                      <FileText className="h-3.5 w-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="right"
+                                    sideOffset={8}
+                                    className="rounded-xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur"
+                                  >
+                                    {notePreview}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
                                 <button
                                   type="button"
-                                  className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/80 text-slate-600 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur transition hover:border-slate-300 hover:text-slate-900 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]"
+                                  className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-300 opacity-0 transition-all group-hover:opacity-100 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-600"
                                   onClick={(event) => {
                                     event.stopPropagation()
                                     onNote(r)
                                   }}
-                                  aria-label="메모 보기/수정"
+                                  aria-label="메모 추가"
                                 >
-                                  <FileText className="h-4 w-4" />
+                                  <Plus className="h-3.5 w-3.5" />
                                 </button>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                side="right"
-                                sideOffset={8}
-                                className="rounded-xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur"
-                              >
-                                {notePreview}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <button
-                              type="button"
-                              className="flex h-9 w-9 items-center justify-center rounded-2xl border border-transparent text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-slate-200 hover:bg-white/80 hover:text-slate-700 hover:shadow-sm"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                onNote(r)
-                              }}
-                              aria-label="메모 추가"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          )
-                        ) : null}
-                      </div>
-
-                      <div
-                        className="relative border-r border-border/60"
-                        style={{
-                          width: timelineWidth,
-                          height: "100%",
-                        }}
-                      >
-                        {hasDates && startIndex !== -1 && endIndex !== -1 ? (
-                          <>
-                            {segmentBars}
-                            {recordingMarkers}
-                          </>
-                        ) : (
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">날짜 정보 없음</div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-                  {model.weeks.length ? (
-                    <div
-                      className="relative z-10 grid border-t border-border/60"
-                      style={{ gridTemplateColumns }}
-                    >
-                      <div
-                        data-gantt-left
-                        className="sticky left-0 z-20 border-r-2 border-border/70 bg-background/95 px-3 py-2 text-xs font-semibold text-muted-foreground"
-                      >주차 합계</div>
-                      <div
-                        data-gantt-left
-                        className="sticky left-0 z-10 bg-background/95 px-2 py-2 text-xs text-muted-foreground relative"
-                        style={{ left: LABEL_WIDTH_PX }}
-                      >
-                        <span className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-slate-300/80" />
-                        -
-                      </div>
-                      <div
-                        className="grid border-r border-border/60"
-                        style={{
-                          gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
-                          width: timelineWidth,
-                        }}
-                      >
-                        {weekTotals.map((count, i) => (
-                          <div
-                            key={`week-total-${i}`}
-                            className="flex items-center justify-center px-1 py-2 text-xs font-semibold text-foreground"
-                          >
-                            {count}
+                              )
+                            ) : null}
                           </div>
-                        ))}
+
+                          <div
+                            className="relative"
+                            style={{
+                              width: timelineWidth,
+                              height: "100%",
+                            }}
+                          >
+                            {hasDates && startIndex !== -1 && endIndex !== -1 ? (
+                              <>
+                                {segmentBars}
+                                {recordingMarkers}
+                              </>
+                            ) : (
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/50">날짜 정보 없음</div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {model.weeks.length ? (
+                      <div
+                        className="relative z-10 grid border-t-2 border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50 dark:border-zinc-700 dark:from-zinc-800 dark:to-zinc-900"
+                        style={{ gridTemplateColumns }}
+                      >
+                        <div
+                          data-gantt-left
+                          className="sticky left-0 z-20 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md dark:bg-zinc-800/95 dark:text-zinc-400"
+                        >주차 합계</div>
+                        <div
+                          data-gantt-left
+                          className="sticky left-0 z-10 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md dark:border-zinc-600 dark:bg-zinc-800/95"
+                          style={{ left: LABEL_WIDTH_PX }}
+                        />
+                        <div
+                          className="grid"
+                          style={{
+                            gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
+                            width: timelineWidth,
+                          }}
+                        >
+                          {weekTotals.map((count, i) => (
+                            <div
+                              key={`week-total-${i}`}
+                              className="flex items-center justify-center border-l border-slate-200/60 px-1 py-2.5 text-sm font-bold text-indigo-600 first:border-l-0 dark:border-zinc-700/60 dark:text-indigo-400"
+                            >
+                              {count}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           </TooltipProvider>
         )}
