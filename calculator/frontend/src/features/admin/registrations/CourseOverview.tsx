@@ -1,7 +1,5 @@
 import { useMemo } from "react"
 
-import { Card, CardContent } from "@/components/ui/card"
-
 import { BookOpen, CheckCircle2, Clock, Grid3X3, TimerOff } from "lucide-react"
 
 import { getRegistrationStatus } from "./utils"
@@ -28,42 +26,56 @@ type CourseCardProps = {
 }
 
 function CourseCard({ course, count, breakdown, selected, onClick }: CourseCardProps) {
-  return (
-    <button type="button" onClick={onClick} className="text-left">
-      <Card
-        className={
-          selected
-            ? "border-primary/40 bg-primary/5"
-            : "border-border/60 bg-card/60"
-        }
-      >
-        <CardContent className="space-y-2 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4" />
-                <span className="truncate">{course}</span>
-              </div>
-              <div className="mt-2 text-2xl font-extrabold">{count}명</div>
-            </div>
-          </div>
+  const baseClass = selected
+    ? "relative overflow-hidden rounded-2xl border-2 border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 shadow-lg ring-2 ring-indigo-200/50 transition-all hover:shadow-xl"
+    : "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              {breakdown.active}명
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-amber-600" />
-              {breakdown.pending}명
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <TimerOff className="h-3.5 w-3.5 text-zinc-500" />
-              {breakdown.completed}명
-            </span>
+  return (
+    <button type="button" onClick={onClick} className="text-left w-full">
+      <div className={baseClass}>
+        {/* 배경 장식 */}
+        <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-gradient-to-br from-indigo-100/40 to-purple-100/40 blur-2xl" />
+
+        {/* 헤더 */}
+        <div className="relative mb-3 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-sm">
+            <BookOpen className="h-4 w-4 text-white" />
           </div>
-        </CardContent>
-      </Card>
+          <span className="truncate text-sm font-semibold text-slate-700">{course}</span>
+        </div>
+
+        {/* 메인 숫자 */}
+        <div className="relative mb-4">
+          <div className="text-4xl font-black tracking-tight text-slate-900">
+            {count}
+            <span className="ml-1 text-lg font-semibold text-slate-500">명</span>
+          </div>
+        </div>
+
+        {/* 상태별 breakdown */}
+        <div className="relative flex items-center gap-3 rounded-xl bg-white/60 px-3 py-2 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            </div>
+            <span className="text-xs font-semibold text-emerald-700">{breakdown.active}</span>
+          </div>
+          <div className="h-3 w-px bg-slate-200" />
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100">
+              <Clock className="h-3 w-3 text-amber-600" />
+            </div>
+            <span className="text-xs font-semibold text-amber-700">{breakdown.pending}</span>
+          </div>
+          <div className="h-3 w-px bg-slate-200" />
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100">
+              <TimerOff className="h-3 w-3 text-slate-500" />
+            </div>
+            <span className="text-xs font-semibold text-slate-600">{breakdown.completed}</span>
+          </div>
+        </div>
+      </div>
     </button>
   )
 }
@@ -73,6 +85,7 @@ type CourseOverviewProps = {
   courseFilter: string
   onCourseFilterChange: (value: string) => void
   courseIdToLabel: Map<string, string>
+  courseVariantRequiredSet?: Set<string>
 }
 
 export default function CourseOverview({
@@ -80,15 +93,27 @@ export default function CourseOverview({
   courseFilter,
   onCourseFilterChange,
   courseIdToLabel,
+  courseVariantRequiredSet,
 }: CourseOverviewProps) {
   const isMergeFilter = typeof courseFilter === "string" && courseFilter.startsWith("__merge__")
   const selectedCourse = !isMergeFilter ? courseFilter : ""
   const courseIdLabelMap = courseIdToLabel instanceof Map ? courseIdToLabel : new Map()
+  const variantSet = courseVariantRequiredSet instanceof Set ? courseVariantRequiredSet : new Set<string>()
 
   const getCourseKey = (registration: RegistrationRow) => {
     const courseId = String(registration?.courseId || "").trim()
-    if (courseId) return `__courseid__${courseId}`
     const courseName = String(registration?.course || "").trim()
+
+    // 동적시간 수업인 경우 courseName(라벨)을 키로 사용하여 별도 카드로 분리
+    if (courseName && variantSet.size > 0) {
+      for (const base of variantSet) {
+        if (courseName.startsWith(base)) {
+          return `__coursename__${courseName}`
+        }
+      }
+    }
+
+    if (courseId) return `__courseid__${courseId}`
     return courseName ? `__coursename__${courseName}` : ""
   }
 
@@ -134,7 +159,7 @@ export default function CourseOverview({
       if (b.rows.length !== a.rows.length) return b.rows.length - a.rows.length
       return a.course.localeCompare(b.course, "ko-KR")
     })
-  }, [registrations, courseIdLabelMap])
+  }, [registrations, courseIdLabelMap, variantSet])
 
   if (!grouped.length) return null
 
