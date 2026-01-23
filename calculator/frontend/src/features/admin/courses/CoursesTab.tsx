@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 
-import { FolderPlus, PencilLine, Plus } from "lucide-react"
+import { BookOpen, FolderPlus, PencilLine, Plus } from "lucide-react"
 
 import { courseInfo, recordingAvailable, timeTable } from "@/utils/data"
 
@@ -54,40 +54,50 @@ export default function CoursesTab({ user, onDirtyChange }) {
   return (
     <>
       <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">수업목록 관리</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            카테고리/수업을 관리하고 설정 세트로 저장할 수 있습니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setBulkOpen(true)}
-            disabled={!hasSelection}
-          >
-            <PencilLine className="mr-2 h-4 w-4" />
-            수업명 일괄 변경
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setModal({ type: "category", props: {} })}
-            disabled={!hasSelection}
-          >
-            <FolderPlus className="mr-2 h-4 w-4" />
-            카테고리 추가
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setModal({ type: "course", props: {} })}
-            disabled={!hasSelection}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            수업 추가
-          </Button>
+      {/* 헤더 영역 */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-gradient-to-br from-emerald-500/10 via-green-500/10 to-teal-400/10 p-6 shadow-lg shadow-black/5 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 shadow-lg shadow-emerald-500/25">
+              <BookOpen className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">수업목록 관리</h2>
+              <p className="text-sm text-slate-600">카테고리/수업을 관리하고 설정 세트로 저장할 수 있습니다</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBulkOpen(true)}
+              disabled={!hasSelection}
+              className="gap-2 rounded-xl border-white/40 bg-white/60 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 hover:shadow-md"
+            >
+              <PencilLine className="h-4 w-4" />
+              수업명 일괄 변경
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setModal({ type: "category", props: {} })}
+              disabled={!hasSelection}
+              className="gap-2 rounded-xl border-white/40 bg-white/60 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 hover:shadow-md"
+            >
+              <FolderPlus className="h-4 w-4" />
+              카테고리 추가
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setModal({ type: "course", props: {} })}
+              disabled={!hasSelection}
+              className="gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              수업 추가
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react"
 
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Shield } from "lucide-react"
 
 import { useUsers } from "./useUsers"
 import UserFormCard from "./UserFormCard"
@@ -82,14 +82,18 @@ export default function AccountsTab({ user }) {
   return (
     <>
       <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">계정 관리</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{headerDesc}</p>
+      {/* 헤더 영역 */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-400/10 p-6 shadow-lg shadow-black/5 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
+            <Shield className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">계정 관리</h2>
+            <p className="text-sm text-slate-600">{headerDesc}</p>
+          </div>
         </div>
-        <Button type="button" variant="outline" onClick={reload} disabled={loading || saving}>
-          새로고침
-        </Button>
       </div>
 
       {error ? (
