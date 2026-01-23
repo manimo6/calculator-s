@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { Bell } from "lucide-react"
 
 import NoticeEditorCard from "./NoticeEditorCard"
 import NoticeList from "./NoticeList"
@@ -69,14 +69,18 @@ export default function NoticesTab({ user }) {
   return (
     <>
       <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">공지사항</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{headerDesc}</p>
+      {/* 헤더 영역 */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-teal-400/10 p-6 shadow-lg shadow-black/5 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
+            <Bell className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">공지사항</h2>
+            <p className="text-sm text-slate-600">{headerDesc || "중요한 공지를 확인하세요"}</p>
+          </div>
         </div>
-        <Button type="button" variant="outline" onClick={reload} disabled={loading || saving}>
-          새로고침
-        </Button>
       </div>
 
       {error ? (
