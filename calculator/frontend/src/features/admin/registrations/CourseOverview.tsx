@@ -163,6 +163,11 @@ export default function CourseOverview({
 
   if (!grouped.length) return null
 
+  // 선택된 카드만 표시 또는 전체 표시
+  const displayGroups = selectedCourse 
+    ? grouped.filter(g => g.key === selectedCourse)
+    : grouped
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-sm font-semibold">
@@ -170,7 +175,7 @@ export default function CourseOverview({
         과목별 요약 (클릭해서 필터)
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {grouped.map((g) => (
+        {displayGroups.map((g) => (
           <CourseCard
             key={g.key}
             course={g.course}

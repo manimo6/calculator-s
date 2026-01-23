@@ -292,6 +292,7 @@ type RegistrationsGanttProps = {
   onTransferCancel: (row: RegistrationRow) => void
   onNote: (row: RegistrationRow) => void
   maxHeightClassName?: string
+  disableCardOverflow?: boolean
 }
 
 export default function RegistrationsGantt({
@@ -306,6 +307,7 @@ export default function RegistrationsGantt({
   onTransferCancel,
   onNote,
   maxHeightClassName = "max-h-[560px]",
+  disableCardOverflow = false,
 }: RegistrationsGanttProps) {
   const ganttScrollRef = useRef<HTMLDivElement | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -539,7 +541,7 @@ export default function RegistrationsGantt({
 
   return (
     <>
-    <Card className="overflow-hidden border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 dark:bg-zinc-900/40 dark:shadow-black/20 dark:ring-zinc-800/50">
+    <Card className="border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 overflow-hidden dark:bg-zinc-900/40 dark:shadow-black/20 dark:ring-zinc-800/50">
       <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/5 pb-6 pt-6">
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight text-foreground/90">등록현황 차트</CardTitle>

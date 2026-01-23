@@ -272,6 +272,20 @@ export function normalizeSkipWeeks(skipWeeks: Array<number | string> | null | un
     return cleaned.sort((a, b) => a - b);
 }
 
+// Helper: Calculate total days considering week boundary crossing (e.g., Sat->Sun)
+export function calculateTotalDays(courseDays: number[], endDay: number | undefined, period: number): number {
+    if (!courseDays.length || period <= 0) return 0;
+
+    if (endDay !== undefined) {
+        // Use index-based calculation to handle week boundary crossing (e.g., days=[6,0], endDay=0)
+        const endDayIndex = courseDays.indexOf(endDay);
+        const daysInLastWeek = endDayIndex >= 0 ? endDayIndex + 1 : courseDays.length;
+        return (period > 1) ? (period - 1) * courseDays.length + daysInLastWeek : daysInLastWeek;
+    }
+
+    return period * courseDays.length;
+}
+
 // Helper: Get available recording dates based on start, duration, and allowed days
 export function getAvailableRecordingDates(
     startDateStr: string,
@@ -486,14 +500,7 @@ export function calculateTotalFee(inputs: CalculateTotalFeeInputs): CalculateTot
     });
     const skipWeeks = scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, period);
     const scheduleWeeks = scheduleMeta.scheduleWeeks || period + skipWeeks.length;
-    let totalDays;
-
-    if (endDay !== undefined && period > 0) {
-        const daysInLastWeek = courseDays.filter(d => d <= endDay).length;
-        totalDays = (period > 1) ? (period - 1) * courseDays.length + daysInLastWeek : daysInLastWeek;
-    } else {
-        totalDays = period * courseDays.length;
-    }
+    const totalDays = calculateTotalDays(courseDays, endDay, period);
 
     if (recordingDays > 0 && recordingDays >= totalDays) {
         return { totalFee: 0, error: "All days cannot be recording" };
@@ -628,13 +635,7 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
         }
     }
 
-    let totalDays = 0;
-    if (endDay !== undefined && period > 0) {
-        const daysInLastWeek = courseDays.filter(d => d <= endDay).length;
-        totalDays = (period > 1) ? (period - 1) * courseDays.length + daysInLastWeek : daysInLastWeek;
-    } else {
-        totalDays = period * courseDays.length;
-    }
+    const totalDays = calculateTotalDays(courseDays, endDay, period);
 
     if (recordingDays > 0 && recordingDays >= totalDays) {
         validationErrors.push('최소 1일은 실시간 수업으로 진행되어야 합니다.');

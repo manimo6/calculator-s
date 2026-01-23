@@ -1,4 +1,4 @@
-﻿import React from "react"
+import React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -42,6 +42,7 @@ type FiltersCardProps = {
   showCourseFilter?: boolean
   showSearch?: boolean
   showMergeManager?: boolean
+  showRefreshButton?: boolean
   installmentMode?: boolean
   onToggleInstallmentMode?: () => void
   showInstallmentToggle?: boolean
@@ -70,6 +71,7 @@ export default function FiltersCard({
   showCourseFilter = true,
   showSearch = true,
   showMergeManager = true,
+  showRefreshButton = true,
   installmentMode,
   onToggleInstallmentMode,
   showInstallmentToggle = true,
@@ -85,6 +87,10 @@ export default function FiltersCard({
   const showInstallmentInBottom =
     showInstallmentButton && installmentPlacement !== "top"
 
+  // 오른쪽 버튼 영역에 표시할 버튼이 있는지 확인
+  const hasRightButtons = showRefreshButton || showMergeButton || showInstallmentInTop
+  const categoryColSpan = hasRightButtons ? "md:col-span-6" : "md:col-span-9"
+
   return (
     <Card className="border-border/60 bg-card/60">
       <CardContent className="grid gap-4 pt-4 md:grid-cols-12">
@@ -99,7 +105,7 @@ export default function FiltersCard({
           storageScope={storageScope}
           disabled={courseConfigSetLoading}
         />
-        <div className="space-y-2 md:col-span-6">
+        <div className={`space-y-2 ${categoryColSpan}`}>
           <Label>카테고리</Label>
           <CategoryTabs
             categories={courseConfigSetCategories}
@@ -108,38 +114,42 @@ export default function FiltersCard({
             disabled={!selectedCourseConfigSet}
           />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 md:col-span-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onRefresh}
-            disabled={!selectedCourseConfigSet || loading}
-          >
-            새로고침
-          </Button>
-          {showMergeButton ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onToggleMergeManager}
-              disabled={!selectedCourseConfigSet}
-              aria-pressed={mergeManagerOpen}
-            >
-              합반 관리
-            </Button>
-          ) : null}
-          {showInstallmentInTop ? (
-            <Button
-              type="button"
-              variant={installmentMode ? "default" : "outline"}
-              onClick={onToggleInstallmentMode}
-              disabled={!selectedCourseConfigSet || loading}
-              aria-pressed={installmentMode}
-            >
-              분납현황
-            </Button>
-          ) : null}
-        </div>
+        {hasRightButtons ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 md:col-span-3">
+            {showRefreshButton ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onRefresh}
+                disabled={!selectedCourseConfigSet || loading}
+              >
+                새로고침
+              </Button>
+            ) : null}
+            {showMergeButton ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onToggleMergeManager}
+                disabled={!selectedCourseConfigSet}
+                aria-pressed={mergeManagerOpen}
+              >
+                합반 관리
+              </Button>
+            ) : null}
+            {showInstallmentInTop ? (
+              <Button
+                type="button"
+                variant={installmentMode ? "default" : "outline"}
+                onClick={onToggleInstallmentMode}
+                disabled={!selectedCourseConfigSet || loading}
+                aria-pressed={installmentMode}
+              >
+                분납현황
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {showCourseFilter ? (
           <div className="space-y-2 md:col-span-4">
