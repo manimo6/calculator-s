@@ -541,7 +541,7 @@ export default function RegistrationsGantt({
 
   return (
     <>
-    <Card className="border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 overflow-hidden dark:bg-zinc-900/40 dark:shadow-black/20 dark:ring-zinc-800/50">
+    <Card className="border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 overflow-hidden /* dark:bg-zinc-900/40 dark:shadow-black/20 dark:ring-zinc-800/50 */">
       <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/5 pb-6 pt-6">
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight text-foreground/90">등록현황 차트</CardTitle>
@@ -556,7 +556,7 @@ export default function RegistrationsGantt({
             )}
           </div>
         </div>
-        <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-400">주단위</Badge>
+        <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200 /* dark:bg-zinc-800 dark:text-zinc-400 */">주단위</Badge>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -573,22 +573,22 @@ export default function RegistrationsGantt({
               >
                 <div style={{ minWidth: LABEL_WIDTH_PX + NOTE_WIDTH_PX + timelineWidth }}>
                   <div
-                    className="sticky top-0 z-30 grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md dark:bg-zinc-900/90"
+                    className="sticky top-0 z-30 grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md /* dark:bg-zinc-900/90 */"
                     style={{ gridTemplateColumns }}
                   >
                     <div
                       data-gantt-left
-                      className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md dark:bg-zinc-900/95"
+                      className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md /* dark:bg-zinc-900/95 */"
                     >학생 / 과목</div>
                     <div
                       data-gantt-left
-                      className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md dark:border-zinc-600 dark:bg-zinc-900/95 relative"
+                      className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md /* dark:border-zinc-600 dark:bg-zinc-900/95 */ relative"
                       style={{ left: LABEL_WIDTH_PX }}
                     >
                       <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
                     </div>
                     <div
-                      className="grid bg-gradient-to-b from-indigo-50/80 to-slate-50/50 dark:from-indigo-950/30 dark:to-zinc-900/50"
+                      className="grid bg-gradient-to-b from-indigo-50/80 to-slate-50/50 /* dark:from-indigo-950/30 dark:to-zinc-900/50 */"
                       style={{
                         gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
                         width: timelineWidth,
@@ -598,13 +598,13 @@ export default function RegistrationsGantt({
                       {model.weeks.map((w, i) => (
                         <div
                           key={i}
-                          className="flex flex-col items-center justify-center gap-0.5 overflow-hidden border-l border-slate-200/60 px-0.5 py-2 transition-colors first:border-l-0 hover:bg-indigo-100/50 dark:border-zinc-700/60 dark:hover:bg-indigo-900/30"
+                          className="flex flex-col items-center justify-center gap-0.5 overflow-hidden border-l border-slate-200/60 px-0.5 py-2 transition-colors first:border-l-0 hover:bg-indigo-100/50 /* dark:border-zinc-700/60 dark:hover:bg-indigo-900/30 */"
                           title={`${formatDateYmd(w.start)} ~ ${formatDateYmd(w.end)}`}
                         >
                           <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
                             {i + 1}주차
                           </span>
-                          <span className="text-[12px] font-semibold text-slate-700 dark:text-zinc-300">
+                          <span className="text-[12px] font-semibold text-slate-700 /* dark:text-zinc-300 */"
                             {formatWeekLabel(w.start, w.end)}
                           </span>
                         </div>
@@ -638,7 +638,7 @@ export default function RegistrationsGantt({
                           : status === "pending"
                             ? "bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-500/20"
                             : status === "completed"
-                              ? "bg-gradient-to-r from-zinc-300 to-zinc-400 dark:from-zinc-600 dark:to-zinc-500"
+                              ? "bg-gradient-to-r from-zinc-300 to-zinc-400 /* dark:from-zinc-600 dark:to-zinc-500 */"
                               : "bg-muted-foreground/40"
 
                       const recordingWeekMap = new Map<number, Date[]>()
@@ -756,13 +756,13 @@ export default function RegistrationsGantt({
                       return (
                         <div
                           key={`${r?.id || idx}`}
-                          className="group relative z-10 grid border-b border-border/5 transition-colors hover:bg-slate-50/60 dark:hover:bg-zinc-800/60"
+                          className="group relative z-10 grid border-b border-border/5 transition-colors hover:bg-slate-50/60 /* dark:hover:bg-zinc-800/60 */"
                           style={{ gridTemplateColumns, height: ROW_HEIGHT_PX }}
                           onClick={() => openDetail(r)}
                         >
                           <div
                             data-gantt-left
-                            className="sticky left-0 z-30 flex flex-col justify-center border-r border-border/5 bg-white/90 px-4 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90"
+                            className="sticky left-0 z-30 flex flex-col justify-center border-r border-border/5 bg-white/90 px-4 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 /* dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90 */"
                             role="button"
                             tabIndex={0}
                             onClick={() => openDetail(r)}
@@ -811,7 +811,7 @@ export default function RegistrationsGantt({
 
                           <div
                             data-gantt-left
-                            className="sticky left-0 z-20 flex items-center justify-center border-r-2 border-slate-300/80 bg-white/90 px-2 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 dark:border-zinc-600 dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90 relative"
+                            className="sticky left-0 z-20 flex items-center justify-center border-r-2 border-slate-300/80 bg-white/90 px-2 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 /* dark:border-zinc-600 dark:bg-zinc-950/90 dark:group-hover:bg-zinc-800/90 */ relative"
                             style={{ left: LABEL_WIDTH_PX }}
                           >
 
@@ -821,7 +821,7 @@ export default function RegistrationsGantt({
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
-                                      className="flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-slate-100 text-slate-500 shadow-sm transition-all hover:scale-105 hover:bg-white hover:text-slate-900 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-400"
+                                      className="flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-slate-100 text-slate-500 shadow-sm transition-all hover:scale-105 hover:bg-white hover:text-slate-900 hover:shadow-md /* dark:bg-zinc-800 dark:text-zinc-400 */"
                                       onClick={(event) => {
                                         event.stopPropagation()
                                         onNote(r)
@@ -876,16 +876,16 @@ export default function RegistrationsGantt({
                     })}
                     {model.weeks.length ? (
                       <div
-                        className="relative z-10 grid border-t-2 border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50 dark:border-zinc-700 dark:from-zinc-800 dark:to-zinc-900"
+                        className="relative z-10 grid border-t-2 border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50 /* dark:border-zinc-700 dark:from-zinc-800 dark:to-zinc-900 */"
                         style={{ gridTemplateColumns }}
                       >
                         <div
                           data-gantt-left
-                          className="sticky left-0 z-20 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md dark:bg-zinc-800/95 dark:text-zinc-400"
+                          className="sticky left-0 z-20 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md /* dark:bg-zinc-800/95 dark:text-zinc-400 */"
                         >주차 합계</div>
                         <div
                           data-gantt-left
-                          className="sticky left-0 z-10 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md dark:border-zinc-600 dark:bg-zinc-800/95"
+                          className="sticky left-0 z-10 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md /* dark:border-zinc-600 dark:bg-zinc-800/95 */"
                           style={{ left: LABEL_WIDTH_PX }}
                         />
                         <div
@@ -898,7 +898,7 @@ export default function RegistrationsGantt({
                           {weekTotals.map((count, i) => (
                             <div
                               key={`week-total-${i}`}
-                              className="flex items-center justify-center border-l border-slate-200/60 px-1 py-2.5 text-sm font-bold text-indigo-600 first:border-l-0 dark:border-zinc-700/60 dark:text-indigo-400"
+                              className="flex items-center justify-center border-l border-slate-200/60 px-1 py-2.5 text-sm font-bold text-indigo-600 first:border-l-0 /* dark:border-zinc-700/60 dark:text-indigo-400 */"
                             >
                               {count}
                             </div>
