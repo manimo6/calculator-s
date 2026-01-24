@@ -99,7 +99,7 @@ const CalendarNoteDialog = ({
               - Rounded corners
               - Clean typography
             */}
-            <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/80 backdrop-blur-xl border-none shadow-2xl rounded-2xl gap-0 ring-1 ring-black/5 dark:ring-white/10">
+            <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/80 backdrop-blur-xl border-none shadow-2xl rounded-2xl gap-0 ring-1 ring-black/5">
 
                 {/* Header */}
                 <div className="px-6 pt-6 pb-2">
@@ -143,7 +143,7 @@ const CalendarNoteDialog = ({
                                 {notes.map((note) => (
                                     <div
                                         key={note.id}
-                                        className="group flex items-start justify-between gap-3 p-3 rounded-xl bg-white dark:bg-card border border-border/40 shadow-sm hover:shadow-md hover:border-border transition-all duration-200 cursor-pointer"
+                                        className="group flex items-start justify-between gap-3 p-3 rounded-xl bg-white border border-border/40 shadow-sm hover:shadow-md hover:border-border transition-all duration-200 cursor-pointer"
                                         onClick={() => startEdit(note)}
                                     >
                                         <div className="flex gap-3 min-w-0">

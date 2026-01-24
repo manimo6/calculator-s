@@ -195,7 +195,6 @@
 
         transform: rotateY(var(--rx, 0deg)) rotateX(var(--ry, 0deg));
         color: #000000;
-        /* Apple Glass usually has dark text on light glass */
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 
         /* Variables for calculation */
@@ -268,7 +267,6 @@
         /* Blends gradient with noise for dithering */
         mix-blend-mode: screen;
         filter: brightness(1.2) contrast(0.9);
-        /* Adjust for noise darkening */
         transform: translateZ(0);
         transition: opacity 0.3s ease;
         will-change: background-position, opacity;

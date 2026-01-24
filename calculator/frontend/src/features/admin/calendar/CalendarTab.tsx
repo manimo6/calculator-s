@@ -89,11 +89,6 @@ const CalendarTab = ({ user, isActive = true }) => {
                     container: 'transparent',
                     onContainer: '#ff3b30', // Red text
                 },
-                darkColors: {
-                    main: 'transparent',
-                    container: 'transparent',
-                    onContainer: '#ff453a',
-                },
             },
         },
         plugins: [eventsService],
