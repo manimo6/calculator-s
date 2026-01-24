@@ -604,7 +604,7 @@ export default function RegistrationsGantt({
                           <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
                             {i + 1}주차
                           </span>
-                          <span className="text-[12px] font-semibold text-slate-700 /* dark:text-zinc-300 */"
+                          <span className="text-[12px] font-semibold text-slate-700 /* dark:text-zinc-300 */">
                             {formatWeekLabel(w.start, w.end)}
                           </span>
                         </div>
