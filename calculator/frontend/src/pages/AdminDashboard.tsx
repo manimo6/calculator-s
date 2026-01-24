@@ -1,18 +1,26 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import AccountsTab from '../features/admin/accounts/AccountsTab';
-import AttendanceTab from '../features/admin/attendance/AttendanceTab';
-import CoursesTab from '../features/admin/courses/CoursesTab';
-import SettingsTab from '../features/admin/settings/SettingsTab';
-import NotesTab from '../features/admin/notes/NotesTab';
-import RegistrationsTab from '../features/admin/registrations/RegistrationsTab';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import AdminShell from '../features/admin/components/AdminShell';
 import { useAuth } from '../auth-context';
-import NoticesTab from '../features/admin/notices/NoticesTab';
 import { ADMIN_TABS } from '../features/admin/constants';
 import { PERMISSION_KEYS, hasPermission } from '../permissions';
 import { useUnreadBadges } from '../features/admin/useUnreadBadges';
 
-import CalendarTab from '../features/admin/calendar/CalendarTab';
+// 동적 import로 코드 스플리팅
+const AccountsTab = React.lazy(() => import('../features/admin/accounts/AccountsTab'));
+const AttendanceTab = React.lazy(() => import('../features/admin/attendance/AttendanceTab'));
+const CoursesTab = React.lazy(() => import('../features/admin/courses/CoursesTab'));
+const SettingsTab = React.lazy(() => import('../features/admin/settings/SettingsTab'));
+const NotesTab = React.lazy(() => import('../features/admin/notes/NotesTab'));
+const RegistrationsTab = React.lazy(() => import('../features/admin/registrations/RegistrationsTab'));
+const NoticesTab = React.lazy(() => import('../features/admin/notices/NoticesTab'));
+const CalendarTab = React.lazy(() => import('../features/admin/calendar/CalendarTab'));
+
+// 로딩 컴포넌트
+const TabLoader = () => (
+    <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-500" />
+    </div>
+);
 
 // Placeholder components for tabs
 const DashboardHome = () => (
@@ -125,23 +133,74 @@ const AdminDashboard = () => {
     if (!user) return null;
 
     const tabPanels = [
-        { id: 'notices', element: <NoticesTab user={user} /> },
-        { id: 'calendar', element: <CalendarTab user={user} isActive={activeTab === 'calendar'} /> },
-        { id: 'courses', element: <CoursesTab user={user} onDirtyChange={setCoursesDirty} /> },
-        { id: 'registrations', element: <RegistrationsTab user={user} /> },
-        { id: 'attendance', element: <AttendanceTab user={user} /> },
+        { 
+            id: 'notices', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <NoticesTab user={user} />
+                </Suspense>
+            ) 
+        },
+        { 
+            id: 'calendar', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <CalendarTab user={user} isActive={activeTab === 'calendar'} />
+                </Suspense>
+            ) 
+        },
+        { 
+            id: 'courses', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <CoursesTab user={user} onDirtyChange={setCoursesDirty} />
+                </Suspense>
+            ) 
+        },
+        { 
+            id: 'registrations', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <RegistrationsTab user={user} />
+                </Suspense>
+            ) 
+        },
+        { 
+            id: 'attendance', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <AttendanceTab user={user} />
+                </Suspense>
+            ) 
+        },
         {
             id: 'notes',
             element: (
-                <NotesTab
-                    user={user}
-                    onNoteRead={markCourseNoteRead}
-                    noteReadMap={courseNoteReadMap}
-                />
+                <Suspense fallback={<TabLoader />}>
+                    <NotesTab
+                        user={user}
+                        onNoteRead={markCourseNoteRead}
+                        noteReadMap={courseNoteReadMap}
+                    />
+                </Suspense>
             ),
         },
-        { id: 'accounts', element: <AccountsTab user={user} /> },
-        { id: 'settings', element: <SettingsTab /> },
+        { 
+            id: 'accounts', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <AccountsTab user={user} />
+                </Suspense>
+            ) 
+        },
+        { 
+            id: 'settings', 
+            element: (
+                <Suspense fallback={<TabLoader />}>
+                    <SettingsTab />
+                </Suspense>
+            ) 
+        },
         { id: 'dashboard', element: <DashboardHome /> },
     ];
 
