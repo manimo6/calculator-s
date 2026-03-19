@@ -1,8 +1,5 @@
 const { Server } = require('socket.io');
 const { prisma } = require('../db/prisma');
-const { verify } = require('../services/authToken');
-const { AUTH_COOKIE_NAME } = require('../services/authCookies');
-const { canUser } = require('../services/permissionService');
 const {
   buildCategoryAccessMap,
   buildCourseConfigSetIndexMap,
@@ -11,8 +8,9 @@ const {
   isCategoryAccessBypassed,
   resolveCategoryForCourse,
 } = require('../services/categoryAccessService');
+const { attachAuthToSocket } = require('./socketAuth');
+const { checkSocketRateLimit, clearSocketRateLimits } = require('./socketRateLimiter');
 
-type SocketAuthUser = { id: string; username: string; role: string }
 type AttendanceUpdate = { registrationId?: string | number }
 type RegistrationRow = {
   id?: string | number
@@ -22,81 +20,6 @@ type RegistrationRow = {
 }
 
 let ioInstance: import('socket.io').Server | null = null;
-
-function parseCookies(cookieHeader?: string | null) {
-  const result: Record<string, string> = {};
-  if (!cookieHeader) return result;
-  const parts = String(cookieHeader).split(';');
-  for (const part of parts) {
-    const [rawKey, ...rawValue] = part.trim().split('=');
-    if (!rawKey) continue;
-    result[rawKey] = rawValue.join('=');
-  }
-  return result;
-}
-
-function getTokenFromSocket(socket: import('socket.io').Socket) {
-  const authToken = socket?.handshake?.auth?.token;
-  if (authToken) return String(authToken);
-
-  const headerAuth = socket?.handshake?.headers?.authorization;
-  const authHeader = Array.isArray(headerAuth) ? headerAuth[0] : headerAuth;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const cookieHeader = socket?.handshake?.headers?.cookie;
-  const cookies = parseCookies(cookieHeader);
-  if (cookies[AUTH_COOKIE_NAME]) return cookies[AUTH_COOKIE_NAME];
-
-  return '';
-}
-
-async function loadUserFromToken(token: string) {
-  if (!token) throw new Error('Missing token.');
-  const payload = await verify(token);
-  if (payload?.tokenUse === 'refresh') {
-    throw new Error('Invalid token.');
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { username: payload.username },
-    select: {
-      id: true,
-      username: true,
-      role: true,
-      tokenVersion: true,
-      mustChangePassword: true,
-    },
-  });
-  if (!user) {
-    throw new Error('Missing token.');
-  }
-
-  const payloadVersion = Number.isInteger(payload.tokenVersion)
-    ? payload.tokenVersion
-    : null;
-  if (payloadVersion === null || user.tokenVersion !== payloadVersion) {
-    throw new Error('Invalid token.');
-  }
-  if (user.mustChangePassword) {
-    throw new Error('Password change required.');
-  }
-
-  return { id: user.id, username: user.username, role: user.role };
-}
-
-async function attachAuthToSocket(socket: import('socket.io').Socket) {
-  const token = getTokenFromSocket(socket);
-  const user = await loadUserFromToken(token);
-  const canAttendance = await canUser({
-    userId: user.id,
-    roleName: user.role,
-    permissionKey: 'tabs.attendance',
-  });
-  socket.data.authUser = user;
-  socket.data.canAttendance = canAttendance;
-}
 
 function initSocket(httpServer: import('http').Server, corsOrigins: string[] = []) {
   if (ioInstance) return ioInstance;
@@ -109,6 +32,7 @@ function initSocket(httpServer: import('http').Server, corsOrigins: string[] = [
   ioInstance = new Server(httpServer, { cors });
   const io = ioInstance as import('socket.io').Server;
 
+  // 인증 미들웨어
   io.use(async (socket: import('socket.io').Socket, next: (err?: Error) => void) => {
     try {
       await attachAuthToSocket(socket);
@@ -119,8 +43,10 @@ function initSocket(httpServer: import('http').Server, corsOrigins: string[] = [
     }
   });
 
-  io.on('connection', () => {
-    // no-op for now
+  io.on('connection', (socket: import('socket.io').Socket) => {
+    socket.on('disconnect', () => {
+      clearSocketRateLimits(socket.id || '');
+    });
   });
 
   return io;
@@ -160,6 +86,11 @@ async function emitAttendanceUpdates(
   for (const socket of sockets.values()) {
     const authUser = socket?.data?.authUser;
     if (!authUser || !socket?.data?.canAttendance) continue;
+
+    // Rate Limit 체크
+    if (!checkSocketRateLimit(socket.id || '', 'attendance:update', { windowMs: 5000, max: 50 })) {
+      continue;
+    }
 
     const bypass = isCategoryAccessBypassed(authUser);
     const accessRows = bypass
