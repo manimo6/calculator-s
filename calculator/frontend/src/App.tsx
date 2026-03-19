@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import { canAccessAdmin, canAccessCalculator } from './auth-routing'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 const StudentPage = React.lazy(() => import('./pages/StudentPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -17,6 +18,7 @@ const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 
 function App() {
     return (
+        <ErrorBoundary>
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={
@@ -47,6 +49,7 @@ function App() {
                 } />
             </Routes>
         </BrowserRouter>
+        </ErrorBoundary>
     )
 }
 
