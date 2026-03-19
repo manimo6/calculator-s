@@ -2,6 +2,7 @@ const express = require('express') as typeof import('express');
 const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { authMiddleware } = require('../middleware/authMiddleware');
+const { getSafeErrorMessage } = require('../utils/apiError');
 const {
   getRequestUser,
   requirePermissions,
@@ -220,7 +221,7 @@ router.get('/', async (req, res) => {
 
     res.json({ status: 'success', results });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch registration extensions';
+    const message = getSafeErrorMessage(error, '연장 기록을 불러오지 못했습니다.');
     console.error('Failed to fetch registration extensions:', error);
     res.status(500).json({
       status: 'fail',
@@ -323,7 +324,7 @@ router.post('/', async (req, res) => {
       registration: result.registration,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create registration extension';
+    const message = getSafeErrorMessage(error, '연장 등록에 실패했습니다.');
     console.error('Failed to create registration extension:', error);
     res.status(500).json({
       status: 'fail',

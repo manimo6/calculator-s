@@ -1,7 +1,9 @@
 /**
  * Express 글로벌 에러 핸들러
- * 모든 라우트에서 throw된 에러를 잡아 안전한 응답 반환
+ * AppError면 userMessage를 클라이언트에 반환, 그 외는 제네릭 메시지
  */
+
+const { getSafeErrorMessage, getSafeStatusCode } = require("../utils/apiError");
 
 const globalErrorHandler = (
   err: Error,
@@ -9,10 +11,11 @@ const globalErrorHandler = (
   res: import("express").Response,
   _next: import("express").NextFunction
 ): void => {
-  console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err);
+  const statusCode = getSafeStatusCode(err);
+  const userMessage = getSafeErrorMessage(err);
 
-  const statusCode = (err as any).statusCode || 500;
-  const userMessage = (err as any).userMessage || "서버 내부 오류가 발생했습니다.";
+  // 서버 로그에는 전체 에러 기록
+  console.error(`[ERROR] ${req.method} ${req.originalUrl} ${statusCode}:`, err.message || err);
 
   res.status(statusCode).json({
     status: "실패",

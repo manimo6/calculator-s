@@ -2,6 +2,7 @@ const express = require('express') as typeof import('express');
 const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { authMiddleware } = require('../middleware/authMiddleware');
+const { getSafeErrorMessage } = require('../utils/apiError');
 const {
   getRequestUser,
   requirePermissions,
@@ -208,7 +209,7 @@ router.get('/', async (req, res) => {
 
     res.json({ status: 'success', results });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch attendance records';
+    const message = getSafeErrorMessage(error, '출석 기록을 불러오지 못했습니다.');
     console.error('Failed to fetch attendance records:', error);
     res.status(500).json({
       status: 'fail',
@@ -332,7 +333,7 @@ router.post('/', async (req, res) => {
     res.json({ status: 'success', ...result });
     void emitAttendanceUpdates({ updates, registrations });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save attendance records';
+    const message = getSafeErrorMessage(error, '출석 기록 저장에 실패했습니다.');
     console.error('Failed to save attendance records:', error);
     res.status(500).json({
       status: 'fail',

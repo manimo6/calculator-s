@@ -9,6 +9,7 @@ const {
   validateStudentBody,
   validateStudentUpdate,
 } = require('../validators/studentValidator');
+const { getSafeErrorMessage } = require('../utils/apiError');
 
 type RegistrationRow = {
   id?: string
@@ -228,7 +229,7 @@ router.get('/', validateStudentQuery, async (req, res) => {
       totalResults,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '서버에서 오류가 발생했습니다.';
+    const message = getSafeErrorMessage(error, '서버에서 오류가 발생했습니다.');
     console.error('API /api/students 처리 중 오류 발생:', error);
     res.status(500).json({
       message,
@@ -272,7 +273,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({ status: '성공', record });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '서버에서 오류가 발생했습니다.';
+    const message = getSafeErrorMessage(error, '서버에서 오류가 발생했습니다.');
     console.error(`API /api/students/${id} 처리 중 오류:`, error);
     res.status(500).json({ status: '실패', message, error: message });
   }
@@ -391,7 +392,7 @@ router.post('/', ...validateStudentBody, async (req, res) => {
     console.log(`[${new Date().toISOString()}] ${createdIds.length}건 추가 완료.`);
     res.json({ status: '성공', message: '데이터가 추가되었습니다.', ids: createdIds });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '서버에서 오류가 발생했습니다.';
+    const message = getSafeErrorMessage(error, '서버에서 오류가 발생했습니다.');
     console.error('API /api/students 처리 중 오류 발생:', error);
     res.status(500).json({ status: '실패', message, error: message });
   }
@@ -448,7 +449,7 @@ router.put('/:id', validateStudentUpdate, async (req, res) => {
     console.log(`[${new Date().toISOString()}] ID ${id} 업데이트 완료.`);
     res.json({ status: '성공', message: '업데이트되었습니다.' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '서버에서 업데이트 처리 중 오류가 발생했습니다.';
+    const message = getSafeErrorMessage(error, '서버에서 업데이트 처리 중 오류가 발생했습니다.');
     console.error(`API /api/students/${id} 업데이트 중 오류:`, error);
     res.status(500).json({ status: '실패', message, error: message });
   }
@@ -471,7 +472,7 @@ router.delete('/:id', async (req, res) => {
     console.log(`[${new Date().toISOString()}] ID ${id} 삭제 완료.`);
     res.json({ status: '성공', message: '삭제되었습니다.' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '서버에서 삭제 처리 중 오류가 발생했습니다.';
+    const message = getSafeErrorMessage(error, '서버에서 삭제 처리 중 오류가 발생했습니다.');
     console.error(`API /api/students/${id} 처리 중 오류:`, error);
     res.status(500).json({ status: '실패', message, error: message });
   }

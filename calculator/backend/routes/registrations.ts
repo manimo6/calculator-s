@@ -9,6 +9,7 @@ const {
   validateNoteBody,
   validateCourseNamesBody,
 } = require('../validators/registrationValidator');
+const { getSafeErrorMessage } = require('../utils/apiError');
 const {
   getRequestUser,
   requirePermissions,
@@ -293,7 +294,7 @@ router.get(
 
     res.json({ status: '성공', results });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '등록 현황 상세를 불러오지 못했습니다.';
+    const message = getSafeErrorMessage(error, '등록 현황 상세를 불러오지 못했습니다.');
     console.error('등록 현황 상세 조회 오류:', error);
     res.status(500).json({
       status: '실패',
@@ -455,7 +456,7 @@ router.post(
       });
     } catch (error) {
       console.error('전반 처리 오류:', error);
-      const message = error instanceof Error ? error.message : '전반 처리에 실패했습니다.';
+      const message = getSafeErrorMessage(error, '전반 처리에 실패했습니다.');
       res.status(500).json({
         status: 'fail',
         message,
@@ -566,7 +567,7 @@ router.post(
       });
     } catch (error) {
       console.error('전반 취소 오류:', error);
-      const message = error instanceof Error ? error.message : '전반 취소에 실패했습니다.';
+      const message = getSafeErrorMessage(error, '전반 취소에 실패했습니다.');
       res.status(500).json({
         status: 'fail',
         message,
@@ -633,7 +634,7 @@ router.put(
       });
     } catch (error) {
       console.error('학생 메모 저장 오류:', error);
-      const message = error instanceof Error ? error.message : '메모 저장에 실패했습니다.';
+      const message = getSafeErrorMessage(error, '메모 저장에 실패했습니다.');
       res.status(500).json({
         status: 'fail',
         message,
@@ -691,7 +692,7 @@ router.patch(
     });
   } catch (error) {
     console.error('중도퇴원 업데이트 오류:', error);
-    const message = error instanceof Error ? error.message : '중도퇴원 처리에 실패했습니다.';
+    const message = getSafeErrorMessage(error, '중도퇴원 처리에 실패했습니다.');
     res.status(500).json({
       status: '실패',
       message,
@@ -754,7 +755,7 @@ router.get(
     res.json({ status: '성공', results });
   } catch (error) {
     console.error('수업명 목록 조회 오류:', error);
-    const message = error instanceof Error ? error.message : '수업명 목록을 불러오지 못했습니다.';
+    const message = getSafeErrorMessage(error, '수업명 목록을 불러오지 못했습니다.');
     res.status(500).json({
       status: '실패',
       message,
@@ -850,7 +851,7 @@ router.patch(
     res.json({ status: '성공', updated, details });
   } catch (error) {
     console.error('수업명 일괄 변경 오류:', error);
-    const message = error instanceof Error ? error.message : '수업명 변경에 실패했습니다.';
+    const message = getSafeErrorMessage(error, '수업명 변경에 실패했습니다.');
     res.status(500).json({
       status: '실패',
       message,
