@@ -41,6 +41,12 @@ function isAuthPath(path: string) {
   return path.startsWith('/api/auth/');
 }
 
+async function ensureCsrfToken() {
+  if (getCookie(CSRF_COOKIE_NAME)) return;
+  // GET 요청으로 CSRF 쿠키 사전 발급 유도
+  await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' }).catch(() => {});
+}
+
 async function refreshSession() {
   if (refreshPromise) return refreshPromise;
   refreshPromise = request<TokenResponse>('/api/auth/refresh', { method: 'POST', skipRefresh: true })
@@ -124,10 +130,12 @@ async function refreshSession() {
 
 export const apiClient = {
   // Auth
-  login(credentials: JsonRecord) {
+  async login(credentials: JsonRecord) {
+    await ensureCsrfToken();
     return request('/api/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
   },
-  reauth(credentials: JsonRecord) {
+  async reauth(credentials: JsonRecord) {
+    await ensureCsrfToken();
     return request('/api/auth/reauth', { method: 'POST', body: JSON.stringify(credentials) });
   },
   async changePassword(payload: JsonRecord) {
