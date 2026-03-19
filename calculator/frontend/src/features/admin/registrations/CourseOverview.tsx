@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 
-import { BookOpen, CheckCircle2, Clock, Grid3X3, TimerOff } from "lucide-react"
+import { Book, BookCopy, CheckCircle2, Clock, Grid3X3, TimerOff } from "lucide-react"
 
 import { getRegistrationStatus } from "./utils"
 
@@ -22,24 +22,29 @@ type CourseCardProps = {
   count: number
   breakdown: CourseBreakdown
   selected: boolean
+  isMerge?: boolean
   onClick: () => void
 }
 
-function CourseCard({ course, count, breakdown, selected, onClick }: CourseCardProps) {
+function CourseCard({ course, count, breakdown, selected, isMerge, onClick }: CourseCardProps) {
   const baseClass = selected
-    ? "relative overflow-hidden rounded-2xl border-2 border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 shadow-lg ring-2 ring-indigo-200/50 transition-all hover:shadow-xl"
-    : "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+    ? isMerge
+      ? "relative overflow-hidden rounded-2xl border-2 border-purple-400 bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 p-4 shadow-lg ring-2 ring-purple-200/50 transition-all hover:shadow-xl"
+      : "relative overflow-hidden rounded-2xl border-2 border-indigo-400 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 shadow-lg ring-2 ring-indigo-200/50 transition-all hover:shadow-xl"
+    : isMerge
+      ? "relative overflow-hidden rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/50 via-white to-fuchsia-50/50 p-4 shadow-sm transition-all hover:border-purple-300 hover:shadow-md"
+      : "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
 
   return (
     <button type="button" onClick={onClick} className="text-left w-full">
       <div className={baseClass}>
         {/* 배경 장식 */}
-        <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-gradient-to-br from-indigo-100/40 to-purple-100/40 blur-2xl" />
+        <div className={`absolute -right-4 -top-4 h-20 w-20 rounded-full blur-2xl ${isMerge ? "bg-gradient-to-br from-purple-100/40 to-fuchsia-100/40" : "bg-gradient-to-br from-indigo-100/40 to-purple-100/40"}`} />
 
         {/* 헤더 */}
         <div className="relative mb-3 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 shadow-sm">
-            <BookOpen className="h-4 w-4 text-white" />
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg shadow-sm ${isMerge ? "bg-gradient-to-br from-purple-500 to-fuchsia-500" : "bg-gradient-to-br from-indigo-500 to-purple-500"}`}>
+            {isMerge ? <BookCopy className="h-4 w-4 text-white" /> : <Book className="h-4 w-4 text-white" />}
           </div>
           <span className="truncate text-sm font-semibold text-slate-700">{course}</span>
         </div>
@@ -80,12 +85,20 @@ function CourseCard({ course, count, breakdown, selected, onClick }: CourseCardP
   )
 }
 
+type ActiveMerge = {
+  id: string
+  name: string
+  courses: string[]
+}
+
 type CourseOverviewProps = {
   registrations: RegistrationRow[]
   courseFilter: string
   onCourseFilterChange: (value: string) => void
   courseIdToLabel: Map<string, string>
   courseVariantRequiredSet?: Set<string>
+  activeMergesToday?: ActiveMerge[]
+  mergedCourseSetToday?: Set<string>
 }
 
 export default function CourseOverview({
@@ -94,6 +107,8 @@ export default function CourseOverview({
   onCourseFilterChange,
   courseIdToLabel,
   courseVariantRequiredSet,
+  activeMergesToday = [],
+  mergedCourseSetToday = new Set(),
 }: CourseOverviewProps) {
   const isMergeFilter = typeof courseFilter === "string" && courseFilter.startsWith("__merge__")
   const selectedCourse = !isMergeFilter ? courseFilter : ""
@@ -132,10 +147,42 @@ export default function CourseOverview({
   const grouped = useMemo(() => {
     const map = new Map<
       string,
-      { key: string; course: string; rows: RegistrationRow[]; breakdown: CourseBreakdown }
+      { key: string; course: string; rows: RegistrationRow[]; breakdown: CourseBreakdown; isMerge?: boolean }
     >()
+
+    // 오늘 활성 합반 카드 추가
+    for (const merge of activeMergesToday) {
+      const mergeKey = `__merge__${merge.id}`
+      map.set(mergeKey, {
+        key: mergeKey,
+        course: `[합반] ${merge.name || merge.courses.join(" + ")}`,
+        rows: [],
+        breakdown: { active: 0, pending: 0, completed: 0 },
+        isMerge: true,
+      })
+    }
+
     for (const r of registrations || []) {
       const course = String(r?.course || "")
+      const courseTrimmed = course.trim()
+
+      // 합반 과목이면 합반 카드에 집계
+      if (mergedCourseSetToday.has(courseTrimmed)) {
+        const merge = activeMergesToday.find((m) => m.courses.includes(courseTrimmed))
+        if (merge) {
+          const mergeKey = `__merge__${merge.id}`
+          const entry = map.get(mergeKey)
+          if (entry) {
+            entry.rows.push(r)
+            const status = getRegistrationStatus(r)
+            if (status === "active") entry.breakdown.active += 1
+            else if (status === "pending") entry.breakdown.pending += 1
+            else if (status === "completed") entry.breakdown.completed += 1
+          }
+        }
+        continue
+      }
+
       const key = getCourseKey(r)
       if (!key) continue
       if (!map.has(key)) {
@@ -155,11 +202,16 @@ export default function CourseOverview({
       else if (status === "completed") entry.breakdown.completed += 1
     }
 
-    return Array.from(map.values()).sort((a, b) => {
-      if (b.rows.length !== a.rows.length) return b.rows.length - a.rows.length
-      return a.course.localeCompare(b.course, "ko-KR")
-    })
-  }, [registrations, courseIdLabelMap, variantSet])
+    return Array.from(map.values())
+      .filter((g) => g.rows.length > 0)
+      .sort((a, b) => {
+        // 합반 카드를 먼저
+        if (a.isMerge && !b.isMerge) return -1
+        if (!a.isMerge && b.isMerge) return 1
+        if (b.rows.length !== a.rows.length) return b.rows.length - a.rows.length
+        return a.course.localeCompare(b.course, "ko-KR")
+      })
+  }, [registrations, courseIdLabelMap, variantSet, activeMergesToday, mergedCourseSetToday])
 
   if (!grouped.length) return null
 
@@ -182,6 +234,7 @@ export default function CourseOverview({
             count={g.rows.length}
             breakdown={g.breakdown}
             selected={selectedCourse === g.key}
+            isMerge={g.isMerge}
             onClick={() =>
               onCourseFilterChange(selectedCourse === g.key ? "" : g.key)
             }

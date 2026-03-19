@@ -4,6 +4,11 @@ import { apiClient } from "@/api-client"
 import { getEndDate, getScheduleWeeks, normalizeBreakRanges } from "@/utils/calculatorLogic"
 import { courseInfo as globalCourseInfo, courseTree as globalCourseTree } from "@/utils/data"
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
+import {
+  getActiveMergesToday,
+  getMergedCourseSet,
+  type MergeEntry as MergeEntryUtil,
+} from "@/utils/mergeUtils"
 
 import {
   buildCourseCategoryMap,
@@ -97,6 +102,9 @@ type MergeEntry = {
   name?: string
   courses?: string[]
   weekRanges?: MergeWeekRange[]
+  isActive?: boolean
+  courseConfigSetName?: string
+  referenceStartDate?: string | null
 } & Record<string, unknown>
 type ExtensionRow = { registrationId?: string | number } & Record<string, unknown>
 
@@ -318,12 +326,43 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
   const [search, setSearch] = useState("")
   const [variantFilter, setVariantFilter] = useState("")
 
+  const [activeMergesFromApi, setActiveMergesFromApi] = useState<MergeEntry[]>([])
+
+  // API에서 받은 referenceStartDate를 id별로 캐시
+  const refDateMap = useMemo(() => {
+    const map = new Map<string, string | null>()
+    for (const m of activeMergesFromApi || []) {
+      map.set(String(m.id || ""), m.referenceStartDate || null)
+    }
+    return map
+  }, [activeMergesFromApi])
+
+  const activeMergesToday = useMemo(() => {
+    // merges가 있으면 merges 사용 (등록현황 탭), 없으면 API 응답 fallback (출석부 탭)
+    const source = merges.length > 0 ? merges : activeMergesFromApi
+    const all = (source || []).map((m) => ({
+      id: String(m.id || ""),
+      name: String(m.name || ""),
+      courses: Array.isArray(m.courses) ? m.courses.map(String) : [],
+      weekRanges: normalizeWeekRanges(m.weekRanges),
+      isActive: m.isActive !== false,
+      courseConfigSetName: String(m.courseConfigSetName || ""),
+      referenceStartDate: refDateMap.get(String(m.id || "")) || m.referenceStartDate || null,
+    })) as MergeEntryUtil[]
+    return getActiveMergesToday(all)
+  }, [merges, activeMergesFromApi, refDateMap])
+
+  const mergedCourseSetToday = useMemo(
+    () => getMergedCourseSet(activeMergesToday),
+    [activeMergesToday]
+  )
+
   const [mergeManagerOpen, setMergeManagerOpen] = useState(false)
   const [mergeName, setMergeName] = useState("")
   const [mergeCourses, setMergeCourses] = useState<string[]>([])
   const [mergeWeekMode, setMergeWeekMode] = useState<"all" | "range">("all")
-  const [mergeWeekStart, setMergeWeekStart] = useState("")
-  const [mergeWeekEnd, setMergeWeekEnd] = useState("")
+  const [mergeWeekRangeInputs, setMergeWeekRangeInputs] = useState<Array<{ start: string; end: string }>>([{ start: "", end: "" }])
+  const [editingMergeId, setEditingMergeId] = useState<string | null>(null)
 
   const resolvedRegistrations = useMemo(() => {
     if (!Array.isArray(registrations) || registrations.length === 0) return []
@@ -466,6 +505,13 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
         ? (res.results as RegistrationRow[])
         : []
       setRegistrations(results)
+      if (Array.isArray(res?.activeMerges)) {
+        const normalized = res.activeMerges.map((m: MergeEntry) => ({
+          ...m,
+          weekRanges: normalizeWeekRanges(m?.weekRanges),
+        }))
+        setActiveMergesFromApi(normalized)
+      }
     } catch (e: unknown) {
       const message =
         e instanceof Error ? e.message : "등록현황을 불러오지 못했습니다."
@@ -723,24 +769,41 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     selectedCourseConfigSet,
   ])
 
+  // 오늘 활성 합반의 과목→합반명 매핑 (출석부 탭에서 개별 과목 대신 합반명 표시)
+  const mergeCourseLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const m of activeMergesToday) {
+      for (const c of m.courses) {
+        map.set(c, m.name || m.courses.join(" + "))
+      }
+    }
+    return map
+  }, [activeMergesToday])
+
   const variantTabs = useMemo(() => {
     if (!enableVariants) return []
-    const map = new Map()
+    const map = new Map<string, { key: string; label: string; count: number }>()
     for (const registration of preVariantRegistrations || []) {
       const courseName = normalizeCourse(registration?.course)
       if (!courseName) continue
-      const entry = map.get(courseName)
+
+      // 합반 과목이면 합반명으로 집계
+      const mergeLabel = mergeCourseLabelMap.get(courseName)
+      const tabKey = mergeLabel ? `__mergetab__${mergeLabel}` : courseName
+      const tabLabel = mergeLabel || courseName
+
+      const entry = map.get(tabKey)
       if (entry) {
         entry.count += 1
         continue
       }
-      map.set(courseName, { key: courseName, label: courseName, count: 1 })
+      map.set(tabKey, { key: tabKey, label: tabLabel, count: 1 })
     }
 
     return Array.from(map.values()).sort((a, b) =>
       a.label.localeCompare(b.label, "ko-KR")
     )
-  }, [enableVariants, preVariantRegistrations])
+  }, [enableVariants, preVariantRegistrations, mergeCourseLabelMap])
 
   useEffect(() => {
     if (!enableVariants) {
@@ -759,12 +822,23 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
   const baseRegistrations = useMemo(() => {
     if (!enableVariants) return preVariantRegistrations
     const fallbackVariant = variantTabs[0]?.key || ""
-    const activeVariant = normalizeCourse(variantFilter || fallbackVariant)
+    const activeVariant = variantFilter || fallbackVariant
     if (!activeVariant) return []
+
+    // 합반 탭 선택 시 해당 합반의 모든 과목 등록 반환
+    if (activeVariant.startsWith("__mergetab__")) {
+      const mergeLabel = activeVariant.replace("__mergetab__", "")
+      return (preVariantRegistrations || []).filter((registration) => {
+        const courseName = normalizeCourse(registration?.course)
+        return mergeCourseLabelMap.get(courseName) === mergeLabel
+      })
+    }
+
+    const normalizedVariant = normalizeCourse(activeVariant)
     return (preVariantRegistrations || []).filter(
-      (registration) => normalizeCourse(registration?.course) === activeVariant
+      (registration) => normalizeCourse(registration?.course) === normalizedVariant
     )
-  }, [enableVariants, preVariantRegistrations, variantFilter, variantTabs])
+  }, [enableVariants, preVariantRegistrations, variantFilter, variantTabs, mergeCourseLabelMap])
 
   const filteredRegistrations = useMemo(() => {
     if (!courseFilter) return baseRegistrations
@@ -818,38 +892,62 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     }
     let weekRanges: MergeWeekRange[] = []
     if (mergeWeekMode === "range") {
-      const start = parseWeekNumber(mergeWeekStart)
-      const end = parseWeekNumber(mergeWeekEnd)
-      if (!Number.isInteger(start) || start < 1) {
-        setError("적용 주차(시작)를 1 이상의 숫자로 입력하세요.")
-        return
+      const parsed: MergeWeekRange[] = []
+      for (let i = 0; i < mergeWeekRangeInputs.length; i++) {
+        const input = mergeWeekRangeInputs[i]
+        const start = parseWeekNumber(input.start)
+        const end = parseWeekNumber(input.end)
+        if (!Number.isInteger(start) || start < 1) {
+          setError(`범위 ${i + 1}: 시작 주차를 1 이상의 숫자로 입력하세요.`)
+          return
+        }
+        if (!Number.isInteger(end) || end < start) {
+          setError(`범위 ${i + 1}: 종료 주차를 시작 주차 이상으로 입력하세요.`)
+          return
+        }
+        parsed.push({ start, end })
       }
-      if (!Number.isInteger(end) || end < start) {
-        setError("적용 주차(종료)를 시작 주차 이상으로 입력하세요.")
-        return
-      }
-      weekRanges = normalizeWeekRanges([{ start, end }])
+      weekRanges = normalizeWeekRanges(parsed)
     }
 
-    const id = Date.now().toString()
-    const next = [
-      ...merges,
-      { id, name, courses: Array.from(new Set(selected)), weekRanges },
-    ]
+    let next: MergeEntry[]
+    if (editingMergeId) {
+      // 수정 모드: 기존 합반 업데이트
+      next = merges.map((m) =>
+        String(m.id) === editingMergeId
+          ? { ...m, name, courses: Array.from(new Set(selected)), weekRanges }
+          : m
+      )
+    } else {
+      // 추가 모드
+      const id = Date.now().toString()
+      next = [
+        ...merges,
+        {
+          id,
+          name,
+          courses: Array.from(new Set(selected)),
+          weekRanges,
+          isActive: true,
+          courseConfigSetName: selectedCourseConfigSet,
+        },
+      ]
+    }
+    setEditingMergeId(null)
     setMergeName("")
     setMergeCourses([])
     setMergeWeekMode("all")
-    setMergeWeekStart("")
-    setMergeWeekEnd("")
+    setMergeWeekRangeInputs([{ start: "", end: "" }])
     await persistMerges(next)
   }, [
+    editingMergeId,
     mergeCourses,
     mergeName,
-    mergeWeekEnd,
+    mergeWeekRangeInputs,
     mergeWeekMode,
-    mergeWeekStart,
     merges,
     persistMerges,
+    selectedCourseConfigSet,
     setError,
   ])
 
@@ -861,24 +959,68 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     [merges, persistMerges]
   )
 
+  const toggleMergeActive = useCallback(
+    async (id: string, isActive: boolean) => {
+      const next = merges.map((m) =>
+        String(m.id) === String(id) ? { ...m, isActive } : m
+      )
+      await persistMerges(next)
+    },
+    [merges, persistMerges]
+  )
+
+  const startEditMerge = useCallback(
+    (id: string) => {
+      const target = merges.find((m) => String(m.id) === id)
+      if (!target) return
+      setEditingMergeId(id)
+      setMergeName(String(target.name || ""))
+      setMergeCourses(Array.isArray(target.courses) ? [...target.courses] : [])
+      const ranges = Array.isArray(target.weekRanges) && target.weekRanges.length > 0
+        ? target.weekRanges.map((r) => ({ start: String(r.start ?? ""), end: String(r.end ?? "") }))
+        : null
+      if (ranges) {
+        setMergeWeekMode("range")
+        setMergeWeekRangeInputs(ranges)
+      } else {
+        setMergeWeekMode("all")
+        setMergeWeekRangeInputs([{ start: "", end: "" }])
+      }
+    },
+    [merges]
+  )
+
+  const cancelEditMerge = useCallback(() => {
+    setEditingMergeId(null)
+    setMergeName("")
+    setMergeCourses([])
+    setMergeWeekMode("all")
+    setMergeWeekRangeInputs([{ start: "", end: "" }])
+  }, [])
+
   type MergeOption = {
     value: string
     label: string
     courses: string[]
     weekRanges: MergeWeekRange[]
+    isActiveToday?: boolean
   }
 
   const mergeOptions = useMemo<MergeOption[]>(() => {
     return (merges || []).map((m) => {
       const courses = Array.isArray(m.courses) ? m.courses.filter(Boolean) : []
+      const isActiveToday = activeMergesToday.some(
+        (am) => String(am.id) === String(m.id)
+      )
       return {
         value: `__merge__${m.id}`,
         label: `[합반] ${m.name || courses.join(" + ")}`,
         courses,
         weekRanges: normalizeWeekRanges(m.weekRanges),
+        isActiveToday,
       }
     })
-  }, [merges])
+  }, [activeMergesToday, merges])
 
   const mergeOptionsForFilter = useMemo(() => {
     if (!categoryFilter) return mergeOptions
@@ -933,6 +1075,8 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     loadExtensions,
 
     merges,
+    activeMergesToday,
+    mergedCourseSetToday,
     mergeOptions,
     mergeOptionsForFilter,
     mergeManagerOpen,
@@ -943,12 +1087,14 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     setMergeCourses,
     mergeWeekMode,
     setMergeWeekMode,
-    mergeWeekStart,
-    setMergeWeekStart,
-    mergeWeekEnd,
-    setMergeWeekEnd,
+    mergeWeekRangeInputs,
+    setMergeWeekRangeInputs,
     addMerge,
     deleteMerge,
+    toggleMergeActive,
+    editingMergeId,
+    startEditMerge,
+    cancelEditMerge,
 
     categoryFilter,
     changeCategoryFilter,

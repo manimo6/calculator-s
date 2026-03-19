@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { ChevronDown, X } from "lucide-react"
+import { ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react"
 
 const ALL_TAB = "__all__"
 
@@ -28,7 +28,12 @@ type MergeEntry = {
   name?: string
   courses?: string[]
   weekRanges?: MergeWeekRange[]
+  isActive?: boolean
+  courseConfigSetName?: string
+  referenceStartDate?: string | null
 } & Record<string, unknown>
+
+type WeekRangeInput = { start: string; end: string }
 
 type MergeManagerCardProps = {
   courseOptions: string[]
@@ -39,13 +44,15 @@ type MergeManagerCardProps = {
   onMergeCoursesChange: (value: string[]) => void
   mergeWeekMode: MergeWeekMode
   onMergeWeekModeChange: (value: MergeWeekMode) => void
-  mergeWeekStart: string | number
-  onMergeWeekStartChange: (value: string) => void
-  mergeWeekEnd: string | number
-  onMergeWeekEndChange: (value: string) => void
+  mergeWeekRangeInputs: WeekRangeInput[]
+  onMergeWeekRangeInputsChange: (value: WeekRangeInput[]) => void
   onAddMerge: () => void
   merges: MergeEntry[]
   onDeleteMerge: (id: string) => void
+  onToggleMergeActive?: (id: string, isActive: boolean) => void
+  editingMergeId?: string | null
+  onEditMerge?: (id: string) => void
+  onCancelEdit?: () => void
 }
 
 function formatWeekRanges(ranges: MergeWeekRange[] | null | undefined) {
@@ -66,13 +73,15 @@ export default function MergeManagerCard({
   onMergeCoursesChange,
   mergeWeekMode,
   onMergeWeekModeChange,
-  mergeWeekStart,
-  onMergeWeekStartChange,
-  mergeWeekEnd,
-  onMergeWeekEndChange,
+  mergeWeekRangeInputs,
+  onMergeWeekRangeInputsChange,
   onAddMerge,
   merges,
   onDeleteMerge,
+  onToggleMergeActive,
+  editingMergeId,
+  onEditMerge,
+  onCancelEdit,
 }: MergeManagerCardProps) {
   const [search, setSearch] = useState("")
   const [courseTab, setCourseTab] = useState<string>(ALL_TAB)
@@ -184,27 +193,57 @@ export default function MergeManagerCard({
                 </Select>
               </div>
               {mergeWeekMode === "range" ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={mergeWeekStart}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      onMergeWeekStartChange(e.target.value)
-                    }
-                    placeholder="시작 주차"
-                    className="h-9 rounded-lg border-slate-200/70 bg-white shadow-sm"
-                  />
-                  <Input
-                    type="number"
-                    min="1"
-                    value={mergeWeekEnd}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      onMergeWeekEndChange(e.target.value)
-                    }
-                    placeholder="종료 주차"
-                    className="h-9 rounded-lg border-slate-200/70 bg-white shadow-sm"
-                  />
+                <div className="space-y-2">
+                  {mergeWeekRangeInputs.map((range, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={range.start}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const next = [...mergeWeekRangeInputs]
+                          next[idx] = { ...next[idx], start: e.target.value }
+                          onMergeWeekRangeInputsChange(next)
+                        }}
+                        placeholder="시작"
+                        className="h-9 w-20 rounded-lg border-slate-200/70 bg-white shadow-sm text-center"
+                      />
+                      <span className="text-xs text-slate-400">~</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={range.end}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const next = [...mergeWeekRangeInputs]
+                          next[idx] = { ...next[idx], end: e.target.value }
+                          onMergeWeekRangeInputsChange(next)
+                        }}
+                        placeholder="종료"
+                        className="h-9 w-20 rounded-lg border-slate-200/70 bg-white shadow-sm text-center"
+                      />
+                      <span className="text-xs text-slate-500">주차</span>
+                      {mergeWeekRangeInputs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = mergeWeekRangeInputs.filter((_, i) => i !== idx)
+                            onMergeWeekRangeInputsChange(next)
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => onMergeWeekRangeInputsChange([...mergeWeekRangeInputs, { start: "", end: "" }])}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    범위 추가
+                  </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -325,14 +364,34 @@ export default function MergeManagerCard({
               )}
             </div>
             </div>
-            <div className="flex items-end md:col-span-2">
-              <Button 
-                type="button" 
-                onClick={onAddMerge} 
-                className="h-11 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40"
-              >
-                합반 추가
-              </Button>
+            <div className="flex items-end gap-2 md:col-span-2">
+              {editingMergeId ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={onAddMerge}
+                    className="h-11 flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40"
+                  >
+                    수정 저장
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancelEdit}
+                    className="h-11 rounded-xl border-slate-300 font-semibold"
+                  >
+                    취소
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={onAddMerge}
+                  className="h-11 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40"
+                >
+                  합반 추가
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -356,31 +415,60 @@ export default function MergeManagerCard({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
-                      <Badge className="shrink-0 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
-                        합반
+                      <Badge className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold text-white shadow-sm ${m.isActive !== false ? "bg-gradient-to-r from-indigo-500 to-purple-600" : "bg-slate-400"}`}>
+                        {m.isActive !== false ? "합반" : "비활성"}
                       </Badge>
-                      <span className="break-all font-semibold text-slate-900">
+                      <span className={`break-all font-semibold ${m.isActive !== false ? "text-slate-900" : "text-slate-400"}`}>
                         {m.name || (m.courses || []).join(" + ")}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      적용 주차: <span className="font-medium text-slate-700">{formatWeekRanges(m.weekRanges)}</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        적용 주차: <span className="font-medium text-slate-700">{formatWeekRanges(m.weekRanges)}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        과목: <span className="font-medium text-slate-700">{(m.courses || []).join(", ")}</span>
+                      </span>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 rounded-full border-rose-200/80 text-rose-600 shadow-sm transition-all hover:bg-rose-50 hover:shadow-md"
-                    onClick={() =>
-                      m.id ? onDeleteMerge(String(m.id)) : undefined
-                    }
-                  >
-                    삭제
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={`h-9 rounded-full shadow-sm transition-all ${editingMergeId === String(m.id) ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200/80 text-slate-600 hover:bg-slate-50"}`}
+                      onClick={() => m.id && onEditMerge ? onEditMerge(String(m.id)) : undefined}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={`h-9 rounded-full shadow-sm transition-all ${m.isActive !== false ? "border-amber-200/80 text-amber-600 hover:bg-amber-50" : "border-emerald-200/80 text-emerald-600 hover:bg-emerald-50"}`}
+                      onClick={() =>
+                        m.id && onToggleMergeActive
+                          ? onToggleMergeActive(String(m.id), m.isActive === false)
+                          : undefined
+                      }
+                    >
+                      {m.isActive !== false ? "비활성화" : "활성화"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-full border-rose-200/80 text-rose-600 shadow-sm transition-all hover:bg-rose-50 hover:shadow-md"
+                      onClick={() =>
+                        m.id ? onDeleteMerge(String(m.id)) : undefined
+                      }
+                    >
+                      삭제
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

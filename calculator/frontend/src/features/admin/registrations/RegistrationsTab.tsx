@@ -207,12 +207,16 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     setMergeCourses,
     mergeWeekMode,
     setMergeWeekMode,
-    mergeWeekStart,
-    setMergeWeekStart,
-    mergeWeekEnd,
-    setMergeWeekEnd,
+    mergeWeekRangeInputs,
+    setMergeWeekRangeInputs,
     addMerge,
     deleteMerge,
+    toggleMergeActive,
+    editingMergeId,
+    startEditMerge,
+    cancelEditMerge,
+    activeMergesToday,
+    mergedCourseSetToday,
 
     categoryFilter,
     changeCategoryFilter,
@@ -709,8 +713,9 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     }
 
     const mergeGroups: GanttGroup[] = []
-    if (!courseFilter && Array.isArray(merges)) {
-      for (const merge of merges) {
+    const todayMergedCourses = new Set<string>()
+    if (!courseFilter && activeMergesToday.length > 0) {
+      for (const merge of activeMergesToday) {
         const courseNames = Array.from(
           new Set((merge?.courses || []).map(normalizeCourse))
         ).filter(Boolean)
@@ -719,6 +724,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           courseNames.some((name) => matchesCourse(r?.course, name))
         )
         if (!rows.length) continue
+        for (const cn of courseNames) todayMergedCourses.add(cn)
         const labelBase = merge?.name || courseNames.join(" + ")
         mergeGroups.push({
           key: `__merge__${merge.id}`,
@@ -765,6 +771,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
 
     const map = new Map<string, RegistrationRow[]>()
     for (const r of sourceList) {
+      // 오늘 합반 중인 과목은 개별 그룹에서 제외
+      if (todayMergedCourses.size > 0 && todayMergedCourses.has(normalizeCourse(r?.course))) continue
       const courseKey = getCourseKey(r)
       if (!courseKey) continue
       if (!map.has(courseKey)) map.set(courseKey, [])
@@ -799,6 +807,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     chartFilteredRegistrations,
     courseFilter,
     merges,
+    activeMergesToday,
     selectedCourseConfigSet,
     selectedCourseConfigSetObj,
     courseConfigSetIdToLabel,
@@ -884,6 +893,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
             courseIdToLabel={courseConfigSetIdToLabel}
             courseVariantRequiredSet={courseVariantRequiredSet}
             merges={merges || []}
+            activeMergesToday={activeMergesToday}
+            mergedCourseSetToday={mergedCourseSetToday}
             variantTabs={variantTabs}
             variantFilter={variantFilter}
             onVariantFilterChange={setVariantFilter}
@@ -920,13 +931,15 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                 onMergeCoursesChange={setMergeCourses}
                 mergeWeekMode={mergeWeekMode}
                 onMergeWeekModeChange={setMergeWeekMode}
-                mergeWeekStart={mergeWeekStart}
-                onMergeWeekStartChange={setMergeWeekStart}
-                mergeWeekEnd={mergeWeekEnd}
-                onMergeWeekEndChange={setMergeWeekEnd}
+                mergeWeekRangeInputs={mergeWeekRangeInputs}
+                onMergeWeekRangeInputsChange={setMergeWeekRangeInputs}
                 onAddMerge={addMerge}
                 merges={merges}
                 onDeleteMerge={deleteMerge}
+                onToggleMergeActive={toggleMergeActive}
+                editingMergeId={editingMergeId}
+                onEditMerge={startEditMerge}
+                onCancelEdit={cancelEditMerge}
               />
             ) : null}
 
@@ -1015,6 +1028,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                   onCourseFilterChange={handleCourseFilterFromCard}
                   courseIdToLabel={courseConfigSetIdToLabel}
                   courseVariantRequiredSet={courseVariantRequiredSet}
+                  activeMergesToday={activeMergesToday}
+                  mergedCourseSetToday={mergedCourseSetToday}
                 />
                 
                 <div className="space-y-4">

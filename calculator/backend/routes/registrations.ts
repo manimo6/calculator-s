@@ -293,7 +293,53 @@ router.get(
       };
     });
 
-    res.json({ status: '성공', results });
+    // 활성 합반 목록 조회
+    const mergeRows = await prisma.mergeGroup.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        courses: true,
+        weekRanges: true,
+        isActive: true,
+        courseConfigSetName: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    const mergeCourses = new Set<string>();
+    for (const m of mergeRows) {
+      for (const c of m.courses) mergeCourses.add(c);
+    }
+
+    let mergeRefDateMap = new Map<string, string | null>();
+    if (mergeCourses.size > 0) {
+      const refRows: Array<{ course: string; minStart: Date | null }> =
+        await prisma.$queryRawUnsafe(
+          `SELECT course, MIN("startDate") as "minStart"
+           FROM registrations
+           WHERE course = ANY($1) AND "withdrawnAt" IS NULL
+           GROUP BY course`,
+          Array.from(mergeCourses)
+        );
+      for (const row of refRows) {
+        mergeRefDateMap.set(
+          row.course,
+          row.minStart ? row.minStart.toISOString().slice(0, 10) : null
+        );
+      }
+    }
+
+    const activeMerges = mergeRows.map((m) => {
+      let earliest: string | null = null;
+      for (const c of m.courses) {
+        const d = mergeRefDateMap.get(c);
+        if (d && (!earliest || d < earliest)) earliest = d;
+      }
+      return { ...m, referenceStartDate: earliest };
+    });
+
+    res.json({ status: '성공', results, activeMerges });
   } catch (error) {
     const message = getSafeErrorMessage(error, '등록 현황 상세를 불러오지 못했습니다.');
     console.error('등록 현황 상세 조회 오류:', error);

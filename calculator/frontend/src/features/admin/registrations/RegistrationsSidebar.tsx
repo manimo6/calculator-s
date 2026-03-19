@@ -1,15 +1,17 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { 
-  BookOpen, 
-  CheckCircle2, 
-  Clock, 
-  LayoutGrid, 
-  Layers, 
+import {
+  Book,
+  BookCopy,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  LayoutGrid,
   Search,
   TimerOff,
   Users,
@@ -53,6 +55,16 @@ type RegistrationRow = {
   endDate?: string | Date
 } & Record<string, unknown>
 
+type ActiveMerge = {
+  id: string
+  name: string
+  courses: string[]
+  weekRanges: Array<{ start: number; end: number }>
+  isActive: boolean
+  courseConfigSetName: string
+  referenceStartDate: string | null
+}
+
 type SidebarProps = {
   registrations: RegistrationRow[]
   courseFilter: string
@@ -60,6 +72,8 @@ type SidebarProps = {
   courseIdToLabel: Map<string, string>
   courseVariantRequiredSet?: Set<string>
   merges?: Array<{ id?: string | number; name?: string; courses?: string[] }>
+  activeMergesToday?: ActiveMerge[]
+  mergedCourseSetToday?: Set<string>
   variantTabs?: Array<{ key: string; label: string; count: number }>
   variantFilter?: string
   onVariantFilterChange?: (value: string) => void
@@ -72,11 +86,14 @@ export default function RegistrationsSidebar({
   courseIdToLabel,
   courseVariantRequiredSet,
   merges = [],
+  activeMergesToday = [],
+  mergedCourseSetToday = new Set(),
   variantTabs = [],
   variantFilter,
   onVariantFilterChange
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [expandedMerges, setExpandedMerges] = useState<Set<string>>(new Set())
   const isMergeFilter = typeof courseFilter === "string" && courseFilter.startsWith("__merge__")
   
   // Stats calculation
@@ -147,20 +164,50 @@ export default function RegistrationsSidebar({
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "ko-KR"))
   }, [registrations, courseIdToLabel, courseVariantRequiredSet])
 
-  // 검색 필터링된 과목 리스트
-  const filteredCourseGroups = useMemo(() => {
-    if (!searchQuery.trim()) return courseGroups
-    return courseGroups.filter((group) => matchesSearch(group.label, searchQuery.trim()))
-  }, [courseGroups, searchQuery])
+  type SubCourse = { label: string; count: number; key: string }
+  type SidebarItem = { key: string; label: string; count: number; isMerge?: boolean; subCourses?: SubCourse[] }
 
-  // Merge groups
-  const mergeGroups = useMemo(() => {
-    return merges.map(m => ({
-      key: `__merge__${m.id}`,
-      label: m.name || (m.courses || []).join(" + "),
-      count: 0 // We'd need to calculate actual count if needed, but for now simple list
-    }))
-  }, [merges])
+  // 합반 활성 시 해당 과목 숨김 + 합반 항목 삽입 + 검색 필터
+  const filteredCourseGroups = useMemo(() => {
+    // 개별 과목에서 합반 중인 과목 제거
+    let groups: SidebarItem[] = courseGroups
+    if (mergedCourseSetToday.size > 0) {
+      groups = groups.filter((g) => !mergedCourseSetToday.has(g.label))
+    }
+
+    // 오늘 활성 합반을 목록에 삽입 (하위 과목 포함)
+    for (const m of activeMergesToday) {
+      const subCourses = (m.courses || []).map((courseName) => {
+        const matched = courseGroups.find((g) => g.label === courseName)
+        return { label: courseName, count: matched?.count || 0, key: matched?.key || `__coursename__${courseName}` }
+      })
+      const totalCount = subCourses.reduce((sum, sc) => sum + sc.count, 0)
+      groups.push({
+        key: `__merge__${m.id}`,
+        label: m.name || m.courses.join(" + "),
+        count: totalCount,
+        isMerge: true,
+        subCourses,
+      })
+    }
+
+    // 가나다순 정렬
+    groups = groups.slice().sort((a, b) => a.label.localeCompare(b.label, "ko-KR"))
+
+    if (searchQuery.trim()) {
+      groups = groups.filter((g) => matchesSearch(g.label, searchQuery.trim()))
+    }
+    return groups
+  }, [courseGroups, searchQuery, mergedCourseSetToday, activeMergesToday])
+
+  const toggleMergeExpand = useCallback((mergeKey: string) => {
+    setExpandedMerges((prev) => {
+      const next = new Set(prev)
+      if (next.has(mergeKey)) next.delete(mergeKey)
+      else next.add(mergeKey)
+      return next
+    })
+  }, [])
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-border/60 bg-white/60 backdrop-blur-xl">
@@ -237,7 +284,7 @@ export default function RegistrationsSidebar({
             )}
           </div>
 
-          {/* Courses List */}
+          {/* Courses + Merges List */}
           <div>
             <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground">
               과목별 {searchQuery && `(${filteredCourseGroups.length}/${courseGroups.length})`}
@@ -248,52 +295,80 @@ export default function RegistrationsSidebar({
                   검색 결과가 없습니다
                 </div>
               ) : null}
-              {filteredCourseGroups.map((group) => (
-                <Button
-                  key={group.key}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-2 h-10 px-2",
-                    courseFilter === group.key 
-                      ? "bg-indigo-50 text-indigo-700 font-semibold" 
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  )}
-                  onClick={() => onCourseFilterChange(group.key)}
-                >
-                  <BookOpen className={cn("h-4 w-4", courseFilter === group.key ? "text-indigo-500" : "text-slate-400")} />
-                  <span className="flex-1 text-left truncate text-sm font-medium">{group.label}</span>
-                  <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-normal text-muted-foreground bg-white/50">
-                    {group.count}
-                  </Badge>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Merge Groups */}
-          {mergeGroups.length > 0 && (
-            <div>
-              <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground">합반 그룹</h3>
-              <div className="space-y-0.5">
-                {mergeGroups.map((group) => (
+              {filteredCourseGroups.map((group) =>
+                group.isMerge ? (
+                  <div key={group.key}>
+                    <div className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleMergeExpand(group.key)}
+                        className="flex items-center justify-center w-5 h-10 text-slate-400 hover:text-slate-600"
+                      >
+                        {expandedMerges.has(group.key)
+                          ? <ChevronDown className="h-3.5 w-3.5" />
+                          : <ChevronRight className="h-3.5 w-3.5" />}
+                      </button>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "flex-1 justify-start gap-2 h-10 px-1",
+                          courseFilter === group.key
+                            ? "bg-purple-50 text-purple-700 font-semibold"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        )}
+                        onClick={() => onCourseFilterChange(group.key)}
+                      >
+                        <BookCopy className={cn("h-4 w-4", courseFilter === group.key ? "text-purple-500" : "text-purple-400")} />
+                        <span className="flex-1 text-left truncate text-sm font-medium">{group.label}</span>
+                        <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-normal text-muted-foreground bg-white/50">
+                          {group.count}
+                        </Badge>
+                      </Button>
+                    </div>
+                    {expandedMerges.has(group.key) && group.subCourses && (
+                      <div className="ml-5 border-l border-purple-100 pl-1 space-y-0.5">
+                        {group.subCourses.map((sc) => (
+                          <Button
+                            key={sc.key}
+                            variant="ghost"
+                            className={cn(
+                              "w-full justify-start gap-2 h-8 px-2 text-xs",
+                              courseFilter === sc.key
+                                ? "bg-purple-50/50 text-purple-600 font-medium"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                            )}
+                            onClick={() => onCourseFilterChange(sc.key)}
+                          >
+                            <Book className="h-3 w-3 text-slate-400" />
+                            <span className="flex-1 text-left truncate">{sc.label}</span>
+                            <span className="text-[10px] text-muted-foreground">{sc.count}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
                   <Button
                     key={group.key}
                     variant="ghost"
                     className={cn(
                       "w-full justify-start gap-2 h-10 px-2",
-                      courseFilter === group.key 
-                        ? "bg-purple-50 text-purple-700 font-semibold" 
+                      courseFilter === group.key
+                        ? "bg-indigo-50 text-indigo-700 font-semibold"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                     )}
                     onClick={() => onCourseFilterChange(group.key)}
                   >
-                    <Layers className={cn("h-4 w-4", courseFilter === group.key ? "text-purple-500" : "text-slate-400")} />
+                    <Book className={cn("h-4 w-4", courseFilter === group.key ? "text-indigo-500" : "text-slate-400")} />
                     <span className="flex-1 text-left truncate text-sm font-medium">{group.label}</span>
+                    <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px] font-normal text-muted-foreground bg-white/50">
+                      {group.count}
+                    </Badge>
                   </Button>
-                ))}
-              </div>
+                )
+              )}
             </div>
-          )}
+          </div>
         </div>
       </ScrollArea>
       

@@ -267,12 +267,14 @@ model Notice {
 }
 
 model MergeGroup {
-  id        String   @id
-  name      String   @default("")
-  courses   String[] @default([])
-  weekRanges Json?   @db.JsonB
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  id                  String   @id
+  name                String   @default("")
+  courses             String[] @default([])
+  weekRanges          Json?    @db.JsonB
+  isActive            Boolean  @default(true)
+  courseConfigSetName  String?
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
 
   @@map("merge_groups")
 }
