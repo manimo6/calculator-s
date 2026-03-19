@@ -8,6 +8,12 @@ const cookieParser = require('cookie-parser');
 const { CORS_ORIGIN, TRUST_PROXY } = require('./config');
 const { csrfMiddleware } = require('./middleware/csrfMiddleware');
 const { initSocket } = require('./realtime/socket');
+const { setupProcessErrorHandlers } = require('./utils/processErrorHandlers');
+const { setupGracefulShutdown } = require('./utils/shutdown');
+const { requestLogger } = require('./middleware/requestLogger');
+const { globalErrorHandler } = require('./middleware/errorHandler');
+
+setupProcessErrorHandlers();
 
 const studentRoutes = require('./routes/students');
 const courseRoutes = require('./routes/courses');
@@ -48,6 +54,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+app.use(requestLogger);
 app.use(csrfMiddleware);
 
 app.use('/api/students', studentRoutes);
@@ -66,8 +73,11 @@ app.use('/api/calendar-notes', calendarNotesRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/registration-extensions', registrationExtensionsRoutes);
 
+app.use(globalErrorHandler);
+
 const httpServer = createServer(app);
 initSocket(httpServer, allowedOrigins);
+setupGracefulShutdown(httpServer);
 
 httpServer.listen(port, () => {
   console.log(`

@@ -21,6 +21,7 @@ declare module 'express' {
       allow: Set<string>
       deny: Set<string>
     }
+    originalUrl?: string
     ip?: string
     connection?: { remoteAddress?: string | null }
     params: Record<string, string>
@@ -29,11 +30,13 @@ declare module 'express' {
   }
 
   export interface Response {
+    statusCode?: number
     status(code: number): Response
     json(body?: unknown): Response
     send(body?: unknown): Response
     cookie(name: string, value: string, options?: Record<string, unknown>): Response
     clearCookie(name: string, options?: Record<string, unknown>): Response
+    on(event: string, listener: (...args: unknown[]) => void): Response
   }
 
   export type NextFunction = (err?: unknown) => void
