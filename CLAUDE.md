@@ -137,8 +137,9 @@ AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
 
 ## 검증 기준
 
-- 각 Phase 완료 후 `npm run typecheck` (프론트) 통과
-- 각 Phase 완료 후 `npm run build` (백엔드) 통과
+- `npm run test` (프론트) — Vitest 24개 테스트 통과
+- `npm run typecheck` (프론트) — 기존 에러 9개 외 새 에러 없음
+- `npm run build` (백엔드) — 컴파일 에러 없음
 - Phase별 독립 커밋 — 문제 시 해당 Phase만 revert
 
 ## 이미 완료된 정리 작업
@@ -147,9 +148,21 @@ AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
 - [x] 프론트엔드 레거시 admin 컴포넌트 10개 삭제 (components/admin/)
 - [x] 루트 table.txt 삭제
 
+## 기능 확장 시 반드시 같이 진행할 사항
+
+| 항목 | 작업 내용 | 트리거 시점 |
+|------|-----------|-------------|
+| **TS strict 모드** | 새 코드부터 strict 적용, 기존 코드 점진적 전환 | 새 기능 코드 작성 시 |
+| **ESM 전환** | 백엔드 CJS → ESM import 전환 | 백엔드 구조 변경 시 |
+| **다크모드 정리** | 주석 제거하고 feature flag로 재구현, 또는 완전 삭제 | 다크모드 다시 살릴 때 |
+| **상태 관리 통합** | auth 4파일(auth.ts, auth-store.ts, auth-context.tsx, auth-routing.ts) 통합 | auth 관련 기능 확장 시 |
+| **useCourseManager 리팩토링** | 전역 뮤터블 상태 제거 (delete, push 직접 변경) | 과목 관리 기능 수정 시 |
+| **HTTP Rate Limiter Redis 연동** | 인메모리 → Redis 기반으로 전환 | 다중 인스턴스 배포 시 |
+
 ## 주의사항
 
 - 기존 타입 에러 9개 존재 (Radix UI prop 타입 불일치) — 안정화 작업과 무관
 - backend/data/*.json — 시드 스크립트용, DB에 데이터 있으면 불필요하나 백업용 보관
 - 다크모드 — 현재 주석처리로 비활성화 상태
-- 테스트 프레임워크 없음 — typecheck만 사용
+- sqlite3 의존성 제거됨 (PostgreSQL만 사용)
+- 테스트: Vitest 도입 완료, calculatorLogic 순수 함수 24개 테스트 커버
