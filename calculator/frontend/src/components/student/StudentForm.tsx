@@ -1109,9 +1109,9 @@ const StudentForm = () => {
                                                 <SelectContent>
                                                     <SelectItem value="0">할인 없음</SelectItem>
                                                     <SelectItem value="0.05">5% 할인</SelectItem>
-                                                    <SelectItem value="0.10">10% 할인</SelectItem>
+                                                    <SelectItem value="0.1">10% 할인</SelectItem>
                                                     <SelectItem value="0.15">15% 할인</SelectItem>
-                                                    <SelectItem value="0.20">20% 할인</SelectItem>
+                                                    <SelectItem value="0.2">20% 할인</SelectItem>
                                                     <SelectItem value="0.25">25% 할인</SelectItem>
                                                 </SelectContent>
                                             </Select>

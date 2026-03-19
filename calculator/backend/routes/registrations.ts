@@ -223,6 +223,7 @@ router.get(
 
     const rows: RegistrationRow[] = await prisma.registration.findMany({
       orderBy: [
+        { name: 'asc' },
         { timestamp: { sort: 'asc', nulls: 'last' } },
         { createdAt: 'asc' },
       ],
