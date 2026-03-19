@@ -4,6 +4,11 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { PAGE_SIZE } = require('../config');
 const { authMiddleware } = require('../middleware/authMiddleware');
+const {
+  validateStudentQuery,
+  validateStudentBody,
+  validateStudentUpdate,
+} = require('../validators/studentValidator');
 
 type RegistrationRow = {
   id?: string
@@ -130,7 +135,7 @@ function extractCourseLabelPrefixes(courseTreeValue: unknown): string[] {
 }
 
 // GET /api/students
-router.get('/', async (req, res) => {
+router.get('/', validateStudentQuery, async (req, res) => {
   console.log(`[${new Date().toISOString()}] GET /api/students 요청. Query:`, req.query);
   try {
     const { page = 1, searchTerm = '', courseConfigSetName = '' } = req.query;
@@ -274,7 +279,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/students
-router.post('/', async (req, res) => {
+router.post('/', ...validateStudentBody, async (req, res) => {
   type StudentRecord = Record<string, unknown> & {
     name?: string
     course?: string
@@ -393,7 +398,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/students/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateStudentUpdate, async (req, res) => {
   const { id } = req.params;
   const updateRecord = Array.isArray(req.body) ? req.body[0] : req.body;
   console.log(`[${new Date().toISOString()}] PUT /api/students/${id} 요청`);

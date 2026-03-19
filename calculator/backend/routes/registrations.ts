@@ -4,6 +4,12 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const {
+  validateRegistrationQuery,
+  validateTransferBody,
+  validateNoteBody,
+  validateCourseNamesBody,
+} = require('../validators/registrationValidator');
+const {
   getRequestUser,
   requirePermissions,
   requireAnyPermissions,
@@ -205,6 +211,7 @@ function isCourseInSet(
 // GET /api/registrations - 전체 학생 기록(무페이징) 반환
 router.get(
   '/',
+  validateRegistrationQuery,
   requireAnyPermissions(['tabs.registrations', 'tabs.attendance']),
   async (req, res) => {
   try {
@@ -299,6 +306,7 @@ router.get(
 // POST /api/registrations/:id/transfer - 전반 처리
 router.post(
   '/:id/transfer',
+  validateTransferBody,
   requirePermissions(['tabs.registrations', 'registrations.transfers.manage']),
   async (req, res) => {
     const { id } = req.params;
@@ -569,6 +577,7 @@ router.post(
 // PUT /api/registrations/:id/note - 학생 메모 저장/수정
 router.put(
   '/:id/note',
+  validateNoteBody,
   requirePermissions('tabs.registrations'),
   async (req, res) => {
     const { id } = req.params;
@@ -757,6 +766,7 @@ router.get(
 // PATCH /api/registrations/course-names - 설정 세트별 수업명 일괄 변경
 router.patch(
   '/course-names',
+  validateCourseNamesBody,
   requirePermissions('tabs.registrations'),
   async (req, res) => {
   try {

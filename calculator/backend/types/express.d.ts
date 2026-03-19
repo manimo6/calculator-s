@@ -60,7 +60,7 @@ declare module 'express' {
   interface ExpressStatic {
     (): Application
     Router(): Router
-    json(): RequestHandler
+    json(options?: Record<string, unknown>): RequestHandler
   }
 
   const express: ExpressStatic
