@@ -21,7 +21,7 @@ module.exports = {
     process.env.PRESETS_DATA_FILE ||
     path.join(ROOT_DIR, 'data', 'presets.json'),
   PAGE_SIZE: Number(process.env.PAGE_SIZE || 15),
-  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   TRUST_PROXY,
   ROOT_DIR,
 };
