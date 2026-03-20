@@ -147,6 +147,15 @@ AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
 - [x] 백엔드 레거시 Store 파일 7개 삭제 (data/*Store.ts)
 - [x] 프론트엔드 레거시 admin 컴포넌트 10개 삭제 (components/admin/)
 - [x] 루트 table.txt 삭제
+- [x] 전반(transfer) 기능 분리: `useTransfer.ts` + `TransferDialog.tsx` (`f4e337e`)
+
+## RegistrationsTab.tsx 추가 분리 대상
+
+| 기능 | 분리 파일명 (제안) | 상태 |
+|------|---------------------|------|
+| 퇴원(withdraw) 다이얼로그 + 핸들러 | `WithdrawDialog.tsx` + `useWithdraw.ts` | 미착수 |
+| 메모(note) 다이얼로그 + 핸들러 | `NoteDialog.tsx` + `useNote.ts` | 미착수 |
+| 전반 버그 수정 (endDate 미계산, skipWeeks 복사, tuitionFee 누락) | `useTransfer.ts` + 백엔드 | 미착수 |
 
 ## 기능 확장 시 반드시 같이 진행할 사항
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,20 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient } from "@/api-client"
 import { Calendar } from "@/components/ui/calendar"
 import type { DateValue, DatesRangeValue } from "@mantine/dates"
@@ -40,7 +29,9 @@ import MergeManagerCard from "./MergeManagerCard"
 import InstallmentBoard from "./InstallmentBoard"
 import RegistrationCardGrid from "./RegistrationCardGrid"
 import RegistrationsGantt from "./RegistrationsGantt"
+import TransferDialog from "./TransferDialog"
 import { useRegistrations } from "./useRegistrations"
+import { useTransfer } from "./useTransfer"
 import { formatDateYmd, formatTimestampKo, parseDate } from "./utils"
 
 function isValidDow(value: number) {
@@ -71,8 +62,6 @@ type RegistrationRow = {
   timestamp?: string | number | Date
 } & Record<string, unknown>
 
-type TransferOption = { value: string; label: string }
-type TransferGroup = { label: string; items: TransferOption[] }
 type WeekRange = { start: number; end: number }
 type GanttGroup = {
   key: string
@@ -129,31 +118,6 @@ function getCourseDaysByName(courseName: string, courseConfigSet: CourseConfigSe
   }
 
   return bestDays || []
-}
-
-const COURSE_ID_PREFIX = "__courseid__"
-const COURSE_NAME_PREFIX = "__coursename__"
-
-function normalizeCourseValue(value: unknown) {
-  return String(value || "").trim()
-}
-
-function makeCourseValue(courseId: unknown, courseName: unknown) {
-  const id = normalizeCourseValue(courseId)
-  if (id) return `${COURSE_ID_PREFIX}${id}`
-  const name = normalizeCourseValue(courseName)
-  return name ? `${COURSE_NAME_PREFIX}${name}` : ""
-}
-
-function parseCourseValue(value: unknown) {
-  const raw = normalizeCourseValue(value)
-  if (raw.startsWith(COURSE_ID_PREFIX)) {
-    return { type: "id", value: raw.slice(COURSE_ID_PREFIX.length) }
-  }
-  if (raw.startsWith(COURSE_NAME_PREFIX)) {
-    return { type: "name", value: raw.slice(COURSE_NAME_PREFIX.length) }
-  }
-  return { type: "name", value: raw }
 }
 
 export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
@@ -254,14 +218,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
   const [withdrawPickerOpen, setWithdrawPickerOpen] = useState(false)
   const [withdrawError, setWithdrawError] = useState("")
   const [withdrawSaving, setWithdrawSaving] = useState(false)
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false)
-  const [transferTarget, setTransferTarget] = useState<RegistrationRow | null>(null)
-  const [transferDate, setTransferDate] = useState("")
-  const [transferPickerOpen, setTransferPickerOpen] = useState(false)
-  const [transferCourseValue, setTransferCourseValue] = useState("")
-  const [transferWeeks, setTransferWeeks] = useState("")
-  const [transferError, setTransferError] = useState("")
-  const [transferSaving, setTransferSaving] = useState(false)
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
   const [noteTarget, setNoteTarget] = useState<RegistrationRow | null>(null)
   const [noteValue, setNoteValue] = useState("")
@@ -308,111 +264,31 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     return list
   }, [courseConfigSetBaseCourses, mergeCourseOptions])
 
-  const transferCourseLabelMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const course of courseOptions || []) {
-      const value = typeof course === "string" ? course : course?.value
-      const label = typeof course === "string" ? course : course?.label
-      if (!value || !label) continue
-      map.set(String(value), String(label))
-    }
-    return map
-  }, [courseOptions])
-
-  const transferCourseOptions = useMemo(() => {
-    const list: TransferOption[] = []
-    const seen = new Set<string>()
-
-    for (const course of courseOptions || []) {
-      const value = typeof course === "string" ? course : course?.value
-      const label = typeof course === "string" ? course : course?.label
-      const key = String(value || "").trim()
-      if (!key || seen.has(key)) continue
-      seen.add(key)
-      list.push({ value: key, label: String(label || value || "").trim() })
-    }
-
-    return list
-  }, [courseOptions])
-
-  const transferCourseGroups = useMemo<TransferGroup[]>(() => {
-    if (!transferCourseOptions.length) return []
-    const tree = Array.isArray(selectedCourseConfigSetObj?.data?.courseTree)
-      ? selectedCourseConfigSetObj.data.courseTree
-      : []
-    const idToCategory = new Map<string, string>()
-    const labelToCategory: Array<{ label: string; category: string }> = []
-    const categoryOrder: string[] = []
-
-    for (const group of tree) {
-      const category = normalizeCourseValue(group?.cat)
-      if (category && !categoryOrder.includes(category)) {
-        categoryOrder.push(category)
-      }
-      for (const item of group.items || []) {
-        const id = normalizeCourseValue(item?.val)
-        if (id) idToCategory.set(id, category)
-        const label = normalizeCourseValue(item?.label)
-        if (label) labelToCategory.push({ label, category })
-      }
-    }
-
-    labelToCategory.sort((a, b) => b.label.length - a.label.length)
-
-    const groupMap = new Map<string, TransferOption[]>()
-    const addToGroup = (category: string, option: TransferOption) => {
-      const key = category || "기타"
-      if (!groupMap.has(key)) groupMap.set(key, [])
-      groupMap.get(key)?.push(option)
-    }
-
-    for (const option of transferCourseOptions) {
-      const parsed = parseCourseValue(option.value)
-      let category = ""
-      if (parsed.type === "id") {
-        category = idToCategory.get(parsed.value) || ""
-      }
-      if (!category) {
-        const name = String(option.label || parsed.value || "").trim()
-        if (name) {
-          for (const entry of labelToCategory) {
-            if (name.startsWith(entry.label)) {
-              category = entry.category
-              break
-            }
-          }
-        }
-      }
-      addToGroup(category, option)
-    }
-
-    const sortByLabel = (a: TransferOption, b: TransferOption) =>
-      a.label.localeCompare(b.label, "ko-KR")
-    const ordered: TransferGroup[] = []
-
-    for (const category of categoryOrder) {
-      const items = groupMap.get(category)
-      if (!items || !items.length) continue
-      items.sort(sortByLabel)
-      ordered.push({ label: category, items })
-      groupMap.delete(category)
-    }
-
-    const restKeys = Array.from(groupMap.keys()).sort((a, b) => {
-      if (a === "기타") return 1
-      if (b === "기타") return -1
-      return a.localeCompare(b, "ko-KR")
-    })
-
-    for (const category of restKeys) {
-      const items = groupMap.get(category)
-      if (!items || !items.length) continue
-      items.sort(sortByLabel)
-      ordered.push({ label: category, items })
-    }
-
-    return ordered
-  }, [selectedCourseConfigSetObj, transferCourseOptions])
+  const {
+    transferDialogOpen,
+    transferTarget,
+    transferDate,
+    setTransferDate,
+    transferPickerOpen,
+    setTransferPickerOpen,
+    transferCourseValue,
+    setTransferCourseValue,
+    transferWeeks,
+    setTransferWeeks,
+    transferError,
+    transferSaving,
+    transferCourseGroups,
+    openTransferDialog,
+    handleTransferSave,
+    handleTransferCancel,
+    closeTransferDialog,
+  } = useTransfer({
+    courseOptions,
+    selectedCourseConfigSetObj,
+    selectedCourseConfigSet,
+    loadRegistrations,
+    setError,
+  })
 
   const resolveCourseDays = useCallback(
     (courseName?: string) =>
@@ -449,23 +325,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     setWithdrawError("")
     setWithdrawDialogOpen(true)
   }, [])
-
-  const openTransferDialog = useCallback((registration: RegistrationRow) => {
-    if (!registration) return
-    const today = formatDateYmd(new Date())
-    const targetValue = makeCourseValue(
-      registration?.courseId,
-      registration?.course
-    )
-    const hasTargetValue =
-      !!targetValue && transferCourseLabelMap.has(targetValue)
-    setTransferTarget(registration)
-    setTransferDate(today)
-    setTransferCourseValue(hasTargetValue ? targetValue : "")
-    setTransferWeeks(registration?.weeks ? String(registration.weeks) : "")
-    setTransferError("")
-    setTransferDialogOpen(true)
-  }, [transferCourseLabelMap])
 
   const openNoteDialog = useCallback((registration: RegistrationRow) => {
     if (!registration) return
@@ -506,77 +365,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     }
   }, [loadRegistrations, withdrawDate, withdrawTarget])
 
-  const handleTransferSave = useCallback(async () => {
-    if (!transferTarget) return
-    if (!transferDate) {
-      setTransferError("전반일을 선택해 주세요.")
-      return
-    }
-
-    if (!transferCourseValue) {
-      setTransferError("전반 과목을 선택해 주세요.")
-      return
-    }
-
-    const start = parseDate(transferTarget?.startDate)
-    const transferDay = parseDate(transferDate)
-    if (start && transferDay && transferDay.getTime() <= start.getTime()) {
-      setTransferError("전반일은 시작일 이후로만 가능합니다.")
-      return
-    }
-
-    let weeksValue
-    if (transferWeeks) {
-      const parsedWeeks = Number(transferWeeks)
-      if (!Number.isInteger(parsedWeeks) || parsedWeeks <= 0) {
-        setTransferError("기간(주)은 1 이상의 숫자로 입력해 주세요.")
-        return
-      }
-      weeksValue = parsedWeeks
-    }
-
-    const parsedCourse = parseCourseValue(transferCourseValue)
-    const courseLabel = transferCourseLabelMap.get(String(transferCourseValue))
-    if (!courseLabel) {
-      setTransferError("전반 과목을 선택해 주세요.")
-      return
-    }
-
-    setTransferSaving(true)
-    setTransferError("")
-    const transferId = transferTarget?.id
-    if (!transferId) {
-      setTransferError("대상을 확인해 주세요.")
-      return
-    }
-    try {
-      await apiClient.transferRegistration(String(transferId), {
-        transferDate,
-        course: courseLabel,
-        courseId: parsedCourse.type === "id" ? parsedCourse.value : "",
-        courseConfigSetName:
-          transferTarget?.courseConfigSetName || selectedCourseConfigSet,
-        ...(weeksValue ? { weeks: weeksValue } : {}),
-      })
-      await loadRegistrations()
-      setTransferDialogOpen(false)
-      setTransferTarget(null)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "전반 처리에 실패했습니다."
-      setTransferError(message)
-    } finally {
-      setTransferSaving(false)
-    }
-  }, [
-    loadRegistrations,
-    selectedCourseConfigSet,
-    transferCourseLabelMap,
-    transferCourseValue,
-    transferDate,
-    transferTarget,
-    transferWeeks,
-  ])
-
   const handleRestore = useCallback(async (registration: RegistrationRow) => {
     if (!registration?.id) return
     const name = registration?.name || "학생"
@@ -613,23 +401,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       setNoteSaving(false)
     }
   }, [loadRegistrations, noteTarget, noteValue])
-
-  const handleTransferCancel = useCallback(
-    async (registration: RegistrationRow) => {
-      if (!registration?.id) return
-      const name = registration?.name || "학생"
-      if (!window.confirm(`${name}의 전반을 취소할까요?`)) return
-
-      try {
-        await apiClient.cancelTransferRegistration(String(registration.id))
-        await loadRegistrations()
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "전반 취소에 실패했습니다."
-        setError(message)
-      }
-    },
-    [loadRegistrations, setError]
-  )
 
   // Wheel handler for Gantt tabs removed as tabs are replaced by sidebar
 
@@ -1289,132 +1060,23 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <TransferDialog
         open={transferDialogOpen}
-        onOpenChange={(open) => {
-          setTransferDialogOpen(open)
-          if (!open) {
-            setTransferTarget(null)
-            setTransferError("")
-            setTransferPickerOpen(false)
-            setTransferCourseValue("")
-            setTransferWeeks("")
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>전반 처리</DialogTitle>
-            <DialogDescription>
-              전반일을 신규 수업 시작일로 설정합니다.
-            </DialogDescription>
-          </DialogHeader>
-          {transferTarget ? (
-            <div className="space-y-4 text-sm">
-              <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-                <div className="text-xs text-muted-foreground">학생</div>
-                <div className="font-semibold">{transferTarget?.name || "-"}</div>
-                <div className="mt-2 text-xs text-muted-foreground">현재 과목</div>
-                <div className="font-semibold">{transferTarget?.course || "-"}</div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="transferDate">전반일</Label>
-                <Popover
-                  open={transferPickerOpen}
-                  onOpenChange={setTransferPickerOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="transferDate"
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-between text-left font-normal"
-                    >
-                      {transferDate || "YYYY-MM-DD"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto border-none bg-transparent p-0 shadow-none"
-                    align="start"
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={parseDate(transferDate) ?? undefined}
-                      onSelect={(
-                        value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined
-                      ) => {
-                        const selectedDate = value instanceof Date ? value : null
-                        setTransferDate(selectedDate ? formatDateYmd(selectedDate) : "")
-                        setTransferPickerOpen(false)
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label>전반 과목</Label>
-                <Select
-                  value={transferCourseValue}
-                  onValueChange={setTransferCourseValue}
-                >
-                  <SelectTrigger className="h-10 bg-background">
-                    <SelectValue placeholder="전반할 과목을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {transferCourseGroups.length === 0 ? (
-                      <SelectItem value="__empty__" disabled>
-                        선택 가능한 과목이 없습니다.
-                      </SelectItem>
-                    ) : (
-                      transferCourseGroups.map((group) => (
-                        <SelectGroup key={group.label}>
-                          <SelectLabel className="mx-1 my-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                            카테고리 · {group.label}
-                          </SelectLabel>
-                          {group.items.map((course) => (
-                            <SelectItem key={course.value} value={course.value}>
-                              {course.label}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="transferWeeks">기간(주)</Label>
-                <Input
-                  id="transferWeeks"
-                  type="number"
-                  min="1"
-                  placeholder="예: 8"
-                  value={transferWeeks}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setTransferWeeks(event.target.value)
-                  }
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {transferError ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {transferError}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTransferDialogOpen(false)}>
-              취소
-            </Button>
-            <Button type="button" onClick={handleTransferSave} disabled={transferSaving}>
-              전반 처리
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={closeTransferDialog}
+        target={transferTarget}
+        date={transferDate}
+        onDateChange={setTransferDate}
+        pickerOpen={transferPickerOpen}
+        onPickerOpenChange={setTransferPickerOpen}
+        courseValue={transferCourseValue}
+        onCourseValueChange={setTransferCourseValue}
+        weeks={transferWeeks}
+        onWeeksChange={setTransferWeeks}
+        error={transferError}
+        saving={transferSaving}
+        courseGroups={transferCourseGroups}
+        onSave={handleTransferSave}
+      />
 
       <Dialog open={!!mergeError} onOpenChange={(open) => { if (!open) setMergeError("") }}>
         <DialogContent className="max-w-sm border-none bg-white/90 p-0 shadow-[0_30px_80px_rgba(15,23,42,0.2)] backdrop-blur-xl sm:rounded-3xl [&>button]:hidden">
