@@ -490,7 +490,26 @@ export default function RegistrationsGantt({
     if (!container) return
 
     const target = event.target instanceof HTMLElement ? event.target : null
-    if (target?.closest("[data-gantt-left]")) return
+    if (target?.closest("[data-gantt-left]")) {
+      // 이름 열에서는 상하 스크롤 처리
+      if (event.deltaY) {
+        event.preventDefault()
+        // 내부 스크롤이 있으면 내부, 없으면 부모 스크롤 컨테이너 사용
+        if (container.scrollHeight > container.clientHeight) {
+          container.scrollTop += event.deltaY
+        } else {
+          let parent = container.parentElement
+          while (parent) {
+            if (parent.scrollHeight > parent.clientHeight) {
+              parent.scrollTop += event.deltaY
+              break
+            }
+            parent = parent.parentElement
+          }
+        }
+      }
+      return
+    }
 
     const delta =
       Math.abs(event.deltaX) > Math.abs(event.deltaY)
@@ -508,6 +527,7 @@ export default function RegistrationsGantt({
     if (!container) return
 
     container.addEventListener("wheel", handleGanttWheel, { passive: false })
+
     return () => {
       container.removeEventListener("wheel", handleGanttWheel)
     }
@@ -572,43 +592,77 @@ export default function RegistrationsGantt({
                 className={`overflow-auto no-scrollbar [overscroll-behavior:contain] ${maxHeightClassName}`}
               >
                 <div style={{ minWidth: LABEL_WIDTH_PX + NOTE_WIDTH_PX + timelineWidth }}>
-                  <div
-                    className="sticky top-0 z-30 grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md"
-                    style={{ gridTemplateColumns }}
-                  >
+                  <div className="sticky top-0 z-30">
+                    {/* 주차 합계 행 */}
                     <div
-                      data-gantt-left
-                      className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md"
-                    >학생 / 과목</div>
-                    <div
-                      data-gantt-left
-                      className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md relative"
-                      style={{ left: LABEL_WIDTH_PX }}
+                      className="grid border-b border-slate-200/60 bg-gradient-to-b from-slate-100 to-slate-50/95 backdrop-blur-md"
+                      style={{ gridTemplateColumns }}
                     >
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <div
+                        data-gantt-left
+                        className="sticky left-0 z-40 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md"
+                      >주차 합계</div>
+                      <div
+                        data-gantt-left
+                        className="sticky left-0 z-30 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md"
+                        style={{ left: LABEL_WIDTH_PX }}
+                      />
+                      <div
+                        className="grid"
+                        style={{
+                          gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
+                          width: timelineWidth,
+                        }}
+                      >
+                        {weekTotals.map((count, i) => (
+                          <div
+                            key={`week-total-${i}`}
+                            className="flex items-center justify-center border-l border-slate-200/60 px-1 py-1.5 text-xs font-bold text-indigo-600 first:border-l-0"
+                          >
+                            {count}명
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                    {/* 학생/과목 헤더 행 */}
                     <div
-                      className="grid bg-gradient-to-b from-indigo-50/80 to-slate-50/50"
-                      style={{
-                        gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
-                        width: timelineWidth,
-                        backgroundImage: gridBackgroundImage,
-                      }}
+                      className="grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md"
+                      style={{ gridTemplateColumns }}
                     >
-                      {model.weeks.map((w, i) => (
-                        <div
-                          key={i}
-                          className="flex flex-col items-center justify-center gap-0.5 overflow-hidden border-l border-slate-200/60 px-0.5 py-2 transition-colors first:border-l-0 hover:bg-indigo-100/50"
-                          title={`${formatDateYmd(w.start)} ~ ${formatDateYmd(w.end)}`}
-                        >
-                          <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
-                            {i + 1}주차
-                          </span>
-                          <span className="text-[12px] font-semibold text-slate-700">
-                            {formatWeekLabel(w.start, w.end)}
-                          </span>
-                        </div>
-                      ))}
+                      <div
+                        data-gantt-left
+                        className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md"
+                      >학생 / 과목</div>
+                      <div
+                        data-gantt-left
+                        className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md relative"
+                        style={{ left: LABEL_WIDTH_PX }}
+                      >
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      </div>
+                      <div
+                        className="grid bg-gradient-to-b from-indigo-50/80 to-slate-50/50"
+                        style={{
+                          gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
+                          width: timelineWidth,
+                          backgroundImage: gridBackgroundImage,
+                        }}
+                      >
+                        {model.weeks.map((w, i) => (
+                          <div
+                            key={i}
+                            className="flex flex-col items-center justify-center gap-0.5 overflow-hidden border-l border-slate-200/60 px-0.5 py-2 transition-colors first:border-l-0 hover:bg-indigo-100/50"
+                            title={`${formatDateYmd(w.start)} ~ ${formatDateYmd(w.end)}`}
+                          >
+                            <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
+                              {i + 1}주차
+                            </span>
+                            <span className="text-[12px] font-semibold text-slate-700">
+                              {formatWeekLabel(w.start, w.end)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -874,38 +928,6 @@ export default function RegistrationsGantt({
                         </div>
                       )
                     })}
-                    {model.weeks.length ? (
-                      <div
-                        className="relative z-10 grid border-t-2 border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50"
-                        style={{ gridTemplateColumns }}
-                      >
-                        <div
-                          data-gantt-left
-                          className="sticky left-0 z-20 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md"
-                        >주차 합계</div>
-                        <div
-                          data-gantt-left
-                          className="sticky left-0 z-10 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md"
-                          style={{ left: LABEL_WIDTH_PX }}
-                        />
-                        <div
-                          className="grid"
-                          style={{
-                            gridTemplateColumns: `repeat(${model.weeks.length}, ${model.unitWidth}px)`,
-                            width: timelineWidth,
-                          }}
-                        >
-                          {weekTotals.map((count, i) => (
-                            <div
-                              key={`week-total-${i}`}
-                              className="flex items-center justify-center border-l border-slate-200/60 px-1 py-2.5 text-sm font-bold text-indigo-600 first:border-l-0"
-                            >
-                              {count}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               </div>

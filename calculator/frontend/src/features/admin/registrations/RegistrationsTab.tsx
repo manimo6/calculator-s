@@ -1082,7 +1082,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                 </Button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto p-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="min-h-0 flex-1 overflow-hidden p-4">
               {activeGanttGroup ? (
                 <RegistrationsGantt
                   registrations={activeGanttGroup.registrations}
@@ -1095,7 +1095,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                   onTransfer={canManageTransfers ? openTransferDialog : () => {}}
                   onTransferCancel={canManageTransfers ? handleTransferCancel : () => {}}
                   onNote={openNoteDialog}
-                  maxHeightClassName=""
+                  maxHeightClassName="max-h-[calc(100vh-10rem)]"
                   disableCardOverflow={false}
                 />
               ) : (
