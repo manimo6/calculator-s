@@ -59,6 +59,21 @@ export function parseCourseValue(value: unknown) {
   return { type: "name" as const, value: raw }
 }
 
+function calcRemainingWeeks(registration: RegistrationRow, transferDate: string | Date) {
+  const totalWeeks = Number(registration?.weeks) || 0
+  if (totalWeeks <= 0) return 0
+  const start = parseDate(registration?.startDate)
+  const transfer = parseDate(transferDate)
+  if (!start || !transfer || transfer <= start) return totalWeeks
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000
+  const elapsedWeeks = Math.ceil((transfer.getTime() - start.getTime()) / msPerWeek)
+  const skipWeeks = Array.isArray(registration?.skipWeeks)
+    ? (registration.skipWeeks as Array<number | string>).map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= elapsedWeeks)
+    : []
+  const attendedWeeks = Math.max(0, elapsedWeeks - skipWeeks.length)
+  return Math.max(1, totalWeeks - attendedWeeks)
+}
+
 // ── Hook ──
 
 type RegistrationRowForOptions = {
@@ -246,8 +261,12 @@ export function useTransfer({
       !!targetValue && transferCourseLabelMap.has(targetValue)
     setTransferTarget(registration)
     setTransferCourseValue(hasTargetValue ? targetValue : "")
-    setTransferDate(hasTargetValue ? today : "")
-    setTransferWeeks(registration?.weeks ? String(registration.weeks) : "")
+    const date = hasTargetValue ? today : ""
+    setTransferDate(date)
+    const remaining = date
+      ? calcRemainingWeeks(registration, date)
+      : Number(registration?.weeks) || 0
+    setTransferWeeks(remaining > 0 ? String(remaining) : "")
     setTransferError("")
     setTransferDialogOpen(true)
   }, [transferCourseLabelMap])
@@ -357,6 +376,17 @@ export function useTransfer({
     setTransferWeeks("")
   }, [])
 
+  const handleTransferDateChange = useCallback(
+    (date: string) => {
+      setTransferDate(date)
+      if (transferTarget && date) {
+        const remaining = calcRemainingWeeks(transferTarget, date)
+        setTransferWeeks(remaining > 0 ? String(remaining) : "")
+      }
+    },
+    [transferTarget]
+  )
+
   const handleTransferCourseChange = useCallback(
     (value: string) => {
       setTransferCourseValue(value)
@@ -366,21 +396,31 @@ export function useTransfer({
     []
   )
 
+  const transferExpectedEndDate = useMemo(() => {
+    if (!transferDate || !transferWeeks) return ""
+    const start = parseDate(transferDate)
+    const weeks = Number(transferWeeks)
+    if (!start || !weeks || weeks <= 0) return ""
+    const end = new Date(start.getTime())
+    end.setDate(end.getDate() + weeks * 7 - 1)
+    return formatDateYmd(end)
+  }, [transferDate, transferWeeks])
+
   return {
     transferDialogOpen,
     transferTarget,
     transferDate,
-    setTransferDate,
+    setTransferDate: handleTransferDateChange,
     transferPickerOpen,
     setTransferPickerOpen,
     transferCourseValue,
     setTransferCourseValue: handleTransferCourseChange,
     transferWeeks,
-    setTransferWeeks,
     transferError,
     transferSaving,
     transferCourseGroups,
     transferCourseDays,
+    transferExpectedEndDate,
     openTransferDialog,
     handleTransferSave,
     handleTransferCancel,

@@ -15,14 +15,18 @@ function stripMathExcludeLabel(value: string | null | undefined) {
   return raw.replace(/\s*\(?수학\s*제외\)?\s*$/g, "").trim()
 }
 
+type DateInput = string | Date | null | undefined
+
 type TransferHistoryTimelineProps = {
   history: RegistrationRow[]
   currentId?: string | number | null
+  adjustEndDate?: (date: DateInput, course?: string) => Date | null | undefined
 }
 
 export default function TransferHistoryTimeline({
   history,
   currentId,
+  adjustEndDate,
 }: TransferHistoryTimelineProps) {
   if (!history.length) return null
 
@@ -41,7 +45,8 @@ export default function TransferHistoryTimeline({
           const isLast = i === history.length - 1
           const courseName = stripMathExcludeLabel(entry?.course)
           const start = formatDateYmd(entry?.startDate)
-          const end = formatDateYmd(entry?.endDate)
+          const adjustedEnd = adjustEndDate ? adjustEndDate(entry?.endDate, entry?.course) : entry?.endDate
+          const end = formatDateYmd(adjustedEnd)
           return (
             <div
               key={`transfer-${entry?.id || i}`}

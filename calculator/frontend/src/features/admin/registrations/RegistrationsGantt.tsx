@@ -78,6 +78,24 @@ type RegistrationRow = {
   note?: string
 } & Record<string, unknown>
 
+function adjustEndToLastClassDay(
+  date: DateInput,
+  courseDays: Array<number | string> | null | undefined
+) {
+  const d = parseDate(date)
+  if (!d) return d
+  const days = normalizeCourseDays(courseDays)
+  if (!days.length) return d
+  const daySet = new Set(days)
+  const result = new Date(d.getTime())
+  // 현재 요일이 수업일이 아니면, 해당 주에서 가장 가까운 이전 수업일로 이동
+  for (let i = 0; i < 7; i += 1) {
+    if (daySet.has(result.getDay())) return result
+    result.setDate(result.getDate() - 1)
+  }
+  return d // fallback
+}
+
 function addDays(date: Date, days: number) {
   const d = new Date(date.getTime())
   d.setDate(d.getDate() + days)
@@ -481,8 +499,11 @@ export default function RegistrationsGantt({
   const transferHistory = useTransferHistory(detailTarget, registrationMap)
 
   const detailCourseLabel = stripMathExcludeLabel(detailTarget?.course)
+  const detailCourseDays = typeof getCourseDaysForCourse === "function"
+    ? getCourseDaysForCourse(detailTarget?.course)
+    : courseDays
   const detailStart = formatDateYmd(detailTarget?.startDate)
-  const detailEnd = formatDateYmd(detailTarget?.endDate)
+  const detailEnd = formatDateYmd(adjustEndToLastClassDay(detailTarget?.endDate, detailCourseDays))
   const detailWeeks =
     detailTarget?.weeks !== null && detailTarget?.weeks !== undefined
       ? String(detailTarget.weeks)
@@ -1101,7 +1122,18 @@ export default function RegistrationsGantt({
                 선택한 기간 기준으로 표시됩니다.
               </div>
             </div>
-            <TransferHistoryTimeline history={transferHistory} currentId={detailTarget?.id} />
+            <TransferHistoryTimeline
+              history={transferHistory}
+              currentId={detailTarget?.id}
+              adjustEndDate={(date, course) =>
+                adjustEndToLastClassDay(
+                  date,
+                  typeof getCourseDaysForCourse === "function"
+                    ? getCourseDaysForCourse(course)
+                    : courseDays
+                )
+              }
+            />
             <div className="mt-auto border-t border-slate-200/60 pt-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {detailIsWithdrawn ? (

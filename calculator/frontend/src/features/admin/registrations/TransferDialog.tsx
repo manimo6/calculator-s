@@ -1,5 +1,3 @@
-import React from "react"
-
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -10,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
@@ -48,11 +45,11 @@ type TransferDialogProps = {
   courseValue: string
   onCourseValueChange: (value: string) => void
   weeks: string
-  onWeeksChange: (value: string) => void
   error: string
   saving: boolean
   courseGroups: TransferGroup[]
   courseDays: number[]
+  expectedEndDate: string
   onSave: () => void
 }
 
@@ -67,25 +64,29 @@ export default function TransferDialog({
   courseValue,
   onCourseValueChange,
   weeks,
-  onWeeksChange,
   error,
   saving,
   courseGroups,
   courseDays,
+  expectedEndDate,
   onSave,
 }: TransferDialogProps) {
   const hasCourseSelected = !!courseValue
   const startDate = parseDate(target?.startDate)
+  const endDate = parseDate(target?.endDate)
   const courseDaySet = new Set(courseDays || [])
   const hasCourseDayRestriction = courseDaySet.size > 0
 
   const isDateDisabled = (day: Date) => {
-    // 시작일 이전 비활성화 (시작일 당일은 허용)
     if (startDate && day.getTime() < startDate.getTime()) return true
-    // 수업일이 아닌 요일 비활성화
+    if (endDate && day.getTime() > endDate.getTime()) return true
     if (hasCourseDayRestriction && !courseDaySet.has(day.getDay())) return true
     return false
   }
+
+  const weeksNum = Number(weeks)
+  const hasPreview = !!date && weeksNum > 0
+
   return (
     <Dialog
       open={open}
@@ -140,7 +141,7 @@ export default function TransferDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="transferDate">전반일</Label>
+              <Label htmlFor="transferDate">전반일 (신규 수업 시작일)</Label>
               <Popover
                 open={pickerOpen}
                 onOpenChange={(open) => {
@@ -181,19 +182,17 @@ export default function TransferDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="transferWeeks">기간(주)</Label>
-              <Input
-                id="transferWeeks"
-                type="number"
-                min="1"
-                placeholder="예: 8"
-                value={weeks}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  onWeeksChange(event.target.value)
-                }
-              />
-            </div>
+            {hasPreview ? (
+              <div className="rounded-lg border border-teal-200/70 bg-teal-50/50 px-4 py-3">
+                <div className="mb-1 text-xs font-semibold text-teal-700">전반 후 수강 정보</div>
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="font-medium text-teal-800">{weeksNum}주</span>
+                  <span className="text-teal-600">
+                    {date} ~ {expectedEndDate || "..."}
+                  </span>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

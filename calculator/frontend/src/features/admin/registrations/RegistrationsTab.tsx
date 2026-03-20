@@ -281,11 +281,11 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     transferCourseValue,
     setTransferCourseValue,
     transferWeeks,
-    setTransferWeeks,
     transferError,
     transferSaving,
     transferCourseGroups,
     transferCourseDays,
+    transferExpectedEndDate,
     openTransferDialog,
     handleTransferSave,
     handleTransferCancel,
@@ -1069,11 +1069,11 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         courseValue={transferCourseValue}
         onCourseValueChange={setTransferCourseValue}
         weeks={transferWeeks}
-        onWeeksChange={setTransferWeeks}
         error={transferError}
         saving={transferSaving}
         courseGroups={transferCourseGroups}
         courseDays={transferCourseDays}
+        expectedEndDate={transferExpectedEndDate}
         onSave={handleTransferSave}
       />
 
