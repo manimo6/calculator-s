@@ -58,7 +58,7 @@ function CourseCard({ course, count, breakdown, selected, isMerge, onClick }: Co
         </div>
 
         {/* 상태별 breakdown */}
-        <div className="relative flex items-center gap-3 rounded-xl bg-white/60 px-3 py-2 backdrop-blur-sm">
+        <div className="relative flex items-center gap-3 rounded-xl bg-white px-3 py-2">
           <div className="flex items-center gap-1.5">
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100">
               <CheckCircle2 className="h-3 w-3 text-emerald-600" />

@@ -54,7 +54,7 @@ export default function RegistrationsHeader({
 }: RegistrationsHeaderProps) {
   
   return (
-    <div className="sticky top-0 z-20 flex w-full items-center gap-4 border-b border-border/60 bg-white/80 px-6 py-3 backdrop-blur-xl transition-all">
+    <div className="sticky top-0 z-20 flex w-full items-center gap-4 border-b border-border/60 bg-white px-6 py-3 transition-all">
       {/* 1. Config Set Picker */}
       <div className="w-[240px] shrink-0">
         <CourseConfigSetPicker

@@ -220,7 +220,7 @@ export default function RegistrationsSidebar({
   }, [])
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border/60 bg-white/60 backdrop-blur-xl">
+    <div className="flex h-full w-64 flex-col border-r border-border/60 bg-white">
       {/* Summary Stats Header */}
       <div className="p-4 border-b border-border/40">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

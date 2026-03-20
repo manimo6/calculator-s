@@ -207,7 +207,7 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onNote }: Regi
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full justify-between rounded-2xl border border-slate-200/70 bg-white/80 text-sm font-semibold text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur transition hover:border-slate-300 hover:bg-white hover:text-slate-900 hover:shadow-[0_12px_36px_rgba(15,23,42,0.12)]"
+            className="h-11 w-full justify-between rounded-2xl border border-slate-200/70 bg-white text-sm font-semibold text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-slate-900 hover:shadow-[0_12px_36px_rgba(15,23,42,0.12)]"
             onClick={() => onNote(r)}
           >
             <span className="inline-flex items-center gap-2">

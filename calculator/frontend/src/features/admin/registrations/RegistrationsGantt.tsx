@@ -561,7 +561,7 @@ export default function RegistrationsGantt({
 
   return (
     <>
-    <Card className="border-0 bg-white/40 shadow-xl shadow-slate-200/20 backdrop-blur-xl ring-1 ring-slate-200/50 overflow-hidden">
+    <Card className="border-0 bg-white shadow-xl shadow-slate-200/20 ring-1 ring-slate-200/50 overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/5 pb-6 pt-6">
         <div className="space-y-1">
           <CardTitle className="text-xl font-semibold tracking-tight text-foreground/90">등록현황 차트</CardTitle>
@@ -595,16 +595,16 @@ export default function RegistrationsGantt({
                   <div className="sticky top-0 z-30">
                     {/* 주차 합계 행 */}
                     <div
-                      className="grid border-b border-slate-200/60 bg-gradient-to-b from-slate-100 to-slate-50/95 backdrop-blur-md"
+                      className="grid border-b border-slate-200/60 bg-gradient-to-b from-slate-100 to-slate-50"
                       style={{ gridTemplateColumns }}
                     >
                       <div
                         data-gantt-left
-                        className="sticky left-0 z-40 flex items-center justify-end border-r border-border/10 bg-slate-100/95 px-4 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 backdrop-blur-md"
+                        className="sticky left-0 z-40 flex items-center justify-end border-r border-border/10 bg-slate-100 px-4 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500"
                       >주차 합계</div>
                       <div
                         data-gantt-left
-                        className="sticky left-0 z-30 border-r-2 border-slate-300/80 bg-slate-100/95 backdrop-blur-md"
+                        className="sticky left-0 z-30 border-r-2 border-slate-300/80 bg-slate-100"
                         style={{ left: LABEL_WIDTH_PX }}
                       />
                       <div
@@ -626,16 +626,16 @@ export default function RegistrationsGantt({
                     </div>
                     {/* 학생/과목 헤더 행 */}
                     <div
-                      className="grid border-b border-border/5 bg-slate-50/90 backdrop-blur-md"
+                      className="grid border-b border-border/5 bg-slate-50"
                       style={{ gridTemplateColumns }}
                     >
                       <div
                         data-gantt-left
-                        className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50/95 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 backdrop-blur-md"
+                        className="sticky left-0 z-40 flex items-center border-r border-border/5 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70"
                       >학생 / 과목</div>
                       <div
                         data-gantt-left
-                        className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50/95 px-2 py-3 backdrop-blur-md relative"
+                        className="sticky left-0 z-30 flex items-center justify-center border-r-2 border-slate-300/80 bg-slate-50 px-2 py-3 relative"
                         style={{ left: LABEL_WIDTH_PX }}
                       >
                         <FileText className="h-3.5 w-3.5 text-muted-foreground/50" />
@@ -763,7 +763,7 @@ export default function RegistrationsGantt({
                             segmentBars.push(
                               <div
                                 key={`${r?.id || idx}-bar-${weekIndex}`}
-                                className={`absolute top-1/2 -translate-y-1/2 rounded-full shadow-sm ring-1 ring-white/20 backdrop-blur-sm transition-all hover:scale-[1.02] hover:shadow-md ${barClass}`}
+                                className={`absolute top-1/2 -translate-y-1/2 rounded-full shadow-sm ring-1 ring-white/20 transition-all hover:scale-[1.02] hover:shadow-md ${barClass}`}
                                 style={{
                                   left: segmentLeft,
                                   width: segmentWidth,
@@ -816,7 +816,7 @@ export default function RegistrationsGantt({
                         >
                           <div
                             data-gantt-left
-                            className="sticky left-0 z-30 flex flex-col justify-center border-r border-border/5 bg-white/90 px-4 backdrop-blur-md transition-colors group-hover:bg-slate-50/90"
+                            className="sticky left-0 z-30 flex flex-col justify-center border-r border-border/5 bg-white px-4 transition-colors group-hover:bg-slate-50"
                             role="button"
                             tabIndex={0}
                             onClick={() => openDetail(r)}
@@ -865,7 +865,7 @@ export default function RegistrationsGantt({
 
                           <div
                             data-gantt-left
-                            className="sticky left-0 z-20 flex items-center justify-center border-r-2 border-slate-300/80 bg-white/90 px-2 backdrop-blur-md transition-colors group-hover:bg-slate-50/90 relative"
+                            className="sticky left-0 z-20 flex items-center justify-center border-r-2 border-slate-300/80 bg-white px-2 transition-colors group-hover:bg-slate-50 relative"
                             style={{ left: LABEL_WIDTH_PX }}
                           >
 
