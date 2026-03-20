@@ -187,6 +187,11 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCanc
           <span className="inline-flex items-center gap-1">
             <BookOpen className="h-3.5 w-3.5" />
             {courseLabel || "-"}
+            {isTransferredOut && r?.transferToCourseName ? (
+              <span className="text-amber-600">→ {String(r.transferToCourseName)}</span>
+            ) : r?.transferFromId && r?.transferFromCourseName ? (
+              <span className="text-blue-600">← {String(r.transferFromCourseName)}</span>
+            ) : null}
           </span>
         </div>
       </CardHeader>

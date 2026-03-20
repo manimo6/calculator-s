@@ -31,6 +31,7 @@ import RegistrationCardGrid from "./RegistrationCardGrid"
 import RegistrationsGantt from "./RegistrationsGantt"
 import TransferDialog from "./TransferDialog"
 import { useRegistrations } from "./useRegistrations"
+import { useRegistrationMap, useEnrichedRegistrations, useCardRegistrations } from "./useTransferDisplay"
 import { useTransfer } from "./useTransfer"
 import { formatDateYmd, formatTimestampKo, parseDate } from "./utils"
 
@@ -420,20 +421,11 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     }
   }, [canViewInstallments, installmentMode])
 
-  const chartFilteredRegistrations = useMemo(
-    () =>
-      (filteredRegistrations || []).filter(
-        (r) => !r?.isTransferredOut && !r?.transferToId
-      ),
-    [filteredRegistrations]
-  )
-  const chartBaseRegistrations = useMemo(
-    () =>
-      (baseRegistrations || []).filter(
-        (r) => !r?.isTransferredOut && !r?.transferToId
-      ),
-    [baseRegistrations]
-  )
+  // 전반 출처/대상 이름 조회용 맵 + enrichment + 카드뷰 필터
+  const registrationMap = useRegistrationMap(baseRegistrations)
+  const chartFilteredRegistrations = useEnrichedRegistrations(filteredRegistrations || [], registrationMap)
+  const chartBaseRegistrations = useEnrichedRegistrations(baseRegistrations || [], registrationMap)
+  const cardFilteredRegistrations = useCardRegistrations(chartFilteredRegistrations)
 
   const ganttGroups = useMemo<GanttGroup[]>(() => {
     if (!selectedCourseConfigSet) return []
@@ -485,7 +477,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           registrations: sourceList,
           courseDays: collectCourseDays(courseNames),
           mergeWeekRanges: merge?.weekRanges || [],
-          count: sourceList.length,
+          count: sourceList.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
         },
       ]
     }
@@ -510,7 +502,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           registrations: rows,
           courseDays: collectCourseDays(courseNames),
           mergeWeekRanges: merge?.weekRanges || [],
-          count: rows.length,
+          count: rows.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
         })
       }
     }
@@ -572,7 +564,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           label: getCourseLabel(courseKey, rows?.[0]?.course),
           registrations: rows,
           courseDays: collectCourseDays(courseNames),
-          count: rows.length,
+          count: rows.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
         }
       })
     if (mergeGroups.length) {
@@ -789,6 +781,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                       rangeRegistrations={group.registrations}
                       courseDays={group.courseDays}
                       mergeWeekRanges={group.mergeWeekRanges || []}
+                      registrationMap={registrationMap}
                       getCourseDaysForCourse={resolveCourseDays}
                       onWithdraw={openWithdrawDialog}
                       onRestore={handleRestore}
@@ -819,7 +812,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                     </h3>
                   </div>
                   <RegistrationCardGrid
-                    registrations={filteredRegistrations}
+                    registrations={cardFilteredRegistrations}
                     onWithdraw={openWithdrawDialog}
                     onRestore={handleRestore}
                     onTransfer={canManageTransfers ? openTransferDialog : undefined}
@@ -864,6 +857,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                   rangeRegistrations={activeGanttGroup.registrations}
                   courseDays={activeGanttGroup.courseDays}
                   mergeWeekRanges={activeGanttGroup.mergeWeekRanges || []}
+                  registrationMap={registrationMap}
                   getCourseDaysForCourse={resolveCourseDays}
                   onWithdraw={openWithdrawDialog}
                   onRestore={handleRestore}

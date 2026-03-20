@@ -26,6 +26,8 @@ import {
   parseDate,
 } from "./utils"
 import { normalizeSkipWeeks } from "@/utils/calculatorLogic"
+import { useVisibleRows, useTransferHistory } from "./useTransferDisplay"
+import TransferHistoryTimeline from "./TransferHistoryTimeline"
 
 const LABEL_WIDTH_PX = 256
 const NOTE_WIDTH_PX = 64
@@ -55,6 +57,7 @@ type ModelRow = BaseRow & {
   skipWeeks: number[]
   startIndex: number
   endIndex: number
+  transferSegments?: ModelRow[]
 }
 type RangeRow = { start: Date; end: Date }
 
@@ -286,6 +289,7 @@ type RegistrationsGanttProps = {
   courseDays: number[]
   getCourseDaysForCourse: (courseName?: string) => number[]
   mergeWeekRanges: Array<{ start?: number; end?: number }>
+  registrationMap?: Map<string, RegistrationRow>
   onWithdraw: (row: RegistrationRow) => void
   onRestore: (row: RegistrationRow) => void
   onTransfer: (row: RegistrationRow) => void
@@ -301,6 +305,7 @@ export default function RegistrationsGantt({
   courseDays,
   getCourseDaysForCourse,
   mergeWeekRanges,
+  registrationMap,
   onWithdraw,
   onRestore,
   onTransfer,
@@ -310,6 +315,7 @@ export default function RegistrationsGantt({
   disableCardOverflow = false,
 }: RegistrationsGanttProps) {
   const ganttScrollRef = useRef<HTMLDivElement | null>(null)
+  const [showTransferHistory, setShowTransferHistory] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<RegistrationRow | null>(null)
   const openDetail = useCallback((row: RegistrationRow) => {
@@ -453,6 +459,8 @@ export default function RegistrationsGantt({
     }
   }, [courseDays, getCourseDaysForCourse, rangeRegistrations, registrations])
 
+  const visibleRows = useVisibleRows(model.rows, showTransferHistory, registrationMap)
+
   const gridTemplateColumns = useMemo(() => {
     return `${LABEL_WIDTH_PX}px ${NOTE_WIDTH_PX}px ${model.timelineWidth}px`
   }, [model.timelineWidth])
@@ -468,9 +476,10 @@ export default function RegistrationsGantt({
   )
   const detailIsTransferChild = Boolean(detailTarget?.transferFromId)
   const detailCanWithdraw = !detailIsWithdrawn && !detailIsTransferredOut
-  const detailCanTransfer =
-    !detailIsWithdrawn && !detailIsTransferredOut && !detailIsTransferChild
+  const detailCanTransfer = !detailIsWithdrawn && !detailIsTransferredOut
   const detailCanTransferCancel = detailIsTransferChild && !detailIsTransferredOut
+  const transferHistory = useTransferHistory(detailTarget, registrationMap)
+
   const detailCourseLabel = stripMathExcludeLabel(detailTarget?.course)
   const detailStart = formatDateYmd(detailTarget?.startDate)
   const detailEnd = formatDateYmd(detailTarget?.endDate)
@@ -538,9 +547,11 @@ export default function RegistrationsGantt({
     const globalStartIndex = model.globalStartIndex ?? 0
     return model.weeks.map((week, weekIndex) => {
       let count = 0
+      let transferred = 0
       for (const row of model.rows) {
         if (!row?.start || !row?.end) continue
         const startIndex = row.startIndex
+        let inWeek = false
         if (startIndex >= 0) {
           const mergeRelativeWeek = weekIndex - globalStartIndex + 1
           if (!isWeekInRanges(mergeRelativeWeek, mergeWeekRangesNormalized)) continue
@@ -549,13 +560,19 @@ export default function RegistrationsGantt({
         }
         if (Array.isArray(row.courseDays) && row.courseDays.length > 0) {
           const dates = getWeekClassDates(week, row.start, row.end, row.courseDays)
-          if (dates.length) count += 1
+          inWeek = dates.length > 0
         } else {
-          const overlaps = !(row.end < week.start || row.start > week.end)
-          if (overlaps) count += 1
+          inWeek = !(row.end < week.start || row.start > week.end)
+        }
+        if (inWeek) {
+          if (row.isTransferredOut) {
+            transferred += 1
+          } else {
+            count += 1
+          }
         }
       }
-      return count
+      return { count, transferred }
     })
   }, [mergeWeekRangesNormalized, model.rows, model.weeks])
 
@@ -576,7 +593,19 @@ export default function RegistrationsGantt({
             )}
           </div>
         </div>
-        <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200">주단위</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={`h-7 gap-1.5 rounded-full px-3 text-xs font-medium transition ${showTransferHistory ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setShowTransferHistory((prev) => !prev)}
+          >
+            <ArrowRightLeft className="h-3 w-3" />
+            전반 이력
+          </Button>
+          <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200">주단위</Badge>
+        </div>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -614,12 +643,15 @@ export default function RegistrationsGantt({
                           width: timelineWidth,
                         }}
                       >
-                        {weekTotals.map((count, i) => (
+                        {weekTotals.map((total, i) => (
                           <div
                             key={`week-total-${i}`}
-                            className="flex items-center justify-center border-l border-slate-200/60 px-1 py-1.5 text-xs font-bold text-indigo-600 first:border-l-0"
+                            className="flex flex-col items-center justify-center border-l border-slate-200/60 px-1 py-1 first:border-l-0"
                           >
-                            {count}명
+                            <span className="text-xs font-bold text-indigo-600">{total.count}명</span>
+                            {total.transferred > 0 ? (
+                              <span className="text-[9px] text-amber-500/80">전반 {total.transferred}</span>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -675,7 +707,7 @@ export default function RegistrationsGantt({
                         backgroundImage: gridBackgroundImage,
                       }}
                     />
-                    {model.rows.map(({ r, start, end, status, isWithdrawn, isTransferredOut, recordingWeeks, courseDays: rowCourseDays, skipWeeks, startIndex, endIndex }, idx) => {
+                    {visibleRows.map(({ r, start, end, status, isWithdrawn, isTransferredOut, recordingWeeks, courseDays: rowCourseDays, skipWeeks, startIndex, endIndex, transferSegments }, idx) => {
                       const hasDates = start && end
                       const globalStartIndex = model.globalStartIndex ?? 0
                       const courseLabel = stripMathExcludeLabel(r?.course)
@@ -686,8 +718,9 @@ export default function RegistrationsGantt({
                       const isMathExcluded =
                         !!r?.excludeMath || String(r?.course || "").includes("수학 제외")
 
-                      const barClass =
-                        status === "active"
+                      const barClass = isTransferredOut
+                        ? "bg-[repeating-linear-gradient(135deg,_#94a3b8_0px,_#94a3b8_2px,_#e2e8f0_2px,_#e2e8f0_12px)] ring-1 ring-slate-300"
+                        : status === "active"
                           ? "bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-500/20"
                           : status === "pending"
                             ? "bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-500/20"
@@ -807,10 +840,42 @@ export default function RegistrationsGantt({
                         }
                       }
 
+                      // 전반 이력 세그먼트 (고스트 바) — 같은 행에 렌더링
+                      if (transferSegments?.length) {
+                        const ghostBarClass = "bg-[repeating-linear-gradient(135deg,_#94a3b8_0px,_#94a3b8_2px,_#e2e8f0_2px,_#e2e8f0_12px)] ring-1 ring-slate-300 opacity-40"
+                        const pad = 3
+                        for (const seg of transferSegments) {
+                          if (seg.startIndex === -1 || seg.endIndex === -1) continue
+                          const segSkipSet = new Set(seg.skipWeeks || [])
+                          for (let weekIndex = seg.startIndex; weekIndex <= seg.endIndex; weekIndex += 1) {
+                            const week = model.weeks[weekIndex]
+                            if (!week) continue
+                            const mergeRelativeWeek = weekIndex - globalStartIndex + 1
+                            if (!isWeekInRanges(mergeRelativeWeek, mergeWeekRangesNormalized)) continue
+                            const studentRelativeWeek = weekIndex - seg.startIndex + 1
+                            if (segSkipSet.has(studentRelativeWeek)) continue
+                            const segmentLeft = weekIndex * model.unitWidth + pad
+                            const segmentWidth = Math.max(6, model.unitWidth - pad * 2)
+                            segmentBars.push(
+                              <div
+                                key={`${seg.r?.id || "seg"}-ghost-${weekIndex}`}
+                                className={`absolute top-1/2 -translate-y-1/2 rounded-full ${ghostBarClass}`}
+                                style={{
+                                  left: segmentLeft,
+                                  width: segmentWidth,
+                                  height: BAR_HEIGHT_PX,
+                                }}
+                                title={`${stripMathExcludeLabel(seg.r?.course) || "-"} (${formatDateYmd(seg.start)}~${formatDateYmd(seg.end)})`}
+                              />
+                            )
+                          }
+                        }
+                      }
+
                       return (
                         <div
                           key={`${r?.id || idx}`}
-                          className="group relative z-10 grid border-b border-border/5 transition-colors hover:bg-slate-50/60"
+                          className={`group relative z-10 grid border-b border-border/5 transition-colors hover:bg-slate-50/60${isTransferredOut ? " opacity-40" : ""}`}
                           style={{ gridTemplateColumns, height: ROW_HEIGHT_PX }}
                           onClick={() => openDetail(r)}
                         >
@@ -837,9 +902,34 @@ export default function RegistrationsGantt({
                                     <Badge variant="outline" className="border-sky-200 bg-sky-50 text-[10px] text-sky-700">수학제외</Badge>
                                   ) : null}
                                 </div>
-                                <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
-                                  {courseLabel || "-"}
-                                </div>
+                                {(isTransferredOut && r?.transferToCourseName) || (r?.transferFromId && r?.transferFromCourseName) ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="mt-0.5 truncate text-xs text-muted-foreground/80 cursor-default">
+                                        {courseLabel || "-"}
+                                        {isTransferredOut && r?.transferToCourseName ? (
+                                          <span className="ml-1 text-amber-600">→ {String(r.transferToCourseName)}</span>
+                                        ) : (
+                                          <span className="ml-1 text-blue-600">← {String(r.transferFromCourseName)}</span>
+                                        )}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="bottom"
+                                      sideOffset={4}
+                                      className="rounded-xl border border-slate-200/70 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-xl backdrop-blur"
+                                    >
+                                      {isTransferredOut
+                                        ? <span><span className="font-semibold">{courseLabel}</span> → <span className="font-semibold text-amber-600">{String(r.transferToCourseName)}</span></span>
+                                        : <span><span className="font-semibold text-blue-600">{String(r.transferFromCourseName)}</span> → <span className="font-semibold">{courseLabel}</span></span>
+                                      }
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
+                                    {courseLabel || "-"}
+                                  </div>
+                                )}
                               </div>
                               <div className="shrink-0">
                                 {isTransferredOut ? (
@@ -1011,6 +1101,7 @@ export default function RegistrationsGantt({
                 선택한 기간 기준으로 표시됩니다.
               </div>
             </div>
+            <TransferHistoryTimeline history={transferHistory} currentId={detailTarget?.id} />
             <div className="mt-auto border-t border-slate-200/60 pt-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {detailIsWithdrawn ? (
@@ -1026,6 +1117,19 @@ export default function RegistrationsGantt({
                     복구
                   </Button>
                 ) : null}
+                {detailCanTransfer && onTransfer ? (
+                  <Button
+                    type="button"
+                    className="h-10 w-full gap-2 rounded-lg bg-teal-600 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"
+                    onClick={() => {
+                      onTransfer?.(detailTarget)
+                      closeDetail()
+                    }}
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                    {detailIsTransferChild ? "재전반" : "전반"}
+                  </Button>
+                ) : null}
                 {detailCanTransferCancel && onTransferCancel ? (
                   <Button
                     type="button"
@@ -1038,18 +1142,6 @@ export default function RegistrationsGantt({
                   >
                     <RotateCcw className="h-4 w-4" />
                     전반취소
-                  </Button>
-                ) : detailCanTransfer && onTransfer ? (
-                  <Button
-                    type="button"
-                    className="h-10 w-full gap-2 rounded-lg bg-teal-600 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"
-                    onClick={() => {
-                      onTransfer?.(detailTarget)
-                      closeDetail()
-                    }}
-                  >
-                    <ArrowRightLeft className="h-4 w-4" />
-                    전반
                   </Button>
                 ) : null}
                 {detailCanWithdraw ? (
