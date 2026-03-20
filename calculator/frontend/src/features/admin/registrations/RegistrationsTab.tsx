@@ -219,6 +219,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     cancelEditMerge,
     activeMergesToday,
     mergedCourseSetToday,
+    simulationDate,
+    setSimulationDate,
 
     categoryFilter,
     changeCategoryFilter,
@@ -900,6 +902,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
             variantTabs={variantTabs}
             variantFilter={variantFilter}
             onVariantFilterChange={setVariantFilter}
+            simulationDate={simulationDate}
+            onSimulationDateChange={setSimulationDate}
           />
         ) : null}
 

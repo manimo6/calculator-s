@@ -316,6 +316,7 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [mergeError, setMergeError] = useState("")
+  const [simulationDate, setSimulationDate] = useState<Date | null>(null)
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [merges, setMerges] = useState<MergeEntry[]>([])
   const [extensions, setExtensions] = useState<ExtensionRow[]>([])
@@ -350,8 +351,8 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
       courseConfigSetName: String(m.courseConfigSetName || ""),
       referenceStartDate: refDateMap.get(String(m.id || "")) || m.referenceStartDate || null,
     })) as MergeEntryUtil[]
-    return getActiveMergesToday(all)
-  }, [merges, activeMergesFromApi, refDateMap])
+    return getActiveMergesToday(all, undefined, simulationDate || undefined)
+  }, [merges, activeMergesFromApi, refDateMap, simulationDate])
 
   const mergedCourseSetToday = useMemo(
     () => getMergedCourseSet(activeMergesToday),
@@ -1065,6 +1066,8 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     setError,
     mergeError,
     setMergeError,
+    simulationDate,
+    setSimulationDate,
     registrations: resolvedRegistrations,
     extensions,
     extensionsLoading,

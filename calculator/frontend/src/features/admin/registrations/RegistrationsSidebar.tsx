@@ -7,16 +7,22 @@ import { cn } from "@/lib/utils"
 import {
   Book,
   BookCopy,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Clock,
+  Eye,
   LayoutGrid,
+  RotateCcw,
   Search,
   TimerOff,
   Users,
   X
 } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import type { DateValue, DatesRangeValue } from "@mantine/dates"
 import { getRegistrationStatus } from "./utils"
 
 // 초성 추출 함수
@@ -77,6 +83,8 @@ type SidebarProps = {
   variantTabs?: Array<{ key: string; label: string; count: number }>
   variantFilter?: string
   onVariantFilterChange?: (value: string) => void
+  simulationDate?: Date | null
+  onSimulationDateChange?: (date: Date | null) => void
 }
 
 export default function RegistrationsSidebar({
@@ -90,7 +98,9 @@ export default function RegistrationsSidebar({
   mergedCourseSetToday = new Set(),
   variantTabs = [],
   variantFilter,
-  onVariantFilterChange
+  onVariantFilterChange,
+  simulationDate = null,
+  onSimulationDateChange,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedMerges, setExpandedMerges] = useState<Set<string>>(new Set())
@@ -245,6 +255,74 @@ export default function RegistrationsSidebar({
           </div>
         </div>
       </div>
+
+      {/* Date Simulation */}
+      {onSimulationDateChange && (
+        <div className="px-4 py-2.5 border-b border-border/40">
+          {simulationDate ? (
+            <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200/60 px-3 py-2 shadow-sm">
+              <Eye className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex-1 text-left text-xs font-semibold text-violet-700 hover:text-violet-900 transition-colors cursor-pointer">
+                    {simulationDate.getFullYear()}.{String(simulationDate.getMonth() + 1).padStart(2, "0")}.{String(simulationDate.getDate()).padStart(2, "0")} 기준
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start" side="right">
+                  <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-indigo-50/80">
+                      <div className="text-xs font-semibold text-violet-700">날짜 시뮬레이션</div>
+                      <div className="text-[10px] text-violet-500 mt-0.5">선택한 날짜 기준으로 합반 상태를 미리봅니다</div>
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={simulationDate}
+                      onSelect={(value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined) => {
+                        const d = value instanceof Date ? value : null
+                        if (d) onSimulationDateChange(d)
+                      }}
+                      initialFocus
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <button
+                onClick={() => onSimulationDateChange(null)}
+                className="flex h-5 w-5 items-center justify-center rounded-md text-violet-400 hover:bg-violet-100 hover:text-violet-600 transition-colors"
+                title="오늘로 돌아가기"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex w-full items-center gap-2 rounded-xl border border-violet-200/60 bg-gradient-to-r from-violet-50/80 to-indigo-50/80 px-3 py-2 text-xs font-semibold text-violet-500 shadow-sm hover:from-violet-100 hover:to-indigo-100 hover:text-violet-700 hover:shadow-md transition-all cursor-pointer">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  날짜 시뮬레이션
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start" side="right">
+                <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-indigo-50/80">
+                    <div className="text-xs font-semibold text-violet-700">날짜 시뮬레이션</div>
+                    <div className="text-[10px] text-violet-500 mt-0.5">선택한 날짜 기준으로 합반 상태를 미리봅니다</div>
+                  </div>
+                  <Calendar
+                    mode="single"
+                    selected={new Date()}
+                    onSelect={(value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined) => {
+                      const d = value instanceof Date ? value : null
+                      if (d) onSimulationDateChange(d)
+                    }}
+                    initialFocus
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      )}
 
       <ScrollArea className="flex-1 px-3 py-4">
         <div className="space-y-6">
