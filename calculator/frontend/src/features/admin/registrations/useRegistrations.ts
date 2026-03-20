@@ -315,6 +315,7 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [mergeError, setMergeError] = useState("")
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [merges, setMerges] = useState<MergeEntry[]>([])
   const [extensions, setExtensions] = useState<ExtensionRow[]>([])
@@ -878,8 +879,8 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
       setMerges(res?.merges || next)
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "합반 저장에 실패했습니다."
-      setError(message)
-      setMerges(next)
+      setMergeError(message)
+      return false
     }
   }, [setError])
 
@@ -887,7 +888,7 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     const name = (mergeName || "").trim()
     const selected = (mergeCourses || []).filter(Boolean)
     if (selected.length < 2) {
-      setError("병합할 과목을 2개 이상 선택해야 합니다.")
+      setMergeError("병합할 과목을 2개 이상 선택해야 합니다.")
       return
     }
     let weekRanges: MergeWeekRange[] = []
@@ -898,11 +899,11 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
         const start = parseWeekNumber(input.start)
         const end = parseWeekNumber(input.end)
         if (!Number.isInteger(start) || start < 1) {
-          setError(`범위 ${i + 1}: 시작 주차를 1 이상의 숫자로 입력하세요.`)
+          setMergeError(`범위 ${i + 1}: 시작 주차를 1 이상의 숫자로 입력하세요.`)
           return
         }
         if (!Number.isInteger(end) || end < start) {
-          setError(`범위 ${i + 1}: 종료 주차를 시작 주차 이상으로 입력하세요.`)
+          setMergeError(`범위 ${i + 1}: 종료 주차를 시작 주차 이상으로 입력하세요.`)
           return
         }
         parsed.push({ start, end })
@@ -1062,6 +1063,8 @@ export function useRegistrations(options: UseRegistrationsOptions = {}) {
     loading,
     error,
     setError,
+    mergeError,
+    setMergeError,
     registrations: resolvedRegistrations,
     extensions,
     extensionsLoading,
