@@ -52,6 +52,7 @@ type TransferDialogProps = {
   error: string
   saving: boolean
   courseGroups: TransferGroup[]
+  courseDays: number[]
   onSave: () => void
 }
 
@@ -70,8 +71,21 @@ export default function TransferDialog({
   error,
   saving,
   courseGroups,
+  courseDays,
   onSave,
 }: TransferDialogProps) {
+  const hasCourseSelected = !!courseValue
+  const startDate = parseDate(target?.startDate)
+  const courseDaySet = new Set(courseDays || [])
+  const hasCourseDayRestriction = courseDaySet.size > 0
+
+  const isDateDisabled = (day: Date) => {
+    // 시작일 이전 비활성화 (시작일 당일은 허용)
+    if (startDate && day.getTime() < startDate.getTime()) return true
+    // 수업일이 아닌 요일 비활성화
+    if (hasCourseDayRestriction && !courseDaySet.has(day.getDay())) return true
+    return false
+  }
   return (
     <Dialog
       open={open}
@@ -93,41 +107,6 @@ export default function TransferDialog({
               <div className="font-semibold">{target?.name || "-"}</div>
               <div className="mt-2 text-xs text-muted-foreground">현재 과목</div>
               <div className="font-semibold">{target?.course || "-"}</div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="transferDate">전반일</Label>
-              <Popover
-                open={pickerOpen}
-                onOpenChange={onPickerOpenChange}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    id="transferDate"
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-between text-left font-normal"
-                  >
-                    {date || "YYYY-MM-DD"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto border-none bg-transparent p-0 shadow-none"
-                  align="start"
-                >
-                  <Calendar
-                    mode="single"
-                    selected={parseDate(date) ?? undefined}
-                    onSelect={(
-                      value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined
-                    ) => {
-                      const selectedDate = value instanceof Date ? value : null
-                      onDateChange(selectedDate ? formatDateYmd(selectedDate) : "")
-                      onPickerOpenChange(false)
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
             </div>
             <div className="space-y-2">
               <Label>전반 과목</Label>
@@ -159,6 +138,48 @@ export default function TransferDialog({
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="transferDate">전반일</Label>
+              <Popover
+                open={pickerOpen}
+                onOpenChange={(open) => {
+                  if (hasCourseSelected) onPickerOpenChange(open)
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    id="transferDate"
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between text-left font-normal"
+                    disabled={!hasCourseSelected}
+                  >
+                    {hasCourseSelected
+                      ? date || "YYYY-MM-DD"
+                      : "과목을 먼저 선택하세요"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto border-none bg-transparent p-0 shadow-none"
+                  align="start"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={parseDate(date) ?? undefined}
+                    disabled={isDateDisabled}
+                    defaultDate={startDate ?? undefined}
+                    onSelect={(
+                      value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined
+                    ) => {
+                      const selectedDate = value instanceof Date ? value : null
+                      onDateChange(selectedDate ? formatDateYmd(selectedDate) : "")
+                      onPickerOpenChange(false)
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="transferWeeks">기간(주)</Label>

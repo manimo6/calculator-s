@@ -264,6 +264,12 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     return list
   }, [courseConfigSetBaseCourses, mergeCourseOptions])
 
+  const resolveCourseDays = useCallback(
+    (courseName: string) =>
+      getCourseDaysByName(courseName || "", selectedCourseConfigSetObj),
+    [selectedCourseConfigSetObj]
+  )
+
   const {
     transferDialogOpen,
     transferTarget,
@@ -278,23 +284,20 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     transferError,
     transferSaving,
     transferCourseGroups,
+    transferCourseDays,
     openTransferDialog,
     handleTransferSave,
     handleTransferCancel,
     closeTransferDialog,
   } = useTransfer({
     courseOptions,
+    registrations,
     selectedCourseConfigSetObj,
     selectedCourseConfigSet,
     loadRegistrations,
     setError,
+    resolveCourseDays,
   })
-
-  const resolveCourseDays = useCallback(
-    (courseName?: string) =>
-      getCourseDaysByName(courseName || "", selectedCourseConfigSetObj),
-    [selectedCourseConfigSetObj]
-  )
 
   const handleCreateExtension = useCallback(
     async (payload: Record<string, unknown>) => {
@@ -820,6 +823,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                     onWithdraw={openWithdrawDialog}
                     onRestore={handleRestore}
                     onTransfer={canManageTransfers ? openTransferDialog : undefined}
+                    onTransferCancel={canManageTransfers ? handleTransferCancel : undefined}
                     onNote={openNoteDialog}
                   />
                 </div>
@@ -1075,6 +1079,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         error={transferError}
         saving={transferSaving}
         courseGroups={transferCourseGroups}
+        courseDays={transferCourseDays}
         onSave={handleTransferSave}
       />
 

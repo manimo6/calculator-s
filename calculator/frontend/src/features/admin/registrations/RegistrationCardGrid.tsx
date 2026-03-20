@@ -85,10 +85,11 @@ type RegistrationCardProps = {
   onWithdraw?: RegistrationAction
   onRestore?: RegistrationAction
   onTransfer?: RegistrationAction
+  onTransferCancel?: RegistrationAction
   onNote?: RegistrationAction
 }
 
-function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onNote }: RegistrationCardProps) {
+function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCancel, onNote }: RegistrationCardProps) {
   const status = getRegistrationStatus(r)
   const start = formatDateYmd(r?.startDate)
   const end = formatDateYmd(r?.endDate)
@@ -120,9 +121,22 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onNote }: Regi
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {isTransferredOut ? (
-              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
-                전반
-              </Badge>
+              <>
+                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+                  전반
+                </Badge>
+                {onTransferCancel ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 rounded-full px-3 text-xs font-semibold"
+                    onClick={() => onTransferCancel(r)}
+                  >
+                    전반취소
+                  </Button>
+                ) : null}
+              </>
             ) : isWithdrawn ? (
               <Badge variant="outline" className="border-rose-300 bg-rose-50 text-rose-700">
                 중도퇴원
@@ -233,6 +247,7 @@ type RegistrationCardGridProps = {
   onWithdraw?: RegistrationAction
   onRestore?: RegistrationAction
   onTransfer?: RegistrationAction
+  onTransferCancel?: RegistrationAction
   onNote?: RegistrationAction
 }
 
@@ -241,6 +256,7 @@ export default function RegistrationCardGrid({
   onWithdraw,
   onRestore,
   onTransfer,
+  onTransferCancel,
   onNote,
 }: RegistrationCardGridProps) {
   const sorted = useMemo(() => {
@@ -270,6 +286,7 @@ export default function RegistrationCardGrid({
           onWithdraw={onWithdraw}
           onRestore={onRestore}
           onTransfer={onTransfer}
+          onTransferCancel={onTransferCancel}
           onNote={onNote}
         />
       ))}

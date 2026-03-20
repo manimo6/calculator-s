@@ -61,20 +61,29 @@ export function parseCourseValue(value: unknown) {
 
 // ── Hook ──
 
+type RegistrationRowForOptions = {
+  course?: string
+  courseId?: string | number
+} & Record<string, unknown>
+
 type UseTransferParams = {
   courseOptions: Array<string | { value?: string; label?: string }>
+  registrations: RegistrationRowForOptions[]
   selectedCourseConfigSetObj: CourseConfigSet | null
   selectedCourseConfigSet: string
   loadRegistrations: () => Promise<void>
   setError: (msg: string) => void
+  resolveCourseDays?: (courseName: string) => number[]
 }
 
 export function useTransfer({
   courseOptions,
+  registrations,
   selectedCourseConfigSetObj,
   selectedCourseConfigSet,
   loadRegistrations,
   setError,
+  resolveCourseDays,
 }: UseTransferParams) {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
   const [transferTarget, setTransferTarget] = useState<RegistrationRow | null>(null)
@@ -85,35 +94,70 @@ export function useTransfer({
   const [transferError, setTransferError] = useState("")
   const [transferSaving, setTransferSaving] = useState(false)
 
-  const transferCourseLabelMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const course of courseOptions || []) {
-      const value = typeof course === "string" ? course : course?.value
-      const label = typeof course === "string" ? course : course?.label
-      if (!value || !label) continue
-      map.set(String(value), String(label))
-    }
-    return map
-  }, [courseOptions])
-
   const transferCourseOptions = useMemo(() => {
     const list: TransferOption[] = []
     const seen = new Set<string>()
+
+    // courseOptions의 라벨이 상위 이름("SAT")인 경우,
+    // 실제 등록 데이터에서 세분화된 이름("SAT 온라인", "SAT 오프라인")을 추출
+    const variantsByBase = new Map<string, Set<string>>()
+    for (const r of registrations || []) {
+      const courseName = String(r?.course || "").trim()
+      if (!courseName) continue
+      for (const opt of courseOptions || []) {
+        const baseLabel = String(typeof opt === "string" ? opt : opt?.label || "").trim()
+        if (!baseLabel || baseLabel === courseName) continue
+        if (courseName.startsWith(baseLabel) && courseName.length > baseLabel.length) {
+          if (!variantsByBase.has(baseLabel)) variantsByBase.set(baseLabel, new Set())
+          variantsByBase.get(baseLabel)!.add(courseName)
+        }
+      }
+    }
 
     for (const course of courseOptions || []) {
       const value = typeof course === "string" ? course : course?.value
       const label = typeof course === "string" ? course : course?.label
       const key = String(value || "").trim()
+      const labelStr = String(label || value || "").trim()
       if (!key || seen.has(key)) continue
-      seen.add(key)
-      list.push({ value: key, label: String(label || value || "").trim() })
+
+      const variants = variantsByBase.get(labelStr)
+      if (variants && variants.size > 0) {
+        // 세분화된 이름으로 개별 옵션 생성
+        for (const variantName of Array.from(variants).sort((a, b) => a.localeCompare(b, "ko-KR"))) {
+          const variantKey = `${COURSE_NAME_PREFIX}${variantName}`
+          if (seen.has(variantKey)) continue
+          seen.add(variantKey)
+          list.push({ value: variantKey, label: variantName })
+        }
+        seen.add(key)
+      } else {
+        seen.add(key)
+        list.push({ value: key, label: labelStr })
+      }
     }
 
     return list
-  }, [courseOptions])
+  }, [courseOptions, registrations])
+
+  const transferCourseLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const opt of transferCourseOptions) {
+      map.set(opt.value, opt.label)
+    }
+    return map
+  }, [transferCourseOptions])
 
   const transferCourseGroups = useMemo<TransferGroup[]>(() => {
     if (!transferCourseOptions.length) return []
+
+    // 현재 속한 반은 드롭다운에서 제외
+    const currentCourse = String(transferTarget?.course || "").trim()
+    const filteredOptions = currentCourse
+      ? transferCourseOptions.filter((opt) => opt.label !== currentCourse)
+      : transferCourseOptions
+
+    if (!filteredOptions.length) return []
     const tree = Array.isArray(selectedCourseConfigSetObj?.data?.courseTree)
       ? selectedCourseConfigSetObj.data.courseTree
       : []
@@ -143,7 +187,7 @@ export function useTransfer({
       groupMap.get(key)?.push(option)
     }
 
-    for (const option of transferCourseOptions) {
+    for (const option of filteredOptions) {
       const parsed = parseCourseValue(option.value)
       let category = ""
       if (parsed.type === "id") {
@@ -189,7 +233,7 @@ export function useTransfer({
     }
 
     return ordered
-  }, [selectedCourseConfigSetObj, transferCourseOptions])
+  }, [selectedCourseConfigSetObj, transferCourseOptions, transferTarget])
 
   const openTransferDialog = useCallback((registration: RegistrationRow) => {
     if (!registration) return
@@ -201,8 +245,8 @@ export function useTransfer({
     const hasTargetValue =
       !!targetValue && transferCourseLabelMap.has(targetValue)
     setTransferTarget(registration)
-    setTransferDate(today)
     setTransferCourseValue(hasTargetValue ? targetValue : "")
+    setTransferDate(hasTargetValue ? today : "")
     setTransferWeeks(registration?.weeks ? String(registration.weeks) : "")
     setTransferError("")
     setTransferDialogOpen(true)
@@ -296,6 +340,14 @@ export function useTransfer({
     [loadRegistrations, setError]
   )
 
+  // 선택된 과목의 수업 요일 (0=일, 1=월, ..., 6=토)
+  const transferCourseDays = useMemo(() => {
+    if (!transferCourseValue || typeof resolveCourseDays !== "function") return []
+    const label = transferCourseLabelMap.get(transferCourseValue) || ""
+    if (!label) return []
+    return resolveCourseDays(label)
+  }, [transferCourseValue, transferCourseLabelMap, resolveCourseDays])
+
   const closeTransferDialog = useCallback(() => {
     setTransferDialogOpen(false)
     setTransferTarget(null)
@@ -305,6 +357,15 @@ export function useTransfer({
     setTransferWeeks("")
   }, [])
 
+  const handleTransferCourseChange = useCallback(
+    (value: string) => {
+      setTransferCourseValue(value)
+      setTransferDate("")
+      setTransferPickerOpen(false)
+    },
+    []
+  )
+
   return {
     transferDialogOpen,
     transferTarget,
@@ -313,12 +374,13 @@ export function useTransfer({
     transferPickerOpen,
     setTransferPickerOpen,
     transferCourseValue,
-    setTransferCourseValue,
+    setTransferCourseValue: handleTransferCourseChange,
     transferWeeks,
     setTransferWeeks,
     transferError,
     transferSaving,
     transferCourseGroups,
+    transferCourseDays,
     openTransferDialog,
     handleTransferSave,
     handleTransferCancel,
