@@ -153,9 +153,9 @@ AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
 
 | 기능 | 분리 파일명 (제안) | 상태 |
 |------|---------------------|------|
-| 퇴원(withdraw) 다이얼로그 + 핸들러 | `WithdrawDialog.tsx` + `useWithdraw.ts` | 미착수 |
-| 메모(note) 다이얼로그 + 핸들러 | `NoteDialog.tsx` + `useNote.ts` | 미착수 |
-| 전반 버그 수정 (endDate 미계산, skipWeeks 복사, tuitionFee 누락) | `useTransfer.ts` + 백엔드 | 미착수 |
+| 퇴원(withdraw) 다이얼로그 + 핸들러 | `WithdrawDialog.tsx` + `useWithdraw.ts` | **완료** ✔ |
+| 메모(note) 다이얼로그 + 핸들러 | `NoteDialog.tsx` + `useNote.ts` | **완료** ✔ |
+| 전반 버그 수정 (endDate 미계산, skipWeeks 복사) | `useTransfer.ts` + 백엔드 | **완료** ✔ |
 
 ## 기능 확장 시 반드시 같이 진행할 사항
 

@@ -6,16 +6,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { apiClient } from "@/api-client"
-import { Calendar } from "@/components/ui/calendar"
-import type { DateValue, DatesRangeValue } from "@mantine/dates"
 import { PERMISSION_KEYS, hasPermission } from "@/permissions"
 
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
@@ -28,11 +22,15 @@ import MergeManagerCard from "./MergeManagerCard"
 import InstallmentBoard from "./InstallmentBoard"
 import RegistrationCardGrid from "./RegistrationCardGrid"
 import RegistrationsGantt from "./RegistrationsGantt"
+import NoteDialog from "./NoteDialog"
 import TransferDialog from "./TransferDialog"
+import WithdrawDialog from "./WithdrawDialog"
 import { useRegistrations } from "./useRegistrations"
 import { useRegistrationMap, useEnrichedRegistrations, useCardRegistrations } from "./useTransferDisplay"
+import { useNote } from "./useNote"
 import { useTransfer } from "./useTransfer"
-import { formatDateYmd, formatTimestampKo, getCourseDaysByName, parseDate } from "./utils"
+import { useWithdraw } from "./useWithdraw"
+import { getCourseDaysByName } from "./utils"
 
 type CourseInfoRecord = Record<string, CourseInfo | undefined>
 type CourseConfigSet = {
@@ -159,19 +157,18 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
   // activeMainTab removed as we switch views based on courseFilter
   const [installmentMode, setInstallmentMode] = useState(false)
   
-  // Dialog states
-  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false)
-
-  const [withdrawTarget, setWithdrawTarget] = useState<RegistrationRow | null>(null)
-  const [withdrawDate, setWithdrawDate] = useState("")
-  const [withdrawPickerOpen, setWithdrawPickerOpen] = useState(false)
-  const [withdrawError, setWithdrawError] = useState("")
-  const [withdrawSaving, setWithdrawSaving] = useState(false)
-  const [noteDialogOpen, setNoteDialogOpen] = useState(false)
-  const [noteTarget, setNoteTarget] = useState<RegistrationRow | null>(null)
-  const [noteValue, setNoteValue] = useState("")
-  const [noteError, setNoteError] = useState("")
-  const [noteSaving, setNoteSaving] = useState(false)
+  const {
+    noteDialogOpen,
+    noteTarget,
+    noteValue,
+    setNoteValue,
+    noteUpdatedAtLabel,
+    noteError,
+    noteSaving,
+    openNoteDialog,
+    handleNoteSave,
+    closeNoteDialog,
+  } = useNote({ onSuccess: loadRegistrations })
   const [chartOverlayOpen, setChartOverlayOpen] = useState(false)
 
   const mergeCourseOptions = useMemo(() => {
@@ -268,91 +265,24 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     [baseRegistrations, loadExtensions, loadRegistrations, setError]
   )
 
-  const openWithdrawDialog = useCallback((registration: RegistrationRow) => {
-    if (!registration) return
-    const today = formatDateYmd(new Date())
-    const defaultDate = formatDateYmd(registration?.withdrawnAt) || today
-    setWithdrawTarget(registration)
-    setWithdrawDate(defaultDate || today)
-    setWithdrawError("")
-    setWithdrawDialogOpen(true)
-  }, [])
+  const {
+    withdrawDialogOpen,
+    withdrawTarget,
+    withdrawDate,
+    setWithdrawDate,
+    withdrawPickerOpen,
+    setWithdrawPickerOpen,
+    withdrawError,
+    withdrawSaving,
+    openWithdrawDialog,
+    handleWithdrawSave,
+    handleRestore,
+    closeWithdrawDialog,
+  } = useWithdraw({
+    onSuccess: loadRegistrations,
+    setError,
+  })
 
-  const openNoteDialog = useCallback((registration: RegistrationRow) => {
-    if (!registration) return
-    setNoteTarget(registration)
-    setNoteValue(String(registration?.note || ""))
-    setNoteError("")
-    setNoteDialogOpen(true)
-  }, [])
-
-  const noteUpdatedAtLabel = noteTarget?.noteUpdatedAt
-    ? formatTimestampKo(noteTarget.noteUpdatedAt)
-    : ""
-
-  const handleWithdrawSave = useCallback(async () => {
-    if (!withdrawTarget) return
-    if (!withdrawDate) {
-      setWithdrawError("퇴원일을 선택해 주세요.")
-      return
-    }
-
-    setWithdrawSaving(true)
-    setWithdrawError("")
-    const withdrawId = withdrawTarget?.id
-    if (!withdrawId) {
-      setWithdrawError("대상을 확인해 주세요.")
-      return
-    }
-    try {
-      await apiClient.updateRegistrationWithdrawal(String(withdrawId), withdrawDate)
-      await loadRegistrations()
-      setWithdrawDialogOpen(false)
-      setWithdrawTarget(null)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "퇴원 처리에 실패했습니다."
-      setWithdrawError(message)
-    } finally {
-      setWithdrawSaving(false)
-    }
-  }, [loadRegistrations, withdrawDate, withdrawTarget])
-
-  const handleRestore = useCallback(async (registration: RegistrationRow) => {
-    if (!registration?.id) return
-    const name = registration?.name || "학생"
-    if (!window.confirm(`${name}의 퇴원 상태를 복구할까요?`)) return
-
-    try {
-      await apiClient.updateRegistrationWithdrawal(String(registration.id), null)
-      await loadRegistrations()
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "복구 처리에 실패했습니다."
-      setError(message)
-    }
-  }, [loadRegistrations, setError])
-
-  const handleNoteSave = useCallback(async () => {
-    if (!noteTarget?.id) return
-    setNoteSaving(true)
-    setNoteError("")
-    const noteId = noteTarget?.id
-    if (!noteId) {
-      setNoteError("대상을 확인해 주세요.")
-      return
-    }
-    try {
-      await apiClient.updateRegistrationNote(String(noteId), noteValue)
-      await loadRegistrations()
-      setNoteDialogOpen(false)
-      setNoteTarget(null)
-      setNoteValue("")
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "메모 저장에 실패했습니다."
-      setNoteError(message)
-    } finally {
-      setNoteSaving(false)
-    }
-  }, [loadRegistrations, noteTarget, noteValue])
 
   // Wheel handler for Gantt tabs removed as tabs are replaced by sidebar
 
@@ -849,185 +779,30 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       </Dialog>
 
 
-      <Dialog
+      <NoteDialog
         open={noteDialogOpen}
-        onOpenChange={(open) => {
-          setNoteDialogOpen(open)
-          if (!open) {
-            setNoteTarget(null)
-            setNoteValue("")
-            setNoteError("")
-          }
-        }}
-      >
-        <DialogContent className="max-w-xl border-white/60 bg-white/80 p-7 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl ring-1 ring-slate-200/60 sm:rounded-[28px]">
-          <DialogHeader>
-            <DialogTitle>학생 메모</DialogTitle>
-            <DialogDescription>
-              학생별 특이사항을 기록하고 공유합니다.
-            </DialogDescription>
-          </DialogHeader>
-          {noteTarget ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-4 shadow-sm backdrop-blur">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                      학생
-                    </div>
-                    <div className="mt-1 text-lg font-semibold text-slate-900">
-                      {noteTarget?.name || "-"}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                      과목
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-700">
-                      {noteTarget?.course || "-"}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                  <span className="inline-flex items-center rounded-full bg-slate-100/70 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                    메모
-                  </span>
-                  {noteUpdatedAtLabel ? (
-                    <span>최근 수정 · {noteUpdatedAtLabel}</span>
-                  ) : (
-                    <span>새 메모</span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="noteContent" className="text-sm font-semibold text-slate-700">
-                  메모
-                </Label>
-                <Textarea
-                  id="noteContent"
-                  value={noteValue}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setNoteValue(event.target.value)
-                  }
-                  className="min-h-[180px] resize-none rounded-2xl border border-slate-200/70 bg-white/80 shadow-inner shadow-slate-200/30 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="특이사항을 입력하세요."
-                />
-                <div className="text-xs text-slate-400">
-                  저장하지 않고 닫으면 변경사항이 사라집니다.
-                </div>
-              </div>
-              {noteError ? (
-                <div className="rounded-xl border border-rose-200/70 bg-rose-50/70 px-3 py-2 text-xs text-rose-700">
-                  {noteError}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              선택된 학생이 없습니다.
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setNoteDialogOpen(false)}
-              className="rounded-full px-6"
-            >
-              취소
-            </Button>
-            <Button
-              type="button"
-              onClick={handleNoteSave}
-              disabled={noteSaving || !noteTarget}
-              className="rounded-full bg-slate-900 px-6 text-white shadow-sm transition hover:bg-slate-800"
-            >
-              저장
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={closeNoteDialog}
+        target={noteTarget}
+        value={noteValue}
+        onValueChange={setNoteValue}
+        updatedAtLabel={noteUpdatedAtLabel}
+        error={noteError}
+        saving={noteSaving}
+        onSave={handleNoteSave}
+      />
 
-      <Dialog
+      <WithdrawDialog
         open={withdrawDialogOpen}
-        onOpenChange={(open) => {
-          setWithdrawDialogOpen(open)
-          if (!open) {
-            setWithdrawTarget(null)
-            setWithdrawError("")
-            setWithdrawPickerOpen(false)
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>퇴원 처리</DialogTitle>
-            <DialogDescription>
-              퇴원일을 기준으로 당일부터 출석 입력이 제한됩니다.
-            </DialogDescription>
-          </DialogHeader>
-          {withdrawTarget ? (
-            <div className="space-y-4 text-sm">
-              <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-                <div className="text-xs text-muted-foreground">학생</div>
-                <div className="font-semibold">{withdrawTarget?.name || "-"}</div>
-                <div className="mt-2 text-xs text-muted-foreground">과목</div>
-                <div className="font-semibold">{withdrawTarget?.course || "-"}</div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="withdrawDate">퇴원일</Label>
-                <Popover
-                  open={withdrawPickerOpen}
-                  onOpenChange={setWithdrawPickerOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="withdrawDate"
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-between text-left font-normal"
-                    >
-                      {withdrawDate || "YYYY-MM-DD"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto border-none bg-transparent p-0 shadow-none"
-                    align="start"
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={parseDate(withdrawDate) ?? undefined}
-                      onSelect={(
-                        value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined
-                      ) => {
-                        const selectedDate = value instanceof Date ? value : null
-                        setWithdrawDate(selectedDate ? formatDateYmd(selectedDate) : "")
-                        setWithdrawPickerOpen(false)
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          ) : null}
-
-          {withdrawError ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {withdrawError}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setWithdrawDialogOpen(false)}>
-              취소
-            </Button>
-            <Button type="button" onClick={handleWithdrawSave} disabled={withdrawSaving}>
-              퇴원 처리
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={closeWithdrawDialog}
+        target={withdrawTarget}
+        date={withdrawDate}
+        onDateChange={setWithdrawDate}
+        pickerOpen={withdrawPickerOpen}
+        onPickerOpenChange={setWithdrawPickerOpen}
+        error={withdrawError}
+        saving={withdrawSaving}
+        onSave={handleWithdrawSave}
+      />
 
       <TransferDialog
         open={transferDialogOpen}

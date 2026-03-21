@@ -454,6 +454,8 @@ router.post(
       const transferId = uuidv4();
       const now = new Date();
       const oldEndDate = addDays(transferAt, -1);
+      const effectiveWeeks = Number(nextWeeks ?? existing.weeks) || 0;
+      const newEndDate = effectiveWeeks > 0 ? addDays(transferAt, effectiveWeeks * 7 - 1) : null;
 
       const created = await prisma.$transaction(async (tx: import('@prisma/client').Prisma.TransactionClient) => {
         const newRecord = await tx.registration.create({
@@ -465,11 +467,11 @@ router.post(
             courseId: safeCourseId,
             courseConfigSetName: effectiveSetName || undefined,
             startDate: transferAt,
-            endDate: null,
+            endDate: newEndDate,
             withdrawnAt: null,
-            weeks: nextWeeks ?? existing.weeks,
+            weeks: effectiveWeeks || existing.weeks,
             tuitionFee: existing.tuitionFee,
-            skipWeeks: Array.isArray(existing.skipWeeks) ? existing.skipWeeks : [],
+            skipWeeks: [],
             recordingDates: [],
             excludeMath: !!existing.excludeMath,
             transferFromId: existing.id,
