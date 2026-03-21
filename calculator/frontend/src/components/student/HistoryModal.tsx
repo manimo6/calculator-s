@@ -198,6 +198,7 @@ const HistoryModal = ({
                 const isWithdrawn = !!item.withdrawnAt;
                 const isEditing = Boolean(editingId && String(editingId) === String(item.id));
                 const lastInChain = isLastInChain(item);
+                const hasTransferRelation = !!item.transferFromId || !!item.transferToId;
                 return (
                     <div
                         key={item.id}
@@ -256,6 +257,12 @@ const HistoryModal = ({
                                         >
                                             {isWithdrawn || (isTransferred && !lastInChain) ? '전반 불가' : lastInChain ? '재전반' : '전반 선택'}
                                         </button>
+                                    </div>
+                                ) : hasTransferRelation ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-400 border border-gray-100 bg-gray-50">
+                                            전반 이력 있음 · 수정/삭제 불가
+                                        </span>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2">

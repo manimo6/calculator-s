@@ -414,6 +414,10 @@ router.put('/:id', validateStudentUpdate, async (req, res) => {
       return res.status(404).json({ status: '실패', message: '해당 ID를 찾을 수 없습니다.' });
     }
 
+    if (existing.transferFromId || existing.transferToId) {
+      return res.status(400).json({ status: '실패', message: '전반 이력이 있는 등록은 수정할 수 없습니다. 전반취소 후 다시 등록해 주세요.' });
+    }
+
     const timestamp = new Date();
     const hasCourseConfigSetName = Object.prototype.hasOwnProperty.call(
       updateRecord,
@@ -465,6 +469,10 @@ router.delete('/:id', async (req, res) => {
     if (!existing) {
       console.log(`[${new Date().toISOString()}] 삭제 대상 ID ${id}를 찾지 못함.`);
       return res.status(404).json({ status: '실패', message: '해당 ID를 찾을 수 없습니다.' });
+    }
+
+    if (existing.transferFromId || existing.transferToId) {
+      return res.status(400).json({ status: '실패', message: '전반 이력이 있는 등록은 삭제할 수 없습니다. 전반취소를 이용해 주세요.' });
     }
 
     await prisma.registration.delete({ where: { id } });
