@@ -40,6 +40,7 @@ type RegistrationRow = {
   withdrawnAt?: string | Date
   isTransferredOut?: boolean
   transferToId?: string | number
+  transferFromId?: string | number
   timestamp?: string | number | Date
   updatedAt?: string | Date
 } & Record<string, unknown>
@@ -102,6 +103,7 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCanc
     !!r?.excludeMath || String(r?.course || "").includes("수학 제외")
   const isWithdrawn = Boolean(r?.isWithdrawn || r?.withdrawnAt)
   const isTransferredOut = Boolean(r?.isTransferredOut || r?.transferToId)
+  const isLastInChain = !!r?.transferFromId && !r?.transferToId && !isWithdrawn
   const canWithdraw = !isWithdrawn && !isTransferredOut
   const canTransfer = !isWithdrawn && !isTransferredOut
 
@@ -141,6 +143,10 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCanc
               <Badge variant="outline" className="border-rose-300 bg-rose-50 text-rose-700">
                 중도퇴원
               </Badge>
+            ) : isLastInChain ? (
+              <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                전반 수강
+              </Badge>
             ) : (
               <StatusBadge status={status} />
             )}
@@ -155,7 +161,18 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCanc
                 복구
               </Button>
             ) : null}
-            {canTransfer && onTransfer ? (
+            {isLastInChain && onTransferCancel ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 rounded-full px-3 text-xs font-semibold"
+                onClick={() => onTransferCancel(r)}
+              >
+                전반취소
+              </Button>
+            ) : null}
+            {(canTransfer || isLastInChain) && onTransfer ? (
               <Button
                 type="button"
                 size="sm"
@@ -163,7 +180,7 @@ function RegistrationCard({ r, onWithdraw, onRestore, onTransfer, onTransferCanc
                 className="h-7 rounded-full px-3 text-xs font-semibold"
                 onClick={() => onTransfer?.(r)}
               >
-                전반
+                {isLastInChain ? '재전반' : '전반'}
               </Button>
             ) : null}
             {canWithdraw ? (

@@ -63,6 +63,7 @@ type GanttGroup = {
   key: string
   label: string
   registrations: RegistrationRow[]
+  rangeRegistrations: RegistrationRow[]
   courseDays: number[]
   count: number
   mergeWeekRanges?: WeekRange[]
@@ -385,6 +386,9 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
 
     if (!sourceList.length) return []
 
+    // 주차 범위 계산용: 검색 필터 없는 전체 등록 데이터
+    const allRegistrations = registrations || []
+
     const normalizeCourse = (value: unknown) => String(value || "").trim()
     const matchesCourse = (courseName: unknown, target: unknown) => {
       const course = normalizeCourse(courseName)
@@ -417,11 +421,15 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       ).filter(Boolean)
       const labelBase = merge?.name || courseNames.join(" + ")
       const label = labelBase ? `[합반] ${labelBase}` : "[합반]"
+      const rangeRows = allRegistrations.filter((r) =>
+        courseNames.some((name) => matchesCourse(r?.course, name))
+      )
       return [
         {
           key: courseFilter,
           label,
           registrations: sourceList,
+          rangeRegistrations: rangeRows,
           courseDays: collectCourseDays(courseNames),
           mergeWeekRanges: merge?.weekRanges || [],
           count: sourceList.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
@@ -443,10 +451,14 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         if (!rows.length) continue
         for (const cn of courseNames) todayMergedCourses.add(cn)
         const labelBase = merge?.name || courseNames.join(" + ")
+        const rangeRows = allRegistrations.filter((r) =>
+          courseNames.some((name) => matchesCourse(r?.course, name))
+        )
         mergeGroups.push({
           key: `__merge__${merge.id}`,
           label: labelBase ? `[합반] ${labelBase}` : "[합반]",
           registrations: rows,
+          rangeRegistrations: rangeRows,
           courseDays: collectCourseDays(courseNames),
           mergeWeekRanges: merge?.weekRanges || [],
           count: rows.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
@@ -496,6 +508,16 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       map.get(courseKey)?.push(r)
     }
 
+    // 주차 범위용: 전체 등록 데이터를 과목별로 그룹핑
+    const rangeMap = new Map<string, RegistrationRow[]>()
+    for (const r of allRegistrations) {
+      if (todayMergedCourses.size > 0 && todayMergedCourses.has(normalizeCourse(r?.course))) continue
+      const courseKey = getCourseKey(r)
+      if (!courseKey) continue
+      if (!rangeMap.has(courseKey)) rangeMap.set(courseKey, [])
+      rangeMap.get(courseKey)?.push(r)
+    }
+
     const courseGroups = Array.from(map.entries())
       .sort((a, b) => {
         const aLabel = getCourseLabel(a[0], a[1]?.[0]?.course)
@@ -510,6 +532,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           key: courseKey,
           label: getCourseLabel(courseKey, rows?.[0]?.course),
           registrations: rows,
+          rangeRegistrations: rangeMap.get(courseKey) || rows,
           courseDays: collectCourseDays(courseNames),
           count: rows.filter((r) => !r?.transferToId && !r?.isTransferredOut).length,
         }
@@ -525,6 +548,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     courseFilter,
     merges,
     activeMergesToday,
+    registrations,
     selectedCourseConfigSet,
     selectedCourseConfigSetObj,
     courseConfigSetIdToLabel,
@@ -725,7 +749,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                     </div>
                     <RegistrationsGantt
                       registrations={group.registrations}
-                      rangeRegistrations={group.registrations}
+                      rangeRegistrations={group.rangeRegistrations}
                       courseDays={group.courseDays}
                       mergeWeekRanges={group.mergeWeekRanges || []}
                       registrationMap={registrationMap}
@@ -801,7 +825,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
               {activeGanttGroup ? (
                 <RegistrationsGantt
                   registrations={activeGanttGroup.registrations}
-                  rangeRegistrations={activeGanttGroup.registrations}
+                  rangeRegistrations={activeGanttGroup.rangeRegistrations}
                   courseDays={activeGanttGroup.courseDays}
                   mergeWeekRanges={activeGanttGroup.mergeWeekRanges || []}
                   registrationMap={registrationMap}

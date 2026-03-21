@@ -9,6 +9,7 @@ import {
     Edit2,
     FileText,
     Loader2,
+    RotateCcw,
     Search,
     Trash2,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ type HistoryItem = {
     weeks?: number | string
     timestamp?: string | Date
     transferToId?: string
+    transferFromId?: string
     withdrawnAt?: string | Date
 } & Record<string, unknown>
 
@@ -33,6 +35,7 @@ type HistoryModalProps = {
     onSelect?: (item: HistoryItem) => void
     onEdit?: (item: HistoryItem) => void
     onTransfer?: (item: HistoryItem) => void
+    onTransferCancel?: (item: HistoryItem) => void
     onDataLoaded?: (items: HistoryItem[]) => void
     editingId?: string | number | null
 }
@@ -43,6 +46,7 @@ const HistoryModal = ({
     onSelect,
     onEdit,
     onTransfer,
+    onTransferCancel,
     onDataLoaded,
     editingId,
 }: HistoryModalProps) => {
@@ -114,7 +118,9 @@ const HistoryModal = ({
 
     const handleSelectTransfer = (item: HistoryItem) => {
         if (!item || !onTransfer) return;
-        if (item.transferToId || item.withdrawnAt) return;
+        if (item.withdrawnAt) return;
+        // 전반된 항목은 체인 최종(재전반)만 허용
+        if (item.transferToId) return;
         onTransfer(item);
     };
 
@@ -180,13 +186,18 @@ const HistoryModal = ({
         </div>
     );
 
+    // 체인 최종 결과물: 전반으로 생성되었고(transferFromId 있음), 더 전반하지 않음(transferToId 없음)
+    const isLastInChain = (item: HistoryItem) => {
+        return !!item.transferFromId && !item.transferToId && !item.withdrawnAt;
+    };
+
     const renderHistoryList = (mode: 'load' | 'transfer') => (
         <div className="space-y-2 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
             {historyData.map((item) => {
                 const isTransferred = !!item.transferToId;
                 const isWithdrawn = !!item.withdrawnAt;
                 const isEditing = Boolean(editingId && String(editingId) === String(item.id));
-                const isDisabled = isTransferred || isWithdrawn;
+                const lastInChain = isLastInChain(item);
                 return (
                     <div
                         key={item.id}
@@ -222,17 +233,30 @@ const HistoryModal = ({
                                     </span>
                                 ) : null}
                                 {mode === 'transfer' ? (
-                                    <button
-                                        disabled={isDisabled}
-                                        onClick={() => handleSelectTransfer(item)}
-                                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                                            isDisabled
-                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                                        }`}
-                                    >
-                                        {isDisabled ? '전반 불가' : '전반 선택'}
-                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                        {lastInChain && onTransferCancel ? (
+                                            <button
+                                                onClick={() => onTransferCancel(item)}
+                                                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1"
+                                            >
+                                                <RotateCcw className="w-3 h-3" />
+                                                전반취소
+                                            </button>
+                                        ) : null}
+                                        <button
+                                            disabled={isWithdrawn || (isTransferred && !lastInChain)}
+                                            onClick={() => handleSelectTransfer(item)}
+                                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                                                isWithdrawn || (isTransferred && !lastInChain)
+                                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                    : lastInChain
+                                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
+                                        >
+                                            {isWithdrawn || (isTransferred && !lastInChain) ? '전반 불가' : lastInChain ? '재전반' : '전반 선택'}
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <button

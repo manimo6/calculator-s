@@ -726,6 +726,7 @@ const StudentForm = () => {
         transferExpectedEndDate,
         openTransferDialog,
         handleTransferSave,
+        handleTransferCancel,
         closeTransferDialog,
     } = useTransfer({
         courseOptions: transferCourseOptions,
@@ -1319,6 +1320,7 @@ const StudentForm = () => {
                     onSelect={() => {}}
                     onEdit={handleLoadHistory}
                     onTransfer={handleHistoryTransfer}
+                    onTransferCancel={handleTransferCancel}
                     onDataLoaded={setHistoryRegistrations}
                     editingId={editingId}
                 />
