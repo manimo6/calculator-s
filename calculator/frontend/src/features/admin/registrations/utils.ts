@@ -1,6 +1,14 @@
-﻿const DAY_MS = 24 * 60 * 60 * 1000
+﻿import { courseInfo, courseTree } from "@/utils/data"
+import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 type DateInput = string | number | Date | null | undefined
+type CourseInfoRecord = Record<string, CourseInfo | undefined>
+type CourseConfigSetLike = {
+  name?: string
+  data?: { courseTree?: CourseTreeGroup[]; courseInfo?: CourseInfoRecord } | null
+}
 
 function pad2(value: string | number) {
   return String(value).padStart(2, "0")
@@ -111,4 +119,56 @@ export function getStatusSortRank(status: string | null | undefined) {
     default:
       return 3
   }
+}
+
+function isValidDow(value: number) {
+  return Number.isInteger(value) && value >= 0 && value <= 6
+}
+
+export function getCourseDaysByName(courseName: string, courseConfigSet: CourseConfigSetLike | null) {
+  const name = String(courseName || "").trim()
+  if (!name) return []
+
+  const configData = courseConfigSet?.data
+  const sources: Array<{ tree: CourseTreeGroup[]; info: CourseInfoRecord }> = [
+    {
+      tree: Array.isArray(configData?.courseTree) ? configData.courseTree : [],
+      info: configData?.courseInfo || {},
+    },
+    { tree: courseTree || [], info: courseInfo || {} },
+  ]
+
+  let bestDays: number[] | null = null
+  let bestLen = 0
+
+  for (const source of sources) {
+    for (const group of source.tree || []) {
+      for (const item of group.items || []) {
+        const label = item?.label
+        if (!label) continue
+        if (!name.startsWith(label) || label.length < bestLen) continue
+
+        const info = source.info?.[item.val]
+        if (Array.isArray(info?.days)) {
+          bestDays = info.days.filter(isValidDow)
+          bestLen = label.length
+        }
+      }
+    }
+
+    const infoValues = Object.values(source.info || {})
+    for (const info of infoValues) {
+      const infoRecord = info && typeof info === "object" ? (info as CourseInfo) : null
+      const label = infoRecord?.name
+      if (!label) continue
+      if (!name.startsWith(label) || label.length < bestLen) continue
+
+      if (Array.isArray(infoRecord?.days)) {
+        bestDays = infoRecord.days.filter(isValidDow)
+        bestLen = label.length
+      }
+    }
+  }
+
+  return bestDays || []
 }

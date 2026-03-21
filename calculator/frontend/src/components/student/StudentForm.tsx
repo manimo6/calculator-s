@@ -1,6 +1,6 @@
-import React, { useState, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { applyCourseConfigSetData, courseConfigSetName, courseInfo, resetCourseConfigSetData, type CourseInfo } from '../../utils/data';
+import { applyCourseConfigSetData, courseConfigSetName, courseInfo, courseTree, resetCourseConfigSetData, type CourseInfo } from '../../utils/data';
 import { createCartItem, calculateTotalFee } from '../../utils/calculatorLogic';
 import { generateClipboardText } from '../../utils/clipboardUtils';
 import { loadClipboardHistory, saveClipboardHistoryEntry, CLIPBOARD_HISTORY_LIMIT } from '../../utils/clipboardHistory';
@@ -13,6 +13,9 @@ import HistoryModal from './HistoryModal';
 import { apiClient } from '../../api-client';
 import CourseConfigSetPicker from '../../features/admin/courseConfigSets/CourseConfigSetPicker';
 import { useAuth } from '../../auth-context';
+import { useTransfer } from '../../features/admin/registrations/useTransfer';
+import TransferDialog from '../../features/admin/registrations/TransferDialog';
+import { getCourseDaysByName } from '../../features/admin/registrations/utils';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -683,6 +686,64 @@ const StudentForm = () => {
         }
     }, [state.mainCourseKey, state.discount, state.singleCourseInputs]);
 
+    // ── Transfer (전반) ──
+    const transferCourseOptions = useMemo(() => {
+        return (courseTree || []).flatMap((group) =>
+            (group.items || []).map((item) => ({
+                value: item?.val || "",
+                label: item?.label || "",
+            }))
+        ).filter((o) => o.value && o.label);
+    }, [courseTree.length, selectedCourseConfigSet]);
+
+    const selectedCourseConfigSetObj = useMemo(() => {
+        if (!selectedCourseConfigSet || !courseConfigSetMap[selectedCourseConfigSet]) return null;
+        return { name: selectedCourseConfigSet, data: courseConfigSetMap[selectedCourseConfigSet] };
+    }, [selectedCourseConfigSet, courseConfigSetMap]);
+
+    const resolveCourseDays = useCallback(
+        (courseName: string) => getCourseDaysByName(courseName, selectedCourseConfigSetObj),
+        [selectedCourseConfigSetObj]
+    );
+
+    const [transferError, setTransferError] = useState("");
+    const [historyRegistrations, setHistoryRegistrations] = useState<Record<string, unknown>[]>([]);
+
+    const {
+        transferDialogOpen,
+        transferTarget,
+        transferDate,
+        setTransferDate,
+        transferPickerOpen,
+        setTransferPickerOpen,
+        transferCourseValue,
+        setTransferCourseValue,
+        transferWeeks,
+        transferError: transferHookError,
+        transferSaving,
+        transferCourseGroups,
+        transferCourseDays,
+        transferExpectedEndDate,
+        openTransferDialog,
+        handleTransferSave,
+        closeTransferDialog,
+    } = useTransfer({
+        courseOptions: transferCourseOptions,
+        registrations: historyRegistrations,
+        selectedCourseConfigSetObj,
+        selectedCourseConfigSet,
+        onTransferSuccess: () => {
+            setIsHistoryOpen(false);
+        },
+        setError: setTransferError,
+        resolveCourseDays,
+    });
+
+    const handleHistoryTransfer = useCallback((item: Record<string, unknown>) => {
+        setIsHistoryOpen(false);
+        openTransferDialog(item as Parameters<typeof openTransferDialog>[0]);
+    }, [openTransferDialog]);
+
     const handleSelectCourse = (key: string) => {
         setCanCopy(false);
         setSavedClipboardText('');
@@ -1257,9 +1318,28 @@ const StudentForm = () => {
                     onClose={() => setIsHistoryOpen(false)}
                     onSelect={() => {}}
                     onEdit={handleLoadHistory}
+                    onTransfer={handleHistoryTransfer}
+                    onDataLoaded={setHistoryRegistrations}
                     editingId={editingId}
-                    calendarMinDate={calendarRange.minDate || undefined}
-                    calendarMaxDate={calendarRange.maxDate || undefined}
+                />
+
+                <TransferDialog
+                    open={transferDialogOpen}
+                    onClose={closeTransferDialog}
+                    target={transferTarget}
+                    date={transferDate}
+                    onDateChange={setTransferDate}
+                    pickerOpen={transferPickerOpen}
+                    onPickerOpenChange={setTransferPickerOpen}
+                    courseValue={transferCourseValue}
+                    onCourseValueChange={setTransferCourseValue}
+                    weeks={transferWeeks}
+                    error={transferHookError}
+                    saving={transferSaving}
+                    courseGroups={transferCourseGroups}
+                    courseDays={transferCourseDays}
+                    expectedEndDate={transferExpectedEndDate}
+                    onSave={handleTransferSave}
                 />
 
             </div>

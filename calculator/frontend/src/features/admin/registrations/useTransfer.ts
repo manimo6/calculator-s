@@ -59,7 +59,7 @@ export function parseCourseValue(value: unknown) {
   return { type: "name" as const, value: raw }
 }
 
-function calcRemainingWeeks(registration: RegistrationRow, transferDate: string | Date) {
+export function calcRemainingWeeks(registration: RegistrationRow, transferDate: string | Date) {
   const totalWeeks = Number(registration?.weeks) || 0
   if (totalWeeks <= 0) return 0
   const start = parseDate(registration?.startDate)
@@ -86,7 +86,7 @@ type UseTransferParams = {
   registrations: RegistrationRowForOptions[]
   selectedCourseConfigSetObj: CourseConfigSet | null
   selectedCourseConfigSet: string
-  loadRegistrations: () => Promise<void>
+  onTransferSuccess?: () => void | Promise<void>
   setError: (msg: string) => void
   resolveCourseDays?: (courseName: string) => number[]
 }
@@ -96,7 +96,7 @@ export function useTransfer({
   registrations,
   selectedCourseConfigSetObj,
   selectedCourseConfigSet,
-  loadRegistrations,
+  onTransferSuccess,
   setError,
   resolveCourseDays,
 }: UseTransferParams) {
@@ -323,7 +323,7 @@ export function useTransfer({
           transferTarget?.courseConfigSetName || selectedCourseConfigSet,
         ...(weeksValue ? { weeks: weeksValue } : {}),
       })
-      await loadRegistrations()
+      await onTransferSuccess?.()
       setTransferDialogOpen(false)
       setTransferTarget(null)
     } catch (err: unknown) {
@@ -333,7 +333,7 @@ export function useTransfer({
       setTransferSaving(false)
     }
   }, [
-    loadRegistrations,
+    onTransferSuccess,
     selectedCourseConfigSet,
     transferCourseLabelMap,
     transferCourseValue,
@@ -350,13 +350,13 @@ export function useTransfer({
 
       try {
         await apiClient.cancelTransferRegistration(String(registration.id))
-        await loadRegistrations()
+        await onTransferSuccess?.()
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "전반 취소에 실패했습니다."
         setError(message)
       }
     },
-    [loadRegistrations, setError]
+    [onTransferSuccess, setError]
   )
 
   // 선택된 과목의 수업 요일 (0=일, 1=월, ..., 6=토)

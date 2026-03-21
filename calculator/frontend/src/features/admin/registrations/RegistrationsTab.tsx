@@ -18,7 +18,6 @@ import { Calendar } from "@/components/ui/calendar"
 import type { DateValue, DatesRangeValue } from "@mantine/dates"
 import { PERMISSION_KEYS, hasPermission } from "@/permissions"
 
-import { courseInfo, courseTree } from "@/utils/data"
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
 import type { AuthUser } from "@/auth-routing"
 
@@ -33,11 +32,7 @@ import TransferDialog from "./TransferDialog"
 import { useRegistrations } from "./useRegistrations"
 import { useRegistrationMap, useEnrichedRegistrations, useCardRegistrations } from "./useTransferDisplay"
 import { useTransfer } from "./useTransfer"
-import { formatDateYmd, formatTimestampKo, parseDate } from "./utils"
-
-function isValidDow(value: number) {
-  return Number.isInteger(value) && value >= 0 && value <= 6
-}
+import { formatDateYmd, formatTimestampKo, getCourseDaysByName, parseDate } from "./utils"
 
 type CourseInfoRecord = Record<string, CourseInfo | undefined>
 type CourseConfigSet = {
@@ -71,54 +66,6 @@ type GanttGroup = {
   courseDays: number[]
   count: number
   mergeWeekRanges?: WeekRange[]
-}
-
-function getCourseDaysByName(courseName: string, courseConfigSet: CourseConfigSet | null) {
-  const name = String(courseName || "").trim()
-  if (!name) return []
-
-  const configData = courseConfigSet?.data
-  const sources: Array<{ tree: CourseTreeGroup[]; info: CourseInfoRecord }> = [
-    {
-      tree: Array.isArray(configData?.courseTree) ? configData.courseTree : [],
-      info: configData?.courseInfo || {},
-    },
-    { tree: courseTree || [], info: courseInfo || {} },
-  ]
-
-  let bestDays = null
-  let bestLen = 0
-
-  for (const source of sources) {
-    for (const group of source.tree || []) {
-      for (const item of group.items || []) {
-        const label = item?.label
-        if (!label) continue
-        if (!name.startsWith(label) || label.length < bestLen) continue
-
-        const info = source.info?.[item.val]
-        if (Array.isArray(info?.days)) {
-          bestDays = info.days.filter(isValidDow)
-          bestLen = label.length
-        }
-      }
-    }
-
-    const infoValues = Object.values(source.info || {})
-    for (const info of infoValues) {
-      const infoRecord = info && typeof info === "object" ? (info as CourseInfo) : null
-      const label = infoRecord?.name
-      if (!label) continue
-      if (!name.startsWith(label) || label.length < bestLen) continue
-
-      if (Array.isArray(infoRecord?.days)) {
-        bestDays = infoRecord.days.filter(isValidDow)
-        bestLen = label.length
-      }
-    }
-  }
-
-  return bestDays || []
 }
 
 export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
@@ -295,7 +242,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     registrations,
     selectedCourseConfigSetObj,
     selectedCourseConfigSet,
-    loadRegistrations,
+    onTransferSuccess: loadRegistrations,
     setError,
     resolveCourseDays,
   })
