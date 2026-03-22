@@ -31,6 +31,8 @@ import { useNote } from "./useNote"
 import { useTransfer } from "./useTransfer"
 import { useWithdraw } from "./useWithdraw"
 import { getCourseDaysByName } from "./utils"
+import { getFullChain, findActiveInChain } from "./transferChain"
+import { Switch } from "@/components/ui/switch"
 
 type CourseInfoRecord = Record<string, CourseInfo | undefined>
 type CourseConfigSet = {
@@ -170,6 +172,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     closeNoteDialog,
   } = useNote({ onSuccess: loadRegistrations })
   const [chartOverlayOpen, setChartOverlayOpen] = useState(false)
+  const [showTransferChain, setShowTransferChain] = useState(false)
 
   const mergeCourseOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -428,14 +431,46 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       return fallback || ""
     }
 
+    const refDate = simulationDate || new Date()
+    const processedChainIds = new Set<string>()
+
     const map = new Map<string, RegistrationRow[]>()
     for (const r of sourceList) {
+      const rid = String(r?.id || "")
+      if (processedChainIds.has(rid)) continue
       // 오늘 합반 중인 과목은 개별 그룹에서 제외
       if (todayMergedCourses.size > 0 && todayMergedCourses.has(normalizeCourse(r?.course))) continue
-      const courseKey = getCourseKey(r)
-      if (!courseKey) continue
-      if (!map.has(courseKey)) map.set(courseKey, [])
-      map.get(courseKey)?.push(r)
+
+      // 전반 체인이 없으면 기존 로직
+      if (!registrationMap.size || (!r?.transferFromId && !r?.transferToId)) {
+        const courseKey = getCourseKey(r)
+        if (!courseKey) continue
+        if (!map.has(courseKey)) map.set(courseKey, [])
+        map.get(courseKey)?.push(r)
+        continue
+      }
+
+      // 전반 체인 해소
+      const chain = getFullChain(r, registrationMap)
+      const activeReg = findActiveInChain(chain, refDate)
+      for (const c of chain) processedChainIds.add(String(c?.id || ""))
+
+      for (const c of chain) {
+        if (!sourceList.some((s) => String(s?.id) === String(c?.id))) continue
+        const isActiveAtRef = activeReg && String(c?.id) === String(activeReg?.id)
+        const courseKey = getCourseKey(c)
+        if (!courseKey) continue
+
+        if (isActiveAtRef) {
+          // refDate 기준 활성 → 정상 막대 (각자 원래 과목 그룹)
+          if (!map.has(courseKey)) map.set(courseKey, [])
+          map.get(courseKey)?.push({ ...c, isTransferredOut: false, transferToId: undefined })
+        } else if (showTransferChain) {
+          // 비활성 체인 멤버 → 각자 원래 과목 그룹에 고스트 바
+          if (!map.has(courseKey)) map.set(courseKey, [])
+          map.get(courseKey)?.push({ ...c, isTransferredOut: true })
+        }
+      }
     }
 
     // 주차 범위용: 전체 등록 데이터를 과목별로 그룹핑
@@ -483,6 +518,9 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     selectedCourseConfigSetObj,
     courseConfigSetIdToLabel,
     courseVariantRequiredSet,
+    simulationDate,
+    showTransferChain,
+    registrationMap,
   ])
 
   useEffect(() => {
@@ -655,6 +693,16 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
             ) : showGantt ? (
               // Gantt View for Sidebar Selection
               <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showTransferChain}
+                    onCheckedChange={setShowTransferChain}
+                    id="transferChainToggle"
+                  />
+                  <label htmlFor="transferChainToggle" className="cursor-pointer text-xs font-semibold text-slate-500">
+                    전반 이력
+                  </label>
+                </div>
                 {ganttGroups.map((group) => (
                   <div key={group.key} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -689,6 +737,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                       onTransfer={canManageTransfers ? openTransferDialog : () => {}}
                       onTransferCancel={canManageTransfers ? handleTransferCancel : () => {}}
                       onNote={openNoteDialog}
+                      showTransferChain={showTransferChain}
+                      simulationDate={simulationDate}
                     />
                   </div>
                 ))}
@@ -765,6 +815,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
                   onTransfer={canManageTransfers ? openTransferDialog : () => {}}
                   onTransferCancel={canManageTransfers ? handleTransferCancel : () => {}}
                   onNote={openNoteDialog}
+                  showTransferChain={showTransferChain}
+                  simulationDate={simulationDate}
                   maxHeightClassName="max-h-[calc(100vh-10rem)]"
                   disableCardOverflow={false}
                 />

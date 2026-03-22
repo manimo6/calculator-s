@@ -313,6 +313,8 @@ type RegistrationsGanttProps = {
   onTransfer: (row: RegistrationRow) => void
   onTransferCancel: (row: RegistrationRow) => void
   onNote: (row: RegistrationRow) => void
+  showTransferChain?: boolean
+  simulationDate?: Date | null
   maxHeightClassName?: string
   disableCardOverflow?: boolean
 }
@@ -329,11 +331,12 @@ export default function RegistrationsGantt({
   onTransfer,
   onTransferCancel,
   onNote,
+  showTransferChain = false,
+  simulationDate = null,
   maxHeightClassName = "max-h-[560px]",
   disableCardOverflow = false,
 }: RegistrationsGanttProps) {
   const ganttScrollRef = useRef<HTMLDivElement | null>(null)
-  const [showTransferHistory, setShowTransferHistory] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<RegistrationRow | null>(null)
   const openDetail = useCallback((row: RegistrationRow) => {
@@ -368,7 +371,7 @@ export default function RegistrationsGantt({
     const rows = (registrations || []).map<BaseRow>((r) => {
       const start = parseDate(r?.startDate)
       const end = parseDate(r?.endDate) || start
-      const status = getRegistrationStatus(r)
+      const status = getRegistrationStatus(r, simulationDate || undefined)
       const isWithdrawn = Boolean(r?.isWithdrawn || r?.withdrawnAt)
       const isTransferredOut = Boolean(r?.isTransferredOut || r?.transferToId)
       const recordingDates = Array.isArray(r?.recordingDates) ? r.recordingDates : []
@@ -475,9 +478,9 @@ export default function RegistrationsGantt({
       unitWidth: WEEK_WIDTH_PX,
       timelineWidth: weeks.length * WEEK_WIDTH_PX,
     }
-  }, [courseDays, getCourseDaysForCourse, rangeRegistrations, registrations])
+  }, [courseDays, getCourseDaysForCourse, rangeRegistrations, registrations, simulationDate])
 
-  const visibleRows = useVisibleRows(model.rows, showTransferHistory, registrationMap)
+  const visibleRows = useVisibleRows(model.rows, false, registrationMap, showTransferChain)
 
   const gridTemplateColumns = useMemo(() => {
     return `${LABEL_WIDTH_PX}px ${NOTE_WIDTH_PX}px ${model.timelineWidth}px`
@@ -485,7 +488,7 @@ export default function RegistrationsGantt({
 
   const timelineWidth = model.timelineWidth
   const timelineOffset = LABEL_WIDTH_PX + NOTE_WIDTH_PX
-  const detailStatus = detailTarget ? getRegistrationStatus(detailTarget) : "active"
+  const detailStatus = detailTarget ? getRegistrationStatus(detailTarget, simulationDate || undefined) : "active"
   const detailIsWithdrawn = Boolean(
     detailTarget?.isWithdrawn || detailTarget?.withdrawnAt
   )
@@ -615,16 +618,6 @@ export default function RegistrationsGantt({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={`h-7 gap-1.5 rounded-full px-3 text-xs font-medium transition ${showTransferHistory ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setShowTransferHistory((prev) => !prev)}
-          >
-            <ArrowRightLeft className="h-3 w-3" />
-            전반 이력
-          </Button>
           <Badge variant="secondary" className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200">주단위</Badge>
         </div>
       </CardHeader>

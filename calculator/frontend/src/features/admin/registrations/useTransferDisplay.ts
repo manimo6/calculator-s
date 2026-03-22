@@ -81,9 +81,78 @@ export function useCardRegistrations(enrichedRegistrations: RegistrationRow[]) {
 export function useVisibleRows(
   rows: ModelRow[],
   showTransferHistory: boolean,
-  registrationMap?: Map<string, RegistrationRow>
+  registrationMap?: Map<string, RegistrationRow>,
+  skipTransferFilter?: boolean
 ) {
   return useMemo(() => {
+    // 체인 그룹핑 모드: Tab이 이미 활성/고스트를 결정했으므로 체인 기준으로 병합
+    if (skipTransferFilter) {
+      const mainRows = rows.filter((row) => !row.isTransferredOut)
+      const ghostRows = rows.filter((row) => row.isTransferredOut)
+      if (!ghostRows.length) return mainRows
+
+      // 체인 루트 ID 계산 (같은 체인이면 같은 루트)
+      const chainRootCache = new Map<string, string>()
+      const getChainRootId = (regId: string): string => {
+        if (chainRootCache.has(regId)) return chainRootCache.get(regId)!
+        let currentId = regId
+        const visited = new Set<string>()
+        while (true) {
+          visited.add(currentId)
+          const reg = registrationMap?.get(currentId)
+          if (!reg?.transferFromId) break
+          const fromId = String(reg.transferFromId)
+          if (visited.has(fromId)) break
+          currentId = fromId
+        }
+        // 경로 상의 모든 ID에 루트 캐시
+        for (const id of visited) chainRootCache.set(id, currentId)
+        return currentId
+      }
+
+      // 고스트 행을 체인 루트별로 그룹핑
+      const ghostsByChain = new Map<string, ModelRow[]>()
+      for (const row of ghostRows) {
+        const rowId = row.r?.id != null ? String(row.r.id) : ""
+        if (!rowId) continue
+        const root = getChainRootId(rowId)
+        if (!ghostsByChain.has(root)) ghostsByChain.set(root, [])
+        ghostsByChain.get(root)!.push(row)
+      }
+
+      // 메인 행에 같은 체인의 고스트를 transferSegments로 병합
+      const mergedRoots = new Set<string>()
+      const merged = mainRows.map((row) => {
+        const rowId = row.r?.id != null ? String(row.r.id) : ""
+        if (!rowId) return row
+        const root = getChainRootId(rowId)
+        const ghosts = ghostsByChain.get(root)
+        if (!ghosts?.length) return row
+        mergedRoots.add(root)
+        return { ...row, transferSegments: ghosts }
+      })
+
+      // 매칭되는 메인 행이 없는 고스트끼리도 같은 체인이면 한 행으로 병합
+      const orphanRows: ModelRow[] = []
+      for (const [root, ghosts] of ghostsByChain) {
+        if (mergedRoots.has(root)) continue
+        if (ghosts.length <= 1) {
+          orphanRows.push(...ghosts)
+        } else {
+          const [primary, ...rest] = ghosts
+          orphanRows.push({ ...primary, transferSegments: rest })
+        }
+      }
+
+      const result = [...merged, ...orphanRows]
+      result.sort((a, b) => {
+        const nameA = String(a.r?.name || "")
+        const nameB = String(b.r?.name || "")
+        return nameA.localeCompare(nameB, "ko-KR")
+      })
+      return result
+    }
+
     const activeRows = rows.filter((row) => !row.isTransferredOut)
     if (!showTransferHistory) return activeRows
 
@@ -138,7 +207,7 @@ export function useVisibleRows(
     })
 
     return [...merged, ...orphanRows]
-  }, [rows, showTransferHistory, registrationMap])
+  }, [rows, showTransferHistory, registrationMap, skipTransferFilter])
 }
 
 // ── transferHistory 체인 빌드 (사이드바용) ──
