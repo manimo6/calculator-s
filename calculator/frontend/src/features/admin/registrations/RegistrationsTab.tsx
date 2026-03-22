@@ -303,7 +303,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
   }, [canViewInstallments, installmentMode])
 
   // 전반 출처/대상 이름 조회용 맵 + enrichment + 카드뷰 필터
-  const registrationMap = useRegistrationMap(baseRegistrations)
+  const registrationMap = useRegistrationMap(registrations || [])
   const chartFilteredRegistrations = useEnrichedRegistrations(filteredRegistrations || [], registrationMap)
   const chartBaseRegistrations = useEnrichedRegistrations(baseRegistrations || [], registrationMap)
   const cardFilteredRegistrations = useCardRegistrations(chartFilteredRegistrations)
