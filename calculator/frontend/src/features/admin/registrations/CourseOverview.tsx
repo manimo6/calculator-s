@@ -163,6 +163,9 @@ export default function CourseOverview({
     }
 
     for (const r of registrations || []) {
+      // 전반된 등록은 요약에서 제외
+      if (r?.isTransferredOut || r?.transferToId) continue
+
       const course = String(r?.course || "")
       const courseTrimmed = course.trim()
 
