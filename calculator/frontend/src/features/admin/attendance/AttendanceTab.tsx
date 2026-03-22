@@ -15,6 +15,7 @@ import type { AuthUser } from "@/auth-routing"
 import AttendanceBoard from "./AttendanceBoard"
 import FiltersCard from "../registrations/FiltersCard"
 import { useRegistrations } from "../registrations/useRegistrations"
+import { useActiveChainRegistrations } from "./useActiveChainRegistrations"
 
 // 초성 추출 함수
 const CHOSUNG = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"]
@@ -129,6 +130,7 @@ export default function AttendanceTab({ user }: { user: AuthUser | null }) {
 
     loading,
     error,
+    registrations,
     filteredRegistrations,
     variantTabs,
     variantFilter,
@@ -166,7 +168,7 @@ export default function AttendanceTab({ user }: { user: AuthUser | null }) {
     () => (courseOptionsForFilter || []).map((c) => String(c)).filter(Boolean),
     [courseOptionsForFilter]
   )
-  const attendanceRegistrations = useMemo(
+  const mappedRegistrations = useMemo(
     () =>
       (filteredRegistrations || []).map((row) => ({
         ...row,
@@ -176,6 +178,11 @@ export default function AttendanceTab({ user }: { user: AuthUser | null }) {
             : undefined,
       })),
     [filteredRegistrations]
+  )
+
+  const attendanceRegistrations = useActiveChainRegistrations(
+    mappedRegistrations,
+    registrations || []
   )
 
   // 과목 탭 필터링 (초성 검색 + 오늘 수업만)

@@ -93,6 +93,22 @@ const PAINTABLE_STATUSES = PAINT_STATUS_ORDER.map((key) => STATUS_LOOKUP[key]).f
 const NO_CLASS_LABEL = "-"
 const OFF_DAY_LABEL = "등록안함"
 
+function getPrevChainAttendance(
+  row: AttendanceRow,
+  dateKey: string,
+  cellStatuses: AttendanceCellMap
+): string | null {
+  const prevRegs = row._prevChainRegs
+  if (!Array.isArray(prevRegs) || !prevRegs.length) return null
+  for (const prev of prevRegs) {
+    const prevId = String(prev?.id || "").trim()
+    if (!prevId) continue
+    const status = cellStatuses[prevId]?.[dateKey]
+    if (status && status !== "pending") return status
+  }
+  return null
+}
+
 type AttendanceRow = {
   id?: string | number
   name?: string
@@ -110,6 +126,7 @@ type AttendanceRow = {
   transferAt?: string | Date
   isTransferredOut?: boolean
   recordingDates?: string[]
+  _prevChainRegs?: Array<{ id?: string | number; course?: unknown } & Record<string, unknown>>
 }
 
 type AttendanceRowMeta = {
@@ -237,13 +254,20 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
     [days.length]
   )
 
-  const registrationIds = useMemo(
-    () =>
-      (registrations || [])
-        .map((row) => String(row?.id || "").trim())
-        .filter(Boolean),
-    [registrations]
-  )
+  const registrationIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const row of registrations || []) {
+      const id = String(row?.id || "").trim()
+      if (id) ids.add(id)
+      if (Array.isArray(row._prevChainRegs)) {
+        for (const prev of row._prevChainRegs) {
+          const prevId = String(prev?.id || "").trim()
+          if (prevId) ids.add(prevId)
+        }
+      }
+    }
+    return [...ids]
+  }, [registrations])
   const registrationIdSet = useMemo(
     () => new Set(registrationIds),
     [registrationIds]
@@ -638,27 +662,29 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                       style={{ minHeight: ROW_HEIGHT_PX }}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-bold text-slate-800">
-                          {row?.name || "-"}
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-sm font-bold text-slate-800">
+                            {row?.name || "-"}
+                          </span>
+                          {isWithdrawn ? (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 rounded-lg border-rose-300/80 bg-gradient-to-r from-rose-50 to-pink-50 px-1.5 py-0 text-[10px] font-semibold text-rose-700"
+                            >
+                              퇴원
+                            </Badge>
+                          ) : null}
                         </div>
-                        <div className="mt-1 truncate text-xs font-medium text-slate-500">
-                          {row?.course || "수업 정보 없음"}
+                        <div className="mt-1 flex items-center gap-1 text-xs">
+                          <span className="truncate font-medium text-slate-500">
+                            {row?.course || "수업 정보 없음"}
+                          </span>
+                          {Array.isArray(row._prevChainRegs) && row._prevChainRegs.length > 0 ? (
+                            <span className="shrink-0 text-[10px] text-slate-400">
+                              ← {String(row._prevChainRegs[row._prevChainRegs.length - 1]?.course || "")}
+                            </span>
+                          ) : null}
                         </div>
-                        {isTransferredOut ? (
-                          <Badge
-                            variant="outline"
-                            className="mt-2 rounded-lg border-amber-300/80 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
-                          >
-                            전반
-                          </Badge>
-                        ) : isWithdrawn ? (
-                          <Badge
-                            variant="outline"
-                            className="mt-2 rounded-lg border-rose-300/80 bg-gradient-to-r from-rose-50 to-pink-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700"
-                          >
-                            퇴원
-                          </Badge>
-                        ) : null}
                       </div>
                     </div>
                     {days.map((day) => {
@@ -696,8 +722,23 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                         ? "cursor-crosshair hover:bg-violet-100/40"
                         : "cursor-default"
 
+                      // 이전 체인 등록의 출석 확인
+                      const prevChainStatus = !isPaintable
+                        ? getPrevChainAttendance(row, dateKey, cellStatuses)
+                        : null
+
                       let cellContent = null
-                      if (!hasCourseDay) {
+                      if (prevChainStatus) {
+                        const prevStyle = STATUS_LOOKUP[prevChainStatus] || STATUS_LOOKUP.pending
+                        cellContent = (
+                          <span
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border text-[10px] font-bold opacity-30 ${prevStyle.cellClassName}`}
+                            title={`이전 반: ${prevStyle.label}`}
+                          >
+                            {prevStyle.shortLabel}
+                          </span>
+                        )
+                      } else if (!hasCourseDay) {
                         cellContent = (
                           <span className="text-xs text-slate-300">
                             {NO_CLASS_LABEL}
