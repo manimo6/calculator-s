@@ -1,10 +1,24 @@
 import { courseInfo, timeTable, recordingAvailable, getCourseName, weekdayName } from './data';
-import type { BreakRangeInput, TimeTableDynamicOption } from './data';
+import type { BreakRangeInput, CourseInfo, TimeTableDynamicOption } from './data';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6];
+export const DAY_MS = 24 * 60 * 60 * 1000;
+export const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 type DateInput = string | number | Date | null | undefined;
+
+export function addDays(date: Date, days: number) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+export function resolveEndDay(info: CourseInfo | null | undefined) {
+    const endDays = Array.isArray(info?.endDays) ? info.endDays : [];
+    if (endDays.length && Number.isInteger(endDays[0])) return endDays[0];
+    const endDay = info?.endDay;
+    if (Number.isInteger(endDay)) return endDay;
+    return 5;
+}
 
 type NormalizedBreakRange = {
     start: Date;
@@ -79,7 +93,7 @@ type CartItem = {
 
 type CartInputs = CalculateTotalFeeInputs & { studentName: string };
 
-function parseDateOnly(value: DateInput) {
+export function parseDateOnly(value: DateInput) {
     if (!value) return null;
     if (value instanceof Date) {
         if (Number.isNaN(value.getTime())) return null;
@@ -98,7 +112,21 @@ function formatDateOnly(date: Date | null | undefined) {
     return `${year}-${month}-${day}`;
 }
 
-function normalizeCourseDays(days: Array<number | string> | null | undefined) {
+export function formatDateWithWeekday(value: DateInput) {
+    const date = parseDateOnly(value);
+    if (!date) return '';
+    return `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}(${weekdayName[date.getDay()]})`;
+}
+
+export function getWeekIndex(start: DateInput, date: DateInput) {
+    const startDate = parseDateOnly(start);
+    const target = parseDateOnly(date);
+    if (!startDate || !target) return null;
+    const diffDays = Math.floor((target.getTime() - startDate.getTime()) / DAY_MS);
+    return Math.floor(diffDays / 7) + 1;
+}
+
+export function normalizeCourseDays(days: Array<number | string> | null | undefined) {
     if (!Array.isArray(days)) return [];
     return Array.from(
         new Set(days.map((d) => Number(d)).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))

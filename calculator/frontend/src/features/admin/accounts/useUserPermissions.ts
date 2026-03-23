@@ -6,9 +6,7 @@ import {
   extractCourseTreeFromCourseConfigSet,
   normalizeCourseConfigSets,
 } from "../courseConfigSets/utils"
-
-const EFFECT_ALLOW = "allow"
-const EFFECT_DENY = "deny"
+import { EFFECT_ALLOW, EFFECT_DENY } from "./permissionsConstants"
 
 type PermissionEffect = "" | typeof EFFECT_ALLOW | typeof EFFECT_DENY
 type PermissionRow = { key?: string; effect?: string } & Record<string, unknown>

@@ -8,108 +8,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
-import { courseInfo, courseTree } from "@/utils/data"
-import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
 import type { AuthUser } from "@/auth-routing"
+import { matchesSearch } from "@/utils/searchUtils"
 
 import AttendanceBoard from "./AttendanceBoard"
 import FiltersCard from "../registrations/FiltersCard"
 import { useRegistrations } from "../registrations/useRegistrations"
 import { useActiveChainRegistrations } from "./useActiveChainRegistrations"
-
-// 초성 추출 함수
-const CHOSUNG = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"]
-
-function getChosung(str: string): string {
-  return str
-    .split("")
-    .map((char) => {
-      const code = char.charCodeAt(0) - 44032
-      if (code < 0 || code > 11171) return char
-      return CHOSUNG[Math.floor(code / 588)]
-    })
-    .join("")
-}
-
-function matchesSearch(label: string, query: string): boolean {
-  if (!query) return true
-  const lowerLabel = label.toLowerCase()
-  const lowerQuery = query.toLowerCase()
-  
-  // 일반 검색
-  if (lowerLabel.includes(lowerQuery)) return true
-  
-  // 초성 검색
-  const chosung = getChosung(label)
-  if (chosung.includes(query)) return true
-  
-  return false
-}
-
-function isValidDow(value: number) {
-  return Number.isInteger(value) && value >= 0 && value <= 6
-}
-
-type CourseInfoRecord = Record<string, CourseInfo | undefined>
-type CourseConfigSet = {
-  name?: string
-  data?: {
-    courseTree?: CourseTreeGroup[]
-    courseInfo?: CourseInfoRecord
-    timeTable?: unknown
-  } | null
-}
-
-function getCourseDaysByName(courseName: string, courseConfigSet: CourseConfigSet | null) {
-  const name = String(courseName || "").trim()
-  if (!name) return []
-
-  const configData = courseConfigSet?.data
-  const configTree = Array.isArray(configData?.courseTree)
-    ? configData.courseTree
-    : []
-  const sources: Array<{ tree: CourseTreeGroup[]; info: CourseInfoRecord }> = [
-    {
-      tree: configTree,
-      info: configData?.courseInfo || {},
-    },
-    { tree: courseTree || [], info: courseInfo || {} },
-  ]
-
-  let bestDays = null
-  let bestLen = 0
-
-  for (const source of sources) {
-    for (const group of source.tree || []) {
-      for (const item of group.items || []) {
-        const label = item?.label
-        if (!label) continue
-        if (!name.startsWith(label) || label.length < bestLen) continue
-
-        const info = source.info?.[item.val]
-        if (Array.isArray(info?.days)) {
-          bestDays = info.days.filter(isValidDow)
-          bestLen = label.length
-        }
-      }
-    }
-
-    const infoValues = Object.values(source.info || {})
-    for (const info of infoValues) {
-      const infoRecord = info && typeof info === "object" ? (info as CourseInfo) : null
-      const label = infoRecord?.name
-      if (!label) continue
-      if (!name.startsWith(label) || label.length < bestLen) continue
-
-      if (Array.isArray(infoRecord?.days)) {
-        bestDays = infoRecord.days.filter(isValidDow)
-        bestLen = label.length
-      }
-    }
-  }
-
-  return bestDays || []
-}
+import { getCourseDaysByName } from "../registrations/utils"
 
 export default function AttendanceTab({ user }: { user: AuthUser | null }) {
   const [courseSearch, setCourseSearch] = useState("")

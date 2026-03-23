@@ -23,35 +23,40 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import type { DateValue, DatesRangeValue } from "@mantine/dates"
-import { getRegistrationStatus } from "./utils"
+import { getRegistrationStatus, getCourseKey, getCourseLabel } from "./utils"
+import { matchesSearch } from "@/utils/searchUtils"
 
-// 초성 추출 함수
-const CHOSUNG = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"]
-
-function getChosung(str: string): string {
-  return str
-    .split("")
-    .map((char) => {
-      const code = char.charCodeAt(0) - 44032
-      if (code < 0 || code > 11171) return char
-      return CHOSUNG[Math.floor(code / 588)]
-    })
-    .join("")
-}
-
-function matchesSearch(label: string, query: string): boolean {
-  if (!query) return true
-  const lowerLabel = label.toLowerCase()
-  const lowerQuery = query.toLowerCase()
-  
-  // 일반 검색
-  if (lowerLabel.includes(lowerQuery)) return true
-  
-  // 초성 검색
-  const chosung = getChosung(label)
-  if (chosung.includes(query)) return true
-  
-  return false
+function SimulationCalendarPopover({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: Date
+  onSelect: (date: Date) => void
+  children: React.ReactNode
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start" side="right">
+        <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-indigo-50/80">
+            <div className="text-xs font-semibold text-violet-700">날짜 시뮬레이션</div>
+            <div className="text-[10px] text-violet-500 mt-0.5">선택한 날짜 기준으로 현황을 미리봅니다</div>
+          </div>
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined) => {
+              const d = value instanceof Date ? value : null
+              if (d) onSelect(d)
+            }}
+            initialFocus
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 type RegistrationRow = {
@@ -120,50 +125,22 @@ export default function RegistrationsSidebar({
     return counts
   }, [registrations])
 
-  // Course grouping logic (reused from CourseOverview)
+  // Course grouping logic
   const courseGroups = useMemo(() => {
     const courseIdLabelMap = courseIdToLabel instanceof Map ? courseIdToLabel : new Map()
     const variantSet = courseVariantRequiredSet instanceof Set ? courseVariantRequiredSet : new Set<string>()
 
-    const getCourseKey = (registration: RegistrationRow) => {
-      const courseId = String(registration?.courseId || "").trim()
-      const courseName = String(registration?.course || "").trim()
-
-      if (courseName && variantSet.size > 0) {
-        for (const base of variantSet) {
-          if (courseName.startsWith(base)) {
-            return `__coursename__${courseName}`
-          }
-        }
-      }
-
-      if (courseId) return `__courseid__${courseId}`
-      return courseName ? `__coursename__${courseName}` : ""
-    }
-
-    const getCourseLabel = (key: string, fallback?: string) => {
-      if (typeof key !== "string") return fallback || ""
-      if (key.startsWith("__courseid__")) {
-        const id = key.replace("__courseid__", "")
-        return courseIdLabelMap.get(id) || fallback || ""
-      }
-      if (key.startsWith("__coursename__")) {
-        return key.replace("__coursename__", "")
-      }
-      return fallback || ""
-    }
-
     const map = new Map<string, { key: string; label: string; count: number }>()
-    
+
     for (const r of registrations || []) {
       const course = String(r?.course || "")
-      const key = getCourseKey(r)
+      const key = getCourseKey(r, variantSet)
       if (!key) continue
       
       if (!map.has(key)) {
         map.set(key, {
           key,
-          label: getCourseLabel(key, course),
+          label: getCourseLabel(key, courseIdLabelMap, course),
           count: 0
         })
       }
@@ -262,30 +239,14 @@ export default function RegistrationsSidebar({
           {simulationDate ? (
             <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200/60 px-3 py-2 shadow-sm">
               <Eye className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="flex-1 text-left text-xs font-semibold text-violet-700 hover:text-violet-900 transition-colors cursor-pointer">
-                    {simulationDate.getFullYear()}.{String(simulationDate.getMonth() + 1).padStart(2, "0")}.{String(simulationDate.getDate()).padStart(2, "0")} 기준
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start" side="right">
-                  <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-indigo-50/80">
-                      <div className="text-xs font-semibold text-violet-700">날짜 시뮬레이션</div>
-                      <div className="text-[10px] text-violet-500 mt-0.5">선택한 날짜 기준으로 합반 상태를 미리봅니다</div>
-                    </div>
-                    <Calendar
-                      mode="single"
-                      selected={simulationDate}
-                      onSelect={(value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined) => {
-                        const d = value instanceof Date ? value : null
-                        if (d) onSimulationDateChange(d)
-                      }}
-                      initialFocus
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <SimulationCalendarPopover
+                selected={simulationDate}
+                onSelect={onSimulationDateChange}
+              >
+                <button className="flex-1 text-left text-xs font-semibold text-violet-700 hover:text-violet-900 transition-colors cursor-pointer">
+                  {simulationDate.getFullYear()}.{String(simulationDate.getMonth() + 1).padStart(2, "0")}.{String(simulationDate.getDate()).padStart(2, "0")} 기준
+                </button>
+              </SimulationCalendarPopover>
               <button
                 onClick={() => onSimulationDateChange(null)}
                 className="flex h-5 w-5 items-center justify-center rounded-md text-violet-400 hover:bg-violet-100 hover:text-violet-600 transition-colors"
@@ -295,31 +256,15 @@ export default function RegistrationsSidebar({
               </button>
             </div>
           ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="flex w-full items-center gap-2 rounded-xl border border-violet-200/60 bg-gradient-to-r from-violet-50/80 to-indigo-50/80 px-3 py-2 text-xs font-semibold text-violet-500 shadow-sm hover:from-violet-100 hover:to-indigo-100 hover:text-violet-700 hover:shadow-md transition-all cursor-pointer">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  날짜 시뮬레이션
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto border-none bg-transparent p-0 shadow-none" align="start" side="right">
-                <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-indigo-50/80">
-                    <div className="text-xs font-semibold text-violet-700">날짜 시뮬레이션</div>
-                    <div className="text-[10px] text-violet-500 mt-0.5">선택한 날짜 기준으로 합반 상태를 미리봅니다</div>
-                  </div>
-                  <Calendar
-                    mode="single"
-                    selected={new Date()}
-                    onSelect={(value: DateValue | DatesRangeValue<DateValue> | DateValue[] | undefined) => {
-                      const d = value instanceof Date ? value : null
-                      if (d) onSimulationDateChange(d)
-                    }}
-                    initialFocus
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
+            <SimulationCalendarPopover
+              selected={new Date()}
+              onSelect={onSimulationDateChange}
+            >
+              <button className="flex w-full items-center gap-2 rounded-xl border border-violet-200/60 bg-gradient-to-r from-violet-50/80 to-indigo-50/80 px-3 py-2 text-xs font-semibold text-violet-500 shadow-sm hover:from-violet-100 hover:to-indigo-100 hover:text-violet-700 hover:shadow-md transition-all cursor-pointer">
+                <CalendarDays className="h-3.5 w-3.5" />
+                날짜 시뮬레이션
+              </button>
+            </SimulationCalendarPopover>
           )}
         </div>
       )}

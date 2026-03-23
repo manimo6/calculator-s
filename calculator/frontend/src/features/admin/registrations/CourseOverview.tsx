@@ -2,7 +2,7 @@ import { useMemo } from "react"
 
 import { Book, BookCopy, CheckCircle2, Clock, Grid3X3, TimerOff } from "lucide-react"
 
-import { getRegistrationStatus } from "./utils"
+import { getRegistrationStatus, getCourseKey, getCourseLabel } from "./utils"
 
 type RegistrationRow = {
   courseId?: string | number
@@ -115,35 +115,6 @@ export default function CourseOverview({
   const courseIdLabelMap = courseIdToLabel instanceof Map ? courseIdToLabel : new Map()
   const variantSet = courseVariantRequiredSet instanceof Set ? courseVariantRequiredSet : new Set<string>()
 
-  const getCourseKey = (registration: RegistrationRow) => {
-    const courseId = String(registration?.courseId || "").trim()
-    const courseName = String(registration?.course || "").trim()
-
-    // 동적시간 수업인 경우 courseName(라벨)을 키로 사용하여 별도 카드로 분리
-    if (courseName && variantSet.size > 0) {
-      for (const base of variantSet) {
-        if (courseName.startsWith(base)) {
-          return `__coursename__${courseName}`
-        }
-      }
-    }
-
-    if (courseId) return `__courseid__${courseId}`
-    return courseName ? `__coursename__${courseName}` : ""
-  }
-
-  const getCourseLabel = (key: string, fallback?: string) => {
-    if (typeof key !== "string") return fallback || ""
-    if (key.startsWith("__courseid__")) {
-      const id = key.replace("__courseid__", "")
-      return courseIdLabelMap.get(id) || fallback || ""
-    }
-    if (key.startsWith("__coursename__")) {
-      return key.replace("__coursename__", "")
-    }
-    return fallback || ""
-  }
-
   const grouped = useMemo(() => {
     const map = new Map<
       string,
@@ -186,12 +157,12 @@ export default function CourseOverview({
         continue
       }
 
-      const key = getCourseKey(r)
+      const key = getCourseKey(r, variantSet)
       if (!key) continue
       if (!map.has(key)) {
         map.set(key, {
           key,
-          course: getCourseLabel(key, course),
+          course: getCourseLabel(key, courseIdLabelMap, course),
           rows: [],
           breakdown: { active: 0, pending: 0, completed: 0 },
         })

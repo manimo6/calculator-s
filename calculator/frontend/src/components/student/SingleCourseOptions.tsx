@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { weekdayName, timeTable, recordingAvailable, type CourseInfo, type TimeTableEntry } from '../../utils/data';
-import { getAvailableRecordingDates, getScheduleWeeks, normalizeSkipWeeks } from '../../utils/calculatorLogic';
+import { DAY_MS, getAvailableRecordingDates, getScheduleWeeks, normalizeSkipWeeks, parseDateOnly } from '../../utils/calculatorLogic';
 import { Calendar as CalendarIcon, Clock, MapPin, Monitor, CheckCircle2, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -39,14 +39,7 @@ type CourseInfoMap = Record<string, CourseInfo | undefined>
 const areArraysEqual = (a: Array<string | number> = [], b: Array<string | number> = []) =>
     a.length === b.length && a.every((v, i) => v === b[i]);
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-const DAY_MS = 24 * 60 * 60 * 1000;
 const isStringEntry = (entry: [string, unknown]): entry is [string, string] => typeof entry[1] === 'string';
-const parseDateOnly = (value: DateInput) => {
-    if (!value) return null;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return date;
-};
 
 const SingleCourseOptions = ({
     selectedCourseKey,

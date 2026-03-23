@@ -10,6 +10,8 @@ const {
   validateCourseNamesBody,
 } = require('../validators/registrationValidator');
 const { getSafeErrorMessage } = require('../utils/apiError');
+const { formatDateOnly, parseDateOnly, normalizeCourseId, normalizeCourseConfigSetName } = require('../utils/dateUtils');
+const { parseWeeks, computeEndDate } = require('../utils/parsers');
 const {
   getRequestUser,
   requirePermissions,
@@ -22,6 +24,8 @@ const {
   isCategoryAllowed,
   isCategoryAccessBypassed,
   resolveCategoryForCourse,
+  loadAccessContext,
+  isRegistrationAllowed,
 } = require('../services/categoryAccessService');
 
 type RegistrationRow = {
@@ -51,25 +55,6 @@ const router = express.Router();
 
 router.use(authMiddleware());
 
-function formatDateOnly(date: string | number | Date | null | undefined) {
-  if (!date) return '';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
-}
-
-function parseDateOnly(value: unknown) {
-  if (value === null || value === undefined || value === '') return null;
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return null;
-    return value;
-  }
-  const s = String(value).trim();
-  if (!s) return null;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
 
 function addDays(date: string | number | Date, days: number) {
   const base = date instanceof Date ? date : new Date(date);
@@ -77,90 +62,6 @@ function addDays(date: string | number | Date, days: number) {
   const next = new Date(base);
   next.setDate(base.getDate() + days);
   return next;
-}
-
-function computeEndDate(startDate: string | number | Date | null | undefined, weeks: number | null | undefined, skipWeeks: unknown[] = []) {
-  if (!startDate || !weeks) return '';
-  const s = new Date(startDate);
-  if (Number.isNaN(s.getTime())) return '';
-  const skipCount = Array.isArray(skipWeeks) ? skipWeeks.length : 0;
-  const scheduleWeeks = Number(weeks) + Number(skipCount || 0);
-  if (!Number.isFinite(scheduleWeeks) || scheduleWeeks <= 0) return '';
-  const end = new Date(s);
-  end.setUTCDate(s.getUTCDate() + scheduleWeeks * 7 - 1);
-  return formatDateOnly(end);
-}
-
-function normalizeCourseId(value: unknown) {
-  const s = String(value ?? '').trim();
-  return s ? s : null;
-}
-
-function normalizeCourseConfigSetName(value: unknown) {
-  const s = String(value ?? '').trim();
-  return s ? s : null;
-}
-
-function parseWeeks(value: unknown) {
-  if (value === undefined || value === null || value === '') return null;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) return null;
-    const i = Math.trunc(value);
-    return i > 0 ? i : null;
-  }
-  const s = String(value).trim();
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.trunc(n);
-  return i > 0 ? i : null;
-}
-
-async function loadAccessContext(
-  userId: string,
-  setNames: string[],
-  bypassAccess = false
-): Promise<{
-  accessMap: ReturnType<typeof buildCategoryAccessMap>
-  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>
-}> {
-  const names = Array.from(new Set(setNames.filter(Boolean)));
-  if (!names.length) {
-    return { accessMap: new Map(), indexMap: new Map() };
-  }
-  const accessPromise = bypassAccess
-    ? Promise.resolve([])
-    : prisma.userCategoryAccess.findMany({
-        where: { userId, courseConfigSetName: { in: names } },
-        select: { courseConfigSetName: true, categoryKey: true, effect: true },
-      });
-  const setPromise = prisma.courseConfigSet.findMany({
-    where: { name: { in: names } },
-    select: { name: true, data: true },
-  });
-  const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-  return {
-    accessMap: buildCategoryAccessMap(accessRows),
-    indexMap: buildCourseConfigSetIndexMap(setRows),
-  };
-}
-
-function isRegistrationAllowed(
-  row: RegistrationRow,
-  accessMap: ReturnType<typeof buildCategoryAccessMap>,
-  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>,
-  bypassAccess = false
-) {
-  const setName = String(row?.courseConfigSetName || '').trim();
-  if (!setName) return true;
-  const access = getAccessForSet(accessMap, setName, bypassAccess);
-  const index = indexMap.get(setName);
-  if (!index) return true;
-  const category = resolveCategoryForCourse(
-    { courseId: row?.courseId, courseName: row?.course },
-    index
-  );
-  return isCategoryAllowed(category, access);
 }
 
 function isCourseNameAllowed(

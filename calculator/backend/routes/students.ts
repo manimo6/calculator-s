@@ -10,6 +10,14 @@ const {
   validateStudentUpdate,
 } = require('../validators/studentValidator');
 const { getSafeErrorMessage } = require('../utils/apiError');
+const { formatDateOnly, parseDateOnly, normalizeCourseId, normalizeCourseConfigSetName } = require('../utils/dateUtils');
+const {
+  parseWeeks,
+  parseTuitionFee,
+  parseSkipWeeks,
+  normalizeRecordingDates,
+  parseExcludeMath,
+} = require('../utils/parsers');
 
 type RegistrationRow = {
   id?: string
@@ -35,85 +43,8 @@ const router = express.Router();
 
 router.use(authMiddleware());
 
-function formatDateOnly(date: string | number | Date | null | undefined) {
-  if (!date) return '';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
-}
 
-function parseDateOnly(value: unknown) {
-  if (!value) return null;
-  if (value instanceof Date) return value;
-  const s = String(value).trim();
-  if (!s) return null;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
 
-function parseWeeks(value: unknown) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) return null;
-    const i = Math.trunc(value);
-    return i > 0 ? i : null;
-  }
-  const s = String(value).trim();
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.trunc(n);
-  return i > 0 ? i : null;
-}
-
-function parseTuitionFee(value: unknown) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) return null;
-    const i = Math.trunc(value);
-    return i >= 0 ? i : null;
-  }
-  const s = String(value).replace(/,/g, '').trim();
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.trunc(n);
-  return i >= 0 ? i : null;
-}
-
-function parseSkipWeeks(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  const set = new Set<number>();
-  for (const raw of value) {
-    const n = Number(raw);
-    if (Number.isInteger(n) && n > 1) {
-      set.add(n);
-    }
-  }
-  return Array.from(set).sort((a, b) => a - b);
-}
-
-function normalizeRecordingDates(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.map((v) => String(v).trim()).filter(Boolean);
-}
-
-function parseExcludeMath(value: unknown) {
-  if (value === true || value === 'true') return true;
-  if (value === 1 || value === '1') return true;
-  return false;
-}
-
-function normalizeCourseId(value: unknown) {
-  const s = String(value ?? '').trim();
-  return s ? s : null;
-}
-
-function normalizeCourseConfigSetName(value: unknown) {
-  const s = String(value ?? '').trim();
-  return s ? s : null;
-}
 
 function buildCourseIdentity(courseId: unknown, courseName: unknown) {
   const id = normalizeCourseId(courseId);

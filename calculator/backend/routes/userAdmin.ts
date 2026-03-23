@@ -5,22 +5,12 @@ const { buildCourseTreeIndex, normalizeKey } = require('../services/categoryAcce
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { requireRecentAuth } = require('../middleware/reauthMiddleware');
 
+const { hashPassword } = require('../services/passwordUtils');
+
 const router = express.Router();
 type PermissionEffect = 'allow' | 'deny'
 
 const EFFECTS = new Set<PermissionEffect>(['allow', 'deny']);
-
-function hashPassword(password: string, iterations = 100000, keylen = 32, digest = 'sha256') {
-  const salt = crypto.randomBytes(16);
-  const hash = crypto.pbkdf2Sync(password, salt, iterations, keylen, digest);
-  return {
-    salt: salt.toString('base64'),
-    hash: hash.toString('base64'),
-    iterations,
-    keylen,
-    digest,
-  };
-}
 
 // GET /api/users - 리스트(마스터/관리자만)
 router.get('/', authMiddleware(['master', 'admin']), async (req, res) => {

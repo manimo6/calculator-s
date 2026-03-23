@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { getBreakDateSet, getEndDate, getScheduleWeeks, normalizeSkipWeeks } from "@/utils/calculatorLogic"
+import { ALL_WEEK_DAYS, getBreakDateSet, getEndDate, getScheduleWeeks, getWeekIndex, normalizeCourseDays, normalizeSkipWeeks } from "@/utils/calculatorLogic"
 import type { BreakRangeInput } from "@/utils/data"
 import { parseDate } from "../registrations/utils"
 
@@ -27,9 +27,6 @@ const LABEL_WIDTH_PX = 240
 const DAY_WIDTH_PX = 44
 const ROW_HEIGHT_PX = 50
 
-const DAY_MS = 24 * 60 * 60 * 1000
-const WEEK_MS = 7 * DAY_MS
-const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6]
 const API_URL = import.meta.env.VITE_API_URL || ""
 
 const STATUS_STYLES = [
@@ -157,16 +154,7 @@ function getRowKey(row: AttendanceRow, index: number) {
   return `${name}-${course}-${index}`
 }
 
-function normalizeCourseDays(days?: Array<number | string> | null) {
-  if (!Array.isArray(days)) return []
-  return Array.from(
-    new Set(days.map((d) => Number(d)).filter((d) => d >= 0 && d <= 6))
-  ).sort((a, b) => a - b)
-}
 
-function getWeekIndex(date: Date, start: Date) {
-  return Math.floor((date.getTime() - start.getTime()) / WEEK_MS) + 1
-}
 
 function hasUpcomingClasses(
   meta: AttendanceRowMeta | undefined,
@@ -196,7 +184,7 @@ function hasUpcomingClasses(
     if (courseDaySet.has(cursor.getDay())) {
       const dateKey = format(cursor, "yyyy-MM-dd")
       if (
-        !skipWeekSet.has(getWeekIndex(cursor, meta.start)) &&
+        !skipWeekSet.has(getWeekIndex(meta.start, cursor)) &&
         !breakDateSet.has(dateKey)
       )
         return true
@@ -701,7 +689,7 @@ export default function AttendanceBoard(props: AttendanceBoardProps) {
                         hasCourseDay &&
                         meta?.skipWeekSet?.size &&
                         start &&
-                        meta?.skipWeekSet?.has(getWeekIndex(day, start))
+                        meta?.skipWeekSet?.has(getWeekIndex(start, day))
 
                       const isInactiveDay =
                         inactiveAt &&

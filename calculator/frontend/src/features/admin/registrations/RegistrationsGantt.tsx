@@ -20,12 +20,17 @@ import {
 } from "lucide-react"
 
 import {
+  addDays,
   formatDateYmd,
   getRegistrationStatus,
   getStatusLabel,
+  normalizeWeekRanges,
+  pad2,
   parseDate,
+  stripMathExcludeLabel,
+  type NormalizedWeekRange,
 } from "./utils"
-import { normalizeSkipWeeks } from "@/utils/calculatorLogic"
+import { normalizeCourseDays, normalizeSkipWeeks } from "@/utils/calculatorLogic"
 import { useVisibleRows, useTransferHistory } from "./useTransferDisplay"
 import TransferHistoryTimeline from "./TransferHistoryTimeline"
 
@@ -38,8 +43,6 @@ const RECORDING_ICON_PX = 16
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"]
 
 type DateInput = string | number | Date | null | undefined
-type WeekRange = { start?: number; end?: number }
-type NormalizedWeekRange = { start: number; end: number }
 type WeekRangeDates = { start: Date; end: Date }
 type RecordingWeek = { weekIndex: number; dates: Date[] }
 type BaseRow = {
@@ -96,16 +99,6 @@ function adjustEndToLastClassDay(
   return d // fallback
 }
 
-function addDays(date: Date, days: number) {
-  const d = new Date(date.getTime())
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-function pad2(value: string | number) {
-  return String(value).padStart(2, "0")
-}
-
 function formatWeekLabel(start: Date, end: Date) {
   if (!(start instanceof Date) || !(end instanceof Date)) return ""
 
@@ -125,35 +118,7 @@ function formatDateKorean(date: Date | null | undefined) {
   return `${month}월 ${day}일 (${dow})`
 }
 
-function normalizeCourseDays(courseDays: Array<number | string> | null | undefined) {
-  if (!Array.isArray(courseDays)) return []
-  return Array.from(
-    new Set(
-      courseDays
-        .map((d) => Number(d))
-        .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
-    )
-  ).sort((a, b) => a - b)
-}
 
-function normalizeWeekRanges(
-  ranges: WeekRange[] | null | undefined
-): NormalizedWeekRange[] {
-  if (!Array.isArray(ranges)) return []
-  return ranges
-    .map((range) => ({
-      start: Number(range?.start),
-      end: Number(range?.end),
-    }))
-    .filter(
-      (range) =>
-        Number.isInteger(range.start) &&
-        Number.isInteger(range.end) &&
-        range.start >= 1 &&
-        range.end >= range.start
-    )
-    .sort((a, b) => a.start - b.start || a.end - b.end)
-}
 
 function isWeekInRanges(relativeWeek: number, ranges: NormalizedWeekRange[]) {
   if (!ranges.length) return true
@@ -294,12 +259,6 @@ function StatusPill({ status }: { status: string }) {
   )
 }
 
-
-function stripMathExcludeLabel(value: string | null | undefined) {
-  const raw = String(value || "").trim()
-  if (!raw) return ""
-  return raw.replace(/\s*\(?수학\s*제외\)?\s*$/g, "").trim()
-}
 
 type RegistrationsGanttProps = {
   registrations: RegistrationRow[]

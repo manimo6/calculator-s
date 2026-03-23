@@ -1,5 +1,4 @@
-const EFFECT_ALLOW = 'allow';
-const EFFECT_DENY = 'deny';
+const { EFFECT_ALLOW, EFFECT_DENY } = require('./permissionService');
 
 type CourseTreeItem = { val?: string; label?: string }
 type CourseTreeGroup = { cat?: string; items?: CourseTreeItem[] }
@@ -93,14 +92,14 @@ function getAccessForSet(
   bypassAccess = false
 ) {
   if (bypassAccess) {
-    return { allow: new Set(), deny: new Set(), hasRules: false, bypass: true };
+    return { allow: new Set<string>(), deny: new Set<string>(), hasRules: false, bypass: true };
   }
   const key = normalizeKey(courseConfigSetName);
   if (!key || !accessMap) {
-    return { allow: new Set(), deny: new Set(), hasRules: false, bypass: false };
+    return { allow: new Set<string>(), deny: new Set<string>(), hasRules: false, bypass: false };
   }
   const entry =
-    accessMap.get(key) || { allow: new Set(), deny: new Set(), hasRules: false };
+    accessMap.get(key) || { allow: new Set<string>(), deny: new Set<string>(), hasRules: false };
   return { ...entry, bypass: false };
 }
 
@@ -254,6 +253,54 @@ function isCategoryAccessBypassed(user: { role?: string } | null | undefined) {
   return String(user?.role || '').trim().toLowerCase() === 'master';
 }
 
+async function loadAccessContext(
+  userId: string,
+  setNames: string[],
+  bypassAccess = false
+): Promise<{
+  accessMap: ReturnType<typeof buildCategoryAccessMap>
+  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>
+}> {
+  const { prisma } = require('../db/prisma');
+  const names = Array.from(new Set(setNames.filter(Boolean)));
+  if (!names.length) {
+    return { accessMap: new Map(), indexMap: new Map() };
+  }
+  const accessPromise = bypassAccess
+    ? Promise.resolve([])
+    : prisma.userCategoryAccess.findMany({
+        where: { userId, courseConfigSetName: { in: names } },
+        select: { courseConfigSetName: true, categoryKey: true, effect: true },
+      });
+  const setPromise = prisma.courseConfigSet.findMany({
+    where: { name: { in: names } },
+    select: { name: true, data: true },
+  });
+  const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
+  return {
+    accessMap: buildCategoryAccessMap(accessRows),
+    indexMap: buildCourseConfigSetIndexMap(setRows),
+  };
+}
+
+function isRegistrationAllowed(
+  row: { courseId?: string; course?: string; courseConfigSetName?: string },
+  accessMap: ReturnType<typeof buildCategoryAccessMap>,
+  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>,
+  bypassAccess = false
+) {
+  const setName = String(row?.courseConfigSetName || '').trim();
+  if (!setName) return true;
+  const access = getAccessForSet(accessMap, setName, bypassAccess);
+  const index = indexMap.get(setName);
+  if (!index) return true;
+  const category = resolveCategoryForCourse(
+    { courseId: row?.courseId, courseName: row?.course },
+    index
+  );
+  return isCategoryAllowed(category, access);
+}
+
 module.exports = {
   normalizeKey,
   buildCategoryAccessMap,
@@ -267,4 +314,6 @@ module.exports = {
   mergeCourseConfigSetData,
   buildCourseConfigSetIndexMap,
   isCategoryAccessBypassed,
+  loadAccessContext,
+  isRegistrationAllowed,
 };

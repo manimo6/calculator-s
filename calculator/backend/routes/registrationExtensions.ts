@@ -3,17 +3,22 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { getSafeErrorMessage } = require('../utils/apiError');
+const { formatDateOnly } = require('../utils/dateUtils');
+const {
+  parseStrictDateOnly,
+  parseWeeks,
+  parseTuitionFee,
+  normalizeRegistrationIds,
+  computeEndDate,
+} = require('../utils/parsers');
 const {
   getRequestUser,
   requirePermissions,
 } = require('../middleware/permissionMiddleware');
 const {
-  buildCategoryAccessMap,
-  buildCourseConfigSetIndexMap,
-  getAccessForSet,
-  isCategoryAllowed,
   isCategoryAccessBypassed,
-  resolveCategoryForCourse,
+  loadAccessContext,
+  isRegistrationAllowed,
 } = require('../services/categoryAccessService');
 
 type RegistrationRow = {
@@ -38,135 +43,6 @@ router.use(
   requirePermissions(['tabs.registrations', 'registrations.installments.view'])
 );
 
-function formatDateOnly(date: string | number | Date | null | undefined) {
-  if (!date) return '';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
-}
-
-function parseDateOnly(value: unknown) {
-  if (!value) return null;
-  const raw = String(value).trim();
-  if (!raw) return null;
-
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
-      return null;
-    }
-    return new Date(Date.UTC(year, month - 1, day));
-  }
-
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
-
-function parseWeeks(value: unknown) {
-  if (value === undefined || value === null) return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.trunc(n);
-  return i > 0 ? i : null;
-}
-
-function parseTuitionFee(value: unknown) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) return null;
-    const i = Math.trunc(value);
-    return i >= 0 ? i : null;
-  }
-  const s = String(value).replace(/,/g, '').trim();
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.trunc(n);
-  return i >= 0 ? i : null;
-}
-
-function computeEndDate(startDate: unknown, weeks: number | null, skipWeeks: unknown[] = []) {
-  if (!startDate || !weeks) return '';
-  const s =
-    startDate instanceof Date
-      ? startDate
-      : typeof startDate === 'string' || typeof startDate === 'number'
-        ? new Date(startDate)
-        : null;
-  if (!s) return '';
-  if (Number.isNaN(s.getTime())) return '';
-  const skipCount = Array.isArray(skipWeeks) ? skipWeeks.length : 0;
-  const scheduleWeeks = Number(weeks) + Number(skipCount || 0);
-  if (!Number.isFinite(scheduleWeeks) || scheduleWeeks <= 0) return '';
-  const end = new Date(s);
-  end.setUTCDate(s.getUTCDate() + scheduleWeeks * 7 - 1);
-  return formatDateOnly(end);
-}
-
-function normalizeRegistrationIds(value: unknown) {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value
-      .flatMap((item) => String(item || '').split(','))
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  return String(value)
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-async function loadAccessContext(
-  userId: string,
-  setNames: string[],
-  bypassAccess = false
-): Promise<{
-  accessMap: ReturnType<typeof buildCategoryAccessMap>
-  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>
-}> {
-  const names = Array.from(new Set(setNames.filter(Boolean)));
-  if (!names.length) {
-    return { accessMap: new Map(), indexMap: new Map() };
-  }
-  const accessPromise = bypassAccess
-    ? Promise.resolve([])
-    : prisma.userCategoryAccess.findMany({
-        where: { userId, courseConfigSetName: { in: names } },
-        select: { courseConfigSetName: true, categoryKey: true, effect: true },
-      });
-  const setPromise = prisma.courseConfigSet.findMany({
-    where: { name: { in: names } },
-    select: { name: true, data: true },
-  });
-  const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-  return {
-    accessMap: buildCategoryAccessMap(accessRows),
-    indexMap: buildCourseConfigSetIndexMap(setRows),
-  };
-}
-
-function isRegistrationAllowed(
-  row: RegistrationRow,
-  accessMap: ReturnType<typeof buildCategoryAccessMap>,
-  indexMap: ReturnType<typeof buildCourseConfigSetIndexMap>,
-  bypassAccess = false
-) {
-  const setName = String(row?.courseConfigSetName || '').trim();
-  if (!setName) return true;
-  const access = getAccessForSet(accessMap, setName, bypassAccess);
-  const index = indexMap.get(setName);
-  if (!index) return true;
-  const category = resolveCategoryForCourse(
-    { courseId: row?.courseId, courseName: row?.course },
-    index
-  );
-  return isCategoryAllowed(category, access);
-}
 
 router.get('/', async (req, res) => {
   try {
@@ -239,8 +115,8 @@ router.post('/', async (req, res) => {
 
     const registrationId = String(req.body?.registrationId || '').trim();
     const extendWeeks = parseWeeks(req.body?.weeks ?? req.body?.extendWeeks);
-    const startDate = parseDateOnly(req.body?.startDate);
-    const endDate = parseDateOnly(req.body?.endDate);
+    const startDate = parseStrictDateOnly(req.body?.startDate);
+    const endDate = parseStrictDateOnly(req.body?.endDate);
     const tuitionFee = parseTuitionFee(req.body?.tuitionFee);
 
     if (!registrationId || !extendWeeks) {
@@ -271,7 +147,7 @@ router.post('/', async (req, res) => {
     const nextWeeks = baseWeeks + extendWeeks;
     const computedEndDate = endDate
       ? endDate
-      : parseDateOnly(
+      : parseStrictDateOnly(
           computeEndDate(registration.startDate, nextWeeks, registration.skipWeeks)
         );
 

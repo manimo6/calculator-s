@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { apiClient } from "@/api-client"
-import { getEndDate, getScheduleWeeks, normalizeBreakRanges } from "@/utils/calculatorLogic"
-import { courseInfo as globalCourseInfo, courseTree as globalCourseTree } from "@/utils/data"
+import { addDays, getEndDate, getScheduleWeeks, normalizeBreakRanges, normalizeCourseDays, resolveEndDay } from "@/utils/calculatorLogic"
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
 import {
   getActiveMergesToday,
@@ -17,7 +16,7 @@ import {
   extractCoursesFromCourseConfigSet,
   normalizeCourseConfigSets,
 } from "../courseConfigSets/utils"
-import { formatDateYmd, parseDate } from "./utils"
+import { formatDateYmd, matchesCourseName, normalizeCourse, normalizeWeekRanges, parseDate, resolveCourseInfo } from "./utils"
 
 function isMergeKey(value: unknown) {
   return typeof value === "string" && value.startsWith("__merge__")
@@ -25,10 +24,6 @@ function isMergeKey(value: unknown) {
 
 const COURSE_ID_PREFIX = "__courseid__"
 const COURSE_NAME_PREFIX = "__coursename__"
-
-function normalizeCourse(value: unknown) {
-  return String(value || "").trim()
-}
 
 function makeCourseFilterValue(courseId: unknown, courseName: unknown) {
   const id = normalizeCourse(courseId)
@@ -48,29 +43,8 @@ function parseCourseFilterValue(value: unknown) {
   return { type: "name", value: raw }
 }
 
-function matchesCourseName(courseName: unknown, target: unknown) {
-  const course = normalizeCourse(courseName)
-  const base = normalizeCourse(target)
-  if (!course || !base) return false
-  return course === base || course.startsWith(base)
-}
 
-function normalizeCourseDays(days: Array<number | string> | null | undefined) {
-  if (!Array.isArray(days)) return []
-  return Array.from(
-    new Set(
-      days.map((d) => Number(d)).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
-    )
-  ).sort((a, b) => a - b)
-}
 
-function resolveEndDay(info: CourseInfo | null | undefined) {
-  const endDays = Array.isArray(info?.endDays) ? info.endDays : []
-  if (endDays.length && Number.isInteger(endDays[0])) return endDays[0]
-  const endDay = info?.endDay
-  if (Number.isInteger(endDay)) return endDay
-  return 5
-}
 
 type CourseInfoRecord = Record<string, CourseInfo | undefined>
 type CourseConfigSet = {
@@ -108,58 +82,6 @@ type MergeEntry = {
 } & Record<string, unknown>
 type ExtensionRow = { registrationId?: string | number } & Record<string, unknown>
 
-function resolveCourseInfo(
-  courseId: unknown,
-  courseName: unknown,
-  courseConfigSet: CourseConfigSet | null
-) {
-  const id = normalizeCourse(courseId)
-  const name = normalizeCourse(courseName)
-  if (!id && !name) return null
-
-  const configData = courseConfigSet?.data
-  const configInfo = configData?.courseInfo || {}
-  if (id && configInfo[id]) return configInfo[id]
-
-  const sources: Array<{ tree: CourseTreeGroup[]; info: CourseInfoRecord }> = [
-    {
-      tree: Array.isArray(configData?.courseTree) ? configData.courseTree : [],
-      info: configInfo,
-    },
-    { tree: globalCourseTree || [], info: globalCourseInfo || {} },
-  ]
-
-  let best = null
-  let bestLen = 0
-
-  for (const source of sources) {
-    for (const group of source.tree || []) {
-      for (const item of group.items || []) {
-        const label = item?.label
-        if (!label || !name) continue
-        if (!name.startsWith(label) || label.length < bestLen) continue
-        const info = source.info?.[item.val]
-        if (info) {
-          best = info
-          bestLen = label.length
-        }
-      }
-    }
-
-    const infoValues = Object.values(source.info || {})
-    for (const info of infoValues) {
-      const infoRecord = info && typeof info === "object" ? (info as CourseInfo) : null
-      const label = infoRecord?.name
-      if (!label || !name) continue
-      if (!name.startsWith(label) || label.length < bestLen) continue
-      best = infoRecord
-      bestLen = label.length
-    }
-  }
-
-  return best
-}
-
 function isTimeVariantEntry(entry: unknown) {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false
   const record = entry as Record<string, unknown>
@@ -179,35 +101,12 @@ function normalizeCourseConfigSetName(value: unknown) {
   return String(value || "").trim()
 }
 
-function normalizeWeekRanges(ranges: unknown) {
-  if (!Array.isArray(ranges)) return []
-  return ranges
-    .map((range) => ({
-      start: Number(range?.start),
-      end: Number(range?.end),
-    }))
-    .filter(
-      (range) =>
-        Number.isInteger(range.start) &&
-        Number.isInteger(range.end) &&
-        range.start >= 1 &&
-        range.end >= range.start
-    )
-    .sort((a, b) => a.start - b.start || a.end - b.end)
-}
 
 function parseWeekNumber(value: unknown) {
   const num = Number(value)
   return Number.isInteger(num) ? num : NaN
 }
 
-function addDays(value: string | number | Date | null | undefined, days: number) {
-  const date = parseDate(value)
-  if (!date) return null
-  const next = new Date(date)
-  next.setDate(next.getDate() + days)
-  return next
-}
 
 function isPermissionDeniedError(error: unknown) {
   const message = String((error as { message?: string })?.message || "").toLowerCase()

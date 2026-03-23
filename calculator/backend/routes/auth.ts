@@ -18,27 +18,12 @@ const {
   ensureCsrfCookie,
 } = require('../services/authCookies');
 
+const { hashPassword } = require('../services/passwordUtils');
+
 const router = express.Router();
 
 const RATE_LIMIT_WINDOW_MS = 30 * 1000;
 const RATE_LIMIT_MAX = 10;
-
-function hashPassword(
-  password: string,
-  iterations = 100000,
-  keylen = 32,
-  digest: string = 'sha256'
-) {
-  const salt = crypto.randomBytes(16);
-  const hash = crypto.pbkdf2Sync(password, salt, iterations, keylen, digest);
-  return {
-    salt: salt.toString('base64'),
-    hash: hash.toString('base64'),
-    iterations,
-    keylen,
-    digest,
-  };
-}
 
 function getClientIp(req: import('express').Request) {
   return req.ip || req.connection?.remoteAddress || '';

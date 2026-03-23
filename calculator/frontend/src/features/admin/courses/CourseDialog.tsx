@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 
 import { type BreakRangeInput, type CourseTreeGroup, weekdayName } from "@/utils/data"
+import { formatDateYmd } from "../registrations/utils"
 
 type TextbookState = {
   defaultOption: string
@@ -157,13 +158,6 @@ function parseDateYmd(value: BreakRangeInput[keyof BreakRangeInput]) {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-function formatDateYmd(date?: Date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return ""
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
 
 function courseFormReducer(state: CourseFormState, action: CourseAction): CourseFormState {
   switch (action.type) {

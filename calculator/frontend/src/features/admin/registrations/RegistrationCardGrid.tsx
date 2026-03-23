@@ -23,6 +23,7 @@ import {
   getStatusLabel,
   getStatusSortRank,
   parseDate,
+  stripMathExcludeLabel,
 } from "./utils"
 
 type RegistrationRow = {
@@ -73,12 +74,6 @@ function StatusBadge({ status }: { status: string | null | undefined }) {
       {label}
     </Badge>
   )
-}
-
-function stripMathExcludeLabel(value: string | null | undefined) {
-  const raw = String(value || "").trim()
-  if (!raw) return ""
-  return raw.replace(/\s*\(?수학 제외\)?\s*$/g, "").trim()
 }
 
 type RegistrationCardProps = {

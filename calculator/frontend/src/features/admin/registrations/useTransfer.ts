@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react"
 import { apiClient } from "@/api-client"
 import type { CourseInfo, CourseTreeGroup } from "@/utils/data"
 
-import { formatDateYmd, parseDate } from "./utils"
+import { formatDateYmd, normalizeCourse, parseDate } from "./utils"
 
 // ── Types ──
 
@@ -37,19 +37,16 @@ type CourseConfigSet = {
 const COURSE_ID_PREFIX = "__courseid__"
 const COURSE_NAME_PREFIX = "__coursename__"
 
-function normalizeCourseValue(value: unknown) {
-  return String(value || "").trim()
-}
 
 export function makeCourseValue(courseId: unknown, courseName: unknown) {
-  const id = normalizeCourseValue(courseId)
+  const id = normalizeCourse(courseId)
   if (id) return `${COURSE_ID_PREFIX}${id}`
-  const name = normalizeCourseValue(courseName)
+  const name = normalizeCourse(courseName)
   return name ? `${COURSE_NAME_PREFIX}${name}` : ""
 }
 
 export function parseCourseValue(value: unknown) {
-  const raw = normalizeCourseValue(value)
+  const raw = normalizeCourse(value)
   if (raw.startsWith(COURSE_ID_PREFIX)) {
     return { type: "id" as const, value: raw.slice(COURSE_ID_PREFIX.length) }
   }
@@ -181,14 +178,14 @@ export function useTransfer({
     const categoryOrder: string[] = []
 
     for (const group of tree) {
-      const category = normalizeCourseValue(group?.cat)
+      const category = normalizeCourse(group?.cat)
       if (category && !categoryOrder.includes(category)) {
         categoryOrder.push(category)
       }
       for (const item of group.items || []) {
-        const id = normalizeCourseValue(item?.val)
+        const id = normalizeCourse(item?.val)
         if (id) idToCategory.set(id, category)
-        const label = normalizeCourseValue(item?.label)
+        const label = normalizeCourse(item?.label)
         if (label) labelToCategory.push({ label, category })
       }
     }

@@ -26,14 +26,13 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 
-import { courseInfo, courseTree, weekdayName } from "@/utils/data"
+import { TUITION_ACCOUNT } from "@/utils/clipboardUtils"
 import type { BreakRangeInput, CourseInfo, CourseTreeGroup } from "@/utils/data"
 import type { DateValue, DatesRangeValue } from "@mantine/dates"
-import { getEndDate, getScheduleWeeks, normalizeBreakRanges } from "@/utils/calculatorLogic"
+import { ALL_WEEK_DAYS, formatDateWithWeekday, getEndDate, getScheduleWeeks, normalizeBreakRanges, normalizeCourseDays, resolveEndDay } from "@/utils/calculatorLogic"
 
-import { diffInDays, formatDateYmd, parseDate, startOfDay } from "./utils"
+import { diffInDays, formatDateYmd, parseDate, resolveCourseInfo, startOfDay } from "./utils"
 
-const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6]
 const DEFAULT_EXTEND_WEEKS = 4
 const DEFAULT_SORT = { key: "status", direction: "asc" }
 
@@ -85,67 +84,6 @@ type InstallmentRow = {
 type SortKey = "student" | "course" | "period" | "status" | null
 type SortConfig = { key: SortKey; direction: "asc" | "desc" }
 
-function pad2(value: string | number) {
-  return String(value).padStart(2, "0")
-}
-
-function normalizeCourseDays(days: Array<number | string> | null | undefined) {
-  if (!Array.isArray(days)) return []
-  return days
-    .map((d) => Number(d))
-    .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
-}
-
-function resolveCourseInfo(
-  courseId: unknown,
-  courseName: unknown,
-  courseConfigSet: CourseConfigSet | null
-): CourseInfo | null {
-  const id = String(courseId || "").trim()
-  const name = String(courseName || "").trim()
-  if (!id && !name) return null
-
-  const configData = courseConfigSet?.data
-  const configInfo = configData?.courseInfo || {}
-  if (id && configInfo[id]) return configInfo[id]
-
-  const sources: Array<{ tree: CourseTreeGroup[]; info: CourseInfoRecord }> = [
-    {
-      tree: Array.isArray(configData?.courseTree) ? configData.courseTree : [],
-      info: configInfo,
-    },
-    { tree: courseTree || [], info: courseInfo || {} },
-  ]
-
-  let best: CourseInfo | null = null
-  let bestLen = 0
-
-  for (const source of sources) {
-    for (const group of source.tree || []) {
-      for (const item of group.items || []) {
-        const label = item?.label
-        if (!label || !name) continue
-        if (!name.startsWith(label) || label.length < bestLen) continue
-        const info = source.info?.[item.val]
-        if (info) {
-          best = info
-          bestLen = label.length
-        }
-      }
-    }
-
-    for (const info of Object.values(source.info || {})) {
-      const infoRecord = info && typeof info === "object" ? (info as CourseInfo) : null
-      const label = typeof infoRecord?.name === "string" ? infoRecord.name : ""
-      if (!label || !name) continue
-      if (!name.startsWith(label) || label.length < bestLen) continue
-      best = infoRecord
-      bestLen = label.length
-    }
-  }
-
-  return best
-}
 
 function resolveMaxWeeks(info: CourseInfo | null | undefined) {
   const raw = info?.max ?? info?.maxDuration
@@ -153,13 +91,6 @@ function resolveMaxWeeks(info: CourseInfo | null | undefined) {
   return Number.isFinite(value) && value > 0 ? Math.trunc(value) : null
 }
 
-function resolveEndDay(info: CourseInfo | null | undefined) {
-  const endDays = Array.isArray(info?.endDays) ? info.endDays : []
-  if (endDays.length && Number.isInteger(endDays[0])) return endDays[0]
-  const endDay = info?.endDay
-  if (Number.isInteger(endDay)) return endDay
-  return 5
-}
 
 function getWeekOffset(
   studentStartDate: Date | null,
@@ -208,12 +139,6 @@ function formatFee(value: string | number | null | undefined) {
   return `${num.toLocaleString("ko-KR")}원`
 }
 
-function formatDateWithWeekday(value: string | Date | null | undefined) {
-  const date = parseDate(value)
-  if (!date) return ""
-  const dayLabel = weekdayName?.[date.getDay()] || "-"
-  return `${pad2(date.getMonth() + 1)}.${pad2(date.getDate())}(${dayLabel})`
-}
 
 function formatDateRange(
   startDate: string | Date | null | undefined,
@@ -225,15 +150,6 @@ function formatDateRange(
   return `${startLabel}~${endLabel}`
 }
 
-const NOTICE_CAUTION = [
-  "⚠️주의사항⚠️",
-  "✅ 계좌이체 시 **반드시 학생이름으로 입금** 부탁드립니다.",
-  "🚫 부모님 성함으로 입금 시, 시스템상 입금 확인이 불가능하여 등록이 지연될 수 있습니다.",
-  "✅ 납부 후, 현금영수증 발급받으실 휴대폰/사업자 번호를 알려주시기 바랍니다.",
-  "[수강료 입금 계좌]",
-  "신한은행 140-009-205058",
-  "(예금주: 세한아카데미외국어학원)",
-].join("\n")
 
 function buildNoticeText({
   name,
@@ -267,7 +183,7 @@ function buildNoticeText({
   ]
 
   if (includeCaution) {
-    lines.push("", NOTICE_CAUTION)
+    lines.push("", TUITION_ACCOUNT)
   }
 
   return lines.join("\n")

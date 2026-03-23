@@ -1,6 +1,6 @@
 import { ArrowRightLeft } from "lucide-react"
 
-import { formatDateYmd } from "./utils"
+import { formatDateYmd, stripMathExcludeLabel } from "./utils"
 
 type RegistrationRow = {
   id?: string | number
@@ -8,12 +8,6 @@ type RegistrationRow = {
   startDate?: string | Date
   endDate?: string | Date
 } & Record<string, unknown>
-
-function stripMathExcludeLabel(value: string | null | undefined) {
-  const raw = String(value || "").trim()
-  if (!raw) return ""
-  return raw.replace(/\s*\(?수학\s*제외\)?\s*$/g, "").trim()
-}
 
 type DateInput = string | Date | null | undefined
 

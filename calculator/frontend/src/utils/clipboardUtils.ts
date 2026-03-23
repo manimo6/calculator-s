@@ -1,7 +1,7 @@
-import { courseInfo, weekdayName, type BreakRangeInput, type CourseInfo } from './data';
-import { getEndDate, getScheduleWeeks, normalizeBreakRanges, normalizeSkipWeeks } from './calculatorLogic';
+import { courseInfo, type BreakRangeInput } from './data';
+import { addDays, ALL_WEEK_DAYS, formatDateWithWeekday, getEndDate, getScheduleWeeks, getWeekIndex, normalizeBreakRanges, normalizeCourseDays, normalizeSkipWeeks, parseDateOnly, resolveEndDay } from './calculatorLogic';
 
-const TUITION_ACCOUNT = `⚠️주의사항⚠️
+export const TUITION_ACCOUNT = `⚠️주의사항⚠️
 ✅ 계좌이체 시 **반드시 학생이름으로 입금** 부탁드립니다.
 🚫 부모님 성함으로 입금 시, 시스템상 입금 확인이 불가능하여 등록이 지연될 수 있습니다.
 ✅ 납부 후, 현금영수증 발급받으실 휴대폰/사업자 번호를 알려주시기 바랍니다.
@@ -12,9 +12,6 @@ const TUITION_ACCOUNT = `⚠️주의사항⚠️
 const TEXTBOOK_ACCOUNT = `[교재비 입금 계좌]
 신한은행 110-378-431090
 (예금주: 세한어학연구소)`;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 type DateInput = string | number | Date | null | undefined;
 type TextbookOption = 'none' | 'tbd' | 'amount';
@@ -57,28 +54,8 @@ type TextbookFallback = {
     note: string;
 };
 
-function pad2(value: number | string) {
-    return String(value).padStart(2, '0');
-}
 
-function parseDateOnly(value: DateInput) {
-    if (!value) return null;
-    const date = value instanceof Date ? value : new Date(value);
-    if (isNaN(date.getTime())) return null;
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
 
-function addDays(date: Date, days: number) {
-    const d = new Date(date.getTime());
-    d.setDate(d.getDate() + days);
-    return d;
-}
-
-function formatDateWithWeekday(value: DateInput) {
-    const date = parseDateOnly(value);
-    if (!date) return '';
-    return `${pad2(date.getMonth() + 1)}.${pad2(date.getDate())}(${weekdayName[date.getDay()]})`;
-}
 
 function formatRecordingDates(dates: DateInput[] | null | undefined) {
     if (!dates || dates.length === 0) return '';
@@ -92,30 +69,8 @@ function formatRecordingDates(dates: DateInput[] | null | undefined) {
         .join(', ');
 }
 
-function normalizeCourseDays(days: Array<number | string> | null | undefined) {
-    if (!Array.isArray(days)) return [];
-    return Array.from(
-        new Set(
-            days.map((d) => Number(d)).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
-        )
-    ).sort((a, b) => a - b);
-}
 
-function resolveEndDay(info: CourseInfo | null | undefined) {
-    const endDays = Array.isArray(info?.endDays) ? info.endDays : [];
-    if (endDays.length && Number.isInteger(endDays[0])) return endDays[0];
-    const endDay = info?.endDay;
-    if (Number.isInteger(endDay)) return endDay;
-    return 5;
-}
 
-function getWeekIndex(start: DateInput, date: DateInput) {
-    const startDate = parseDateOnly(start);
-    const target = parseDateOnly(date);
-    if (!startDate || !target) return null;
-    const diffDays = Math.floor((target.getTime() - startDate.getTime()) / DAY_MS);
-    return Math.floor(diffDays / 7) + 1;
-}
 
 function buildSkipWeekBlocks(skipWeeks: number[]) {
     if (!Array.isArray(skipWeeks) || skipWeeks.length === 0) return [];

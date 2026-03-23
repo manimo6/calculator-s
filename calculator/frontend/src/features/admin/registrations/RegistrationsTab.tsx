@@ -30,7 +30,7 @@ import { useRegistrationMap, useEnrichedRegistrations, useCardRegistrations } fr
 import { useNote } from "./useNote"
 import { useTransfer } from "./useTransfer"
 import { useWithdraw } from "./useWithdraw"
-import { getCourseDaysByName } from "./utils"
+import { getCourseDaysByName, matchesCourseName, normalizeCourse, getCourseKey, getCourseLabel } from "./utils"
 import { getFullChain, findActiveInChain } from "./transferChain"
 import { Switch } from "@/components/ui/switch"
 
@@ -322,13 +322,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     // 주차 범위 계산용: 검색 필터 없는 전체 등록 데이터
     const allRegistrations = registrations || []
 
-    const normalizeCourse = (value: unknown) => String(value || "").trim()
-    const matchesCourse = (courseName: unknown, target: unknown) => {
-      const course = normalizeCourse(courseName)
-      const base = normalizeCourse(target)
-      if (!course || !base) return false
-      return course === base || course.startsWith(base)
-    }
     const collectCourseDays = (courseNames: string[]) => {
       const daySet = new Set<number>()
       for (const name of courseNames) {
@@ -355,7 +348,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       const labelBase = merge?.name || courseNames.join(" + ")
       const label = labelBase ? `[합반] ${labelBase}` : "[합반]"
       const rangeRows = allRegistrations.filter((r) =>
-        courseNames.some((name) => matchesCourse(r?.course, name))
+        courseNames.some((name) => matchesCourseName(r?.course, name))
       )
       return [
         {
@@ -379,13 +372,13 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
         ).filter(Boolean)
         if (!courseNames.length) continue
         const rows = sourceList.filter((r) =>
-          courseNames.some((name) => matchesCourse(r?.course, name))
+          courseNames.some((name) => matchesCourseName(r?.course, name))
         )
         if (!rows.length) continue
         for (const cn of courseNames) todayMergedCourses.add(cn)
         const labelBase = merge?.name || courseNames.join(" + ")
         const rangeRows = allRegistrations.filter((r) =>
-          courseNames.some((name) => matchesCourse(r?.course, name))
+          courseNames.some((name) => matchesCourseName(r?.course, name))
         )
         mergeGroups.push({
           key: `__merge__${merge.id}`,
@@ -402,35 +395,6 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     const courseIdLabelMap =
       courseConfigSetIdToLabel instanceof Map ? courseConfigSetIdToLabel : new Map()
 
-    const getCourseKey = (row: RegistrationRow) => {
-      const courseId = normalizeCourse(row?.courseId)
-      const courseName = normalizeCourse(row?.course)
-
-      // 동적시간 수업인 경우 courseName(라벨)을 키로 사용하여 별도 그룹으로 분리
-      if (courseName && courseVariantRequiredSet.size > 0) {
-        for (const base of courseVariantRequiredSet) {
-          if (courseName.startsWith(base)) {
-            return `__coursename__${courseName}`
-          }
-        }
-      }
-
-      if (courseId) return `__courseid__${courseId}`
-      return courseName ? `__coursename__${courseName}` : ""
-    }
-
-    const getCourseLabel = (key: string, fallback?: string) => {
-      if (typeof key !== "string") return fallback || ""
-      if (key.startsWith("__courseid__")) {
-        const id = key.replace("__courseid__", "")
-        return courseIdLabelMap.get(id) || fallback || ""
-      }
-      if (key.startsWith("__coursename__")) {
-        return key.replace("__coursename__", "")
-      }
-      return fallback || ""
-    }
-
     const refDate = simulationDate || new Date()
     const processedChainIds = new Set<string>()
 
@@ -443,7 +407,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
 
       // 전반 체인이 없으면 기존 로직
       if (!registrationMap.size || (!r?.transferFromId && !r?.transferToId)) {
-        const courseKey = getCourseKey(r)
+        const courseKey = getCourseKey(r, courseVariantRequiredSet)
         if (!courseKey) continue
         if (!map.has(courseKey)) map.set(courseKey, [])
         map.get(courseKey)?.push(r)
@@ -458,7 +422,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
       for (const c of chain) {
         if (!sourceList.some((s) => String(s?.id) === String(c?.id))) continue
         const isActiveAtRef = activeReg && String(c?.id) === String(activeReg?.id)
-        const courseKey = getCourseKey(c)
+        const courseKey = getCourseKey(c, courseVariantRequiredSet)
         if (!courseKey) continue
 
         if (isActiveAtRef) {
@@ -477,7 +441,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
     const rangeMap = new Map<string, RegistrationRow[]>()
     for (const r of allRegistrations) {
       if (todayMergedCourses.size > 0 && todayMergedCourses.has(normalizeCourse(r?.course))) continue
-      const courseKey = getCourseKey(r)
+      const courseKey = getCourseKey(r, courseVariantRequiredSet)
       if (!courseKey) continue
       if (!rangeMap.has(courseKey)) rangeMap.set(courseKey, [])
       rangeMap.get(courseKey)?.push(r)
@@ -485,8 +449,8 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
 
     const courseGroups = Array.from(map.entries())
       .sort((a, b) => {
-        const aLabel = getCourseLabel(a[0], a[1]?.[0]?.course)
-        const bLabel = getCourseLabel(b[0], b[1]?.[0]?.course)
+        const aLabel = getCourseLabel(a[0], courseIdLabelMap, a[1]?.[0]?.course)
+        const bLabel = getCourseLabel(b[0], courseIdLabelMap, b[1]?.[0]?.course)
         return aLabel.localeCompare(bLabel, "ko-KR")
       })
       .map(([courseKey, rows]) => {
@@ -495,7 +459,7 @@ export default function RegistrationsTab({ user }: { user: AuthUser | null }) {
           .filter(Boolean)
         return {
           key: courseKey,
-          label: getCourseLabel(courseKey, rows?.[0]?.course),
+          label: getCourseLabel(courseKey, courseIdLabelMap, rows?.[0]?.course),
           registrations: rows,
           rangeRegistrations: rangeMap.get(courseKey) || rows,
           courseDays: collectCourseDays(courseNames),
