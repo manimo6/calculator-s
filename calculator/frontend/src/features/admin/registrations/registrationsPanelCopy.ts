@@ -1,0 +1,13 @@
+export const REGISTRATIONS_PANEL_COPY = {
+  configRequiredBadge: "\uC124\uC815 \uD544\uC694",
+  configRequiredTitle: "\uC124\uC815 \uC138\uD2B8\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+  configRequiredDescription:
+    "\uC0C1\uB2E8 \uBA54\uB274\uC5D0\uC11C \uC124\uC815 \uC138\uD2B8\uB97C \uC120\uD0DD\uD558\uBA74 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC635\uB2C8\uB2E4.",
+  noCourses: "\uC120\uD0DD\uD55C \uC124\uC815 \uC138\uD2B8\uC5D0 \uACFC\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  noResults: "\uD45C\uC2DC\uD560 \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  transferHistory: "\uC804\uBC18 \uC774\uB825",
+  membersSuffix: "\uBA85",
+  openLargeView: "\uD06C\uAC8C \uBCF4\uAE30",
+  allStudentsList: "\uC804\uCCB4 \uD559\uC0DD \uBAA9\uB85D",
+  studentsListSuffix: "\uD559\uC0DD \uBAA9\uB85D",
+} as const

@@ -2,7 +2,12 @@ import { useCallback, useState } from "react"
 
 import { apiClient } from "@/api-client"
 
-import { formatTimestampKo } from "./utils"
+import { NOTE_COPY } from "./noteCopy"
+import {
+  getInitialNoteValue,
+  getNoteSaveValidationError,
+  getNoteUpdatedAtLabel,
+} from "./noteModel"
 
 type RegistrationRow = {
   id?: string | number
@@ -23,14 +28,12 @@ export function useNote({ onSuccess }: UseNoteParams) {
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
 
-  const updatedAtLabel = target?.noteUpdatedAt
-    ? formatTimestampKo(target.noteUpdatedAt)
-    : ""
+  const updatedAtLabel = getNoteUpdatedAtLabel(target)
 
   const openDialog = useCallback((registration: RegistrationRow) => {
     if (!registration) return
     setTarget(registration)
-    setValue(String(registration?.note || ""))
+    setValue(getInitialNoteValue(registration))
     setError("")
     setDialogOpen(true)
   }, [])
@@ -46,17 +49,20 @@ export function useNote({ onSuccess }: UseNoteParams) {
     if (!target?.id) return
     setSaving(true)
     setError("")
-    const noteId = target?.id
-    if (!noteId) {
-      setError("대상을 확인해 주세요.")
+
+    const validationError = getNoteSaveValidationError(target)
+    if (validationError) {
+      setError(validationError)
       return
     }
+
+    const noteId = target?.id
     try {
       await apiClient.updateRegistrationNote(String(noteId), value)
       await onSuccess?.()
       closeDialog()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "메모 저장에 실패했습니다."
+      const message = err instanceof Error ? err.message : NOTE_COPY.saveFailed
       setError(message)
     } finally {
       setSaving(false)

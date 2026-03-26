@@ -41,6 +41,7 @@ export default function TransferHistoryTimeline({
           const start = formatDateYmd(entry?.startDate)
           const adjustedEnd = adjustEndDate ? adjustEndDate(entry?.endDate, entry?.course) : entry?.endDate
           const end = formatDateYmd(adjustedEnd)
+
           return (
             <div
               key={`transfer-${entry?.id || i}`}
@@ -64,7 +65,7 @@ export default function TransferHistoryTimeline({
                 {end ? ` ~ ${end}` : " ~"}
               </div>
               {i < history.length - 1 ? (
-                <div className="mt-1 text-[10px] text-amber-500">↓ 전반</div>
+                <div className="mt-1 text-[10px] text-amber-500">다음 전반</div>
               ) : null}
             </div>
           )

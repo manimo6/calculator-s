@@ -10,6 +10,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
+import { NOTE_COPY } from "./noteCopy"
+
 type RegistrationRow = {
   name?: string
   course?: string
@@ -47,9 +49,9 @@ export default function NoteDialog({
     >
       <DialogContent className="max-w-xl border-white/60 bg-white/80 p-7 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl ring-1 ring-slate-200/60 sm:rounded-[28px]">
         <DialogHeader>
-          <DialogTitle>학생 메모</DialogTitle>
+          <DialogTitle>{NOTE_COPY.dialogTitle}</DialogTitle>
           <DialogDescription>
-            학생별 특이사항을 기록하고 공유합니다.
+            {NOTE_COPY.dialogDescription}
           </DialogDescription>
         </DialogHeader>
         {target ? (
@@ -58,7 +60,7 @@ export default function NoteDialog({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                    학생
+                    {NOTE_COPY.studentLabel}
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
                     {target?.name || "-"}
@@ -66,7 +68,7 @@ export default function NoteDialog({
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                    과목
+                    {NOTE_COPY.courseLabel}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-700">
                     {target?.course || "-"}
@@ -75,18 +77,20 @@ export default function NoteDialog({
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                 <span className="inline-flex items-center rounded-full bg-slate-100/70 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                  메모
+                  {NOTE_COPY.badge}
                 </span>
                 {updatedAtLabel ? (
-                  <span>최근 수정 · {updatedAtLabel}</span>
+                  <span>
+                    {NOTE_COPY.updatedPrefix} {updatedAtLabel}
+                  </span>
                 ) : (
-                  <span>새 메모</span>
+                  <span>{NOTE_COPY.newMemo}</span>
                 )}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="noteContent" className="text-sm font-semibold text-slate-700">
-                메모
+                {NOTE_COPY.textareaLabel}
               </Label>
               <Textarea
                 id="noteContent"
@@ -95,10 +99,10 @@ export default function NoteDialog({
                   onValueChange(event.target.value)
                 }
                 className="min-h-[180px] resize-none rounded-2xl border border-slate-200/70 bg-white/80 shadow-inner shadow-slate-200/30 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-300"
-                placeholder="특이사항을 입력하세요."
+                placeholder={NOTE_COPY.textareaPlaceholder}
               />
               <div className="text-xs text-slate-400">
-                저장하지 않고 닫으면 변경사항이 사라집니다.
+                {NOTE_COPY.helperText}
               </div>
             </div>
             {error ? (
@@ -109,7 +113,7 @@ export default function NoteDialog({
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">
-            선택된 학생이 없습니다.
+            {NOTE_COPY.emptyTarget}
           </div>
         )}
         <DialogFooter>
@@ -119,7 +123,7 @@ export default function NoteDialog({
             onClick={onClose}
             className="rounded-full px-6"
           >
-            취소
+            {NOTE_COPY.cancel}
           </Button>
           <Button
             type="button"
@@ -127,7 +131,7 @@ export default function NoteDialog({
             disabled={saving || !target}
             className="rounded-full bg-slate-900 px-6 text-white shadow-sm transition hover:bg-slate-800"
           >
-            저장
+            {NOTE_COPY.save}
           </Button>
         </DialogFooter>
       </DialogContent>

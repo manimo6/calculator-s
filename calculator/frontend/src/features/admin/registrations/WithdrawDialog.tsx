@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { DateValue, DatesRangeValue } from "@mantine/dates"
 
+import { WITHDRAW_COPY } from "./withdrawCopy"
 import { formatDateYmd, parseDate } from "./utils"
 
 type RegistrationRow = {
@@ -53,21 +54,21 @@ export default function WithdrawDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>퇴원 처리</DialogTitle>
+          <DialogTitle>{WITHDRAW_COPY.dialogTitle}</DialogTitle>
           <DialogDescription>
-            퇴원일을 기준으로 당일부터 출석 입력이 제한됩니다.
+            {WITHDRAW_COPY.dialogDescription}
           </DialogDescription>
         </DialogHeader>
         {target ? (
           <div className="space-y-4 text-sm">
             <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-              <div className="text-xs text-muted-foreground">학생</div>
+              <div className="text-xs text-muted-foreground">{WITHDRAW_COPY.studentLabel}</div>
               <div className="font-semibold">{target?.name || "-"}</div>
-              <div className="mt-2 text-xs text-muted-foreground">과목</div>
+              <div className="mt-2 text-xs text-muted-foreground">{WITHDRAW_COPY.courseLabel}</div>
               <div className="font-semibold">{target?.course || "-"}</div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="withdrawDate">퇴원일</Label>
+              <Label htmlFor="withdrawDate">{WITHDRAW_COPY.withdrawDateLabel}</Label>
               <Popover open={pickerOpen} onOpenChange={onPickerOpenChange}>
                 <PopoverTrigger asChild>
                   <Button
@@ -109,10 +110,10 @@ export default function WithdrawDialog({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            취소
+            {WITHDRAW_COPY.cancel}
           </Button>
           <Button type="button" onClick={onSave} disabled={saving}>
-            퇴원 처리
+            {WITHDRAW_COPY.submit}
           </Button>
         </DialogFooter>
       </DialogContent>

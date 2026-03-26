@@ -2,7 +2,12 @@ import { useCallback, useState } from "react"
 
 import { apiClient } from "@/api-client"
 
-import { formatDateYmd } from "./utils"
+import { WITHDRAW_COPY } from "./withdrawCopy"
+import {
+  getDefaultWithdrawDate,
+  getRestoreConfirmMessage,
+  getWithdrawSaveValidationError,
+} from "./withdrawModel"
 
 type RegistrationRow = {
   id?: string | number
@@ -26,10 +31,8 @@ export function useWithdraw({ onSuccess, setError }: UseWithdrawParams) {
 
   const openDialog = useCallback((registration: RegistrationRow) => {
     if (!registration) return
-    const today = formatDateYmd(new Date())
-    const defaultDate = formatDateYmd(registration?.withdrawnAt) || today
     setTarget(registration)
-    setDate(defaultDate || today)
+    setDate(getDefaultWithdrawDate(registration))
     setWithdrawError("")
     setDialogOpen(true)
   }, [])
@@ -43,17 +46,13 @@ export function useWithdraw({ onSuccess, setError }: UseWithdrawParams) {
 
   const handleSave = useCallback(async () => {
     if (!target) return
-    if (!date) {
-      setWithdrawError("퇴원일을 선택해 주세요.")
+    const validationError = getWithdrawSaveValidationError({ target, date })
+    if (validationError) {
+      setWithdrawError(validationError)
       return
     }
 
     const withdrawId = target?.id
-    if (!withdrawId) {
-      setWithdrawError("대상을 확인해 주세요.")
-      return
-    }
-
     setSaving(true)
     setWithdrawError("")
     try {
@@ -61,7 +60,7 @@ export function useWithdraw({ onSuccess, setError }: UseWithdrawParams) {
       await onSuccess?.()
       closeDialog()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "퇴원 처리에 실패했습니다."
+      const message = err instanceof Error ? err.message : WITHDRAW_COPY.saveFailed
       setWithdrawError(message)
     } finally {
       setSaving(false)
@@ -71,14 +70,13 @@ export function useWithdraw({ onSuccess, setError }: UseWithdrawParams) {
   const handleRestore = useCallback(
     async (registration: RegistrationRow) => {
       if (!registration?.id) return
-      const name = registration?.name || "학생"
-      if (!window.confirm(`${name}의 퇴원 상태를 복구할까요?`)) return
+      if (!window.confirm(getRestoreConfirmMessage(registration))) return
 
       try {
         await apiClient.updateRegistrationWithdrawal(String(registration.id), null)
         await onSuccess?.()
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "복구 처리에 실패했습니다."
+        const message = err instanceof Error ? err.message : WITHDRAW_COPY.restoreFailed
         setError(message)
       }
     },

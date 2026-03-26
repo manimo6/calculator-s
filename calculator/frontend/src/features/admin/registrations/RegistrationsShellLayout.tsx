@@ -1,0 +1,155 @@
+import RegistrationsMainPanel from "./RegistrationsMainPanel"
+import RegistrationsSidebar from "./RegistrationsSidebar"
+
+export default function RegistrationsShellLayout(props: any) {
+  const {
+    selectedCourseConfigSet,
+    baseRegistrations,
+    courseFilter,
+    handleCourseFilterFromSidebar,
+    courseConfigSetIdToLabel,
+    courseVariantRequiredSet,
+    merges,
+    activeMergesToday,
+    mergedCourseSetToday,
+    variantTabs,
+    variantFilter,
+    setVariantFilter,
+    simulationDate,
+    setSimulationDate,
+    courseConfigSetError,
+    error,
+    installmentMode,
+    extensionsError,
+    mergeManagerOpen,
+    canManageMerges,
+    mergeCourseOptions,
+    mergeCourseTabs,
+    mergeName,
+    setMergeName,
+    mergeCourses,
+    setMergeCourses,
+    mergeWeekMode,
+    setMergeWeekMode,
+    mergeWeekRangeInputs,
+    setMergeWeekRangeInputs,
+    addMerge,
+    deleteMerge,
+    toggleMergeActive,
+    editingMergeId,
+    startEditMerge,
+    cancelEditMerge,
+    loading,
+    courseConfigSetCourseSet,
+    filteredRegistrations,
+    canViewInstallments,
+    extensions,
+    extensionsLoading,
+    selectedCourseConfigSetObj,
+    resolveCourseDays,
+    handleCreateExtension,
+    categoryFilter,
+    showGantt,
+    showTransferChain,
+    setShowTransferChain,
+    ganttGroups,
+    setActiveGanttTab,
+    setChartOverlayOpen,
+    registrationMap,
+    openWithdrawDialog,
+    handleRestore,
+    canManageTransfers,
+    openTransferDialog,
+    handleTransferCancel,
+    openNoteDialog,
+    isAllView,
+    viewSource,
+    handleCourseFilterFromCard,
+    cardFilteredRegistrations,
+  } = props
+
+  return (
+    <div className="flex flex-1 overflow-hidden">
+      {selectedCourseConfigSet ? (
+        <RegistrationsSidebar
+          registrations={baseRegistrations}
+          courseFilter={courseFilter}
+          onCourseFilterChange={handleCourseFilterFromSidebar}
+          courseIdToLabel={courseConfigSetIdToLabel}
+          courseVariantRequiredSet={courseVariantRequiredSet}
+          merges={merges || []}
+          activeMergesToday={activeMergesToday}
+          mergedCourseSetToday={mergedCourseSetToday}
+          variantTabs={variantTabs}
+          variantFilter={variantFilter}
+          onVariantFilterChange={setVariantFilter}
+          simulationDate={simulationDate}
+          onSimulationDateChange={setSimulationDate}
+        />
+      ) : null}
+
+      <main className="flex-1 overflow-y-auto bg-slate-50/50 p-6">
+        <RegistrationsMainPanel
+          courseConfigSetError={courseConfigSetError}
+          error={error}
+          installmentMode={installmentMode}
+          extensionsError={extensionsError}
+          mergeManagerOpen={mergeManagerOpen}
+          selectedCourseConfigSet={selectedCourseConfigSet}
+          canManageMerges={canManageMerges}
+          mergeCourseOptions={mergeCourseOptions}
+          mergeCourseTabs={mergeCourseTabs}
+          mergeName={mergeName}
+          setMergeName={setMergeName}
+          mergeCourses={mergeCourses}
+          setMergeCourses={setMergeCourses}
+          mergeWeekMode={mergeWeekMode}
+          setMergeWeekMode={setMergeWeekMode}
+          mergeWeekRangeInputs={mergeWeekRangeInputs}
+          setMergeWeekRangeInputs={setMergeWeekRangeInputs}
+          addMerge={addMerge}
+          merges={merges}
+          deleteMerge={deleteMerge}
+          toggleMergeActive={toggleMergeActive}
+          editingMergeId={editingMergeId}
+          startEditMerge={startEditMerge}
+          cancelEditMerge={cancelEditMerge}
+          loading={loading}
+          courseConfigSetCourseSet={courseConfigSetCourseSet}
+          filteredRegistrations={filteredRegistrations}
+          canViewInstallments={canViewInstallments}
+          extensions={extensions}
+          extensionsLoading={extensionsLoading}
+          selectedCourseConfigSetObj={selectedCourseConfigSetObj}
+          courseIdToLabel={courseConfigSetIdToLabel}
+          resolveCourseDays={resolveCourseDays}
+          onCreateExtension={handleCreateExtension}
+          categoryFilter={categoryFilter}
+          courseFilter={courseFilter}
+          showGantt={showGantt}
+          showTransferChain={showTransferChain}
+          setShowTransferChain={setShowTransferChain}
+          ganttGroups={ganttGroups}
+          setActiveGanttTab={setActiveGanttTab}
+          setChartOverlayOpen={setChartOverlayOpen}
+          registrationMap={registrationMap}
+          openWithdrawDialog={openWithdrawDialog}
+          handleRestore={handleRestore}
+          canManageTransfers={canManageTransfers}
+          openTransferDialog={openTransferDialog}
+          handleTransferCancel={handleTransferCancel}
+          openNoteDialog={openNoteDialog}
+          simulationDate={simulationDate}
+          isAllView={isAllView}
+          viewSource={viewSource}
+          baseRegistrations={baseRegistrations}
+          handleCourseFilterFromCard={handleCourseFilterFromCard}
+          courseVariantRequiredSet={courseVariantRequiredSet}
+          activeMergesToday={activeMergesToday}
+          mergedCourseSetToday={mergedCourseSetToday}
+          cardFilteredRegistrations={cardFilteredRegistrations}
+        />
+      </main>
+    </div>
+  )
+}
