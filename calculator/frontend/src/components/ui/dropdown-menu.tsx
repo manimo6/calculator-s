@@ -125,8 +125,7 @@ DropdownMenuCheckboxItem.displayName =
 const DropdownMenuRadioItem = React.forwardRef<
     React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
     React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
->((props, ref) => {
-    const { className, children, ...rest } = props || {}
+>(({ className, children, ...rest }, ref) => {
     return (
         <DropdownMenuPrimitive.RadioItem
             ref={ref}

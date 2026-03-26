@@ -9,8 +9,7 @@ type ResizableHandleProps = ComponentProps<typeof PanelResizeHandle> & {
     withHandle?: boolean
 }
 
-const ResizablePanelGroup = (props: ResizablePanelGroupProps) => {
-    const { className, ...rest } = props || {}
+const ResizablePanelGroup = ({ className, ...rest }: ResizablePanelGroupProps) => {
     return (
         <PanelGroup
             className={cn(
@@ -24,8 +23,7 @@ const ResizablePanelGroup = (props: ResizablePanelGroupProps) => {
 
 const ResizablePanel = Panel
 
-const ResizableHandle = (props: ResizableHandleProps) => {
-    const { withHandle, className, ...rest } = props || {}
+const ResizableHandle = ({ withHandle, className, ...rest }: ResizableHandleProps) => {
     return (
         <PanelResizeHandle
             className={cn(

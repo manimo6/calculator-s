@@ -21,8 +21,7 @@ RadioGroup.displayName = RadioGroupPrimitive.Root.displayName
 const RadioGroupItem = React.forwardRef<
     React.ElementRef<typeof RadioGroupPrimitive.Item>,
     React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
->((props, ref) => {
-    const { className, ...rest } = props || {}
+>(({ className, ...rest }, ref) => {
     return (
         <RadioGroupPrimitive.Item
             ref={ref}

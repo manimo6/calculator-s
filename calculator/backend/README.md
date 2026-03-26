@@ -1,90 +1,86 @@
-# Backend (PostgreSQL Migration)
+# Backend
 
-This backend no longer uses Google Sheets or `backend/data/*.json` for runtime storage. It uses PostgreSQL via Prisma.
+This backend uses PostgreSQL via Prisma. Runtime storage is no longer based on
+Google Sheets or `backend/data/*.json`.
 
 ## Prerequisites
 
-- Node.js (repo currently uses Node 22.x)
-- PostgreSQL (local via Docker Compose or a managed DB like AWS RDS)
+- Node.js 22.x
+- PostgreSQL
+- A `.env` file created from `.env.example`
 
-## 1) Local development DB (Docker)
+## Local development
 
-From repo root:
+From the repo root, start the local database:
 
 ```bash
 docker compose up -d db
 ```
 
-Local DB port is `5433` (see `docker-compose.yml`).
+The local PostgreSQL port is `15432` as defined in `docker-compose.yml`.
 
-## 2) Environment variables
+## Environment variables
 
-Copy and edit:
+From `calculator/backend`:
 
 ```bash
-cd backend
 cp .env.example .env
 ```
 
 Required:
+
 - `DATABASE_URL`
+- `AUTH_SECRET`
 
-Optional:
-- `AUTH_SECRET`, `PORT`, `CORS_ORIGIN`
+Common optional values:
 
-Google Sheets import only (not needed for normal server run):
-- `SPREADSHEET_ID`, `SHEET_NAME`, `CREDENTIALS_FILE`
+- `PORT` (default `3000`)
+- `CORS_ORIGIN`
 
-### Production (AWS RDS) SSL note
-
-Use `sslmode=require` in `DATABASE_URL` (example in `.env.example`).
-If SSL handshake fails due to CA verification, Prisma docs suggest `sslmode=no-verify`.
-
-## 3) Install dependencies
+## Install and build
 
 ```bash
-cd backend
 npm install
-```
-
-## 4) Run migrations
-
-```bash
-cd backend
 npm run prisma:migrate:deploy
+npm run build
 ```
 
-This applies SQL migrations in `backend/prisma/migrations` (includes `pg_trgm` for fast name substring search).
+## Optional data import
 
-## 5) One-time data import
-
-### (A) JSON files → DB
-
-Imports `backend/data/*.json` into PostgreSQL (non-destructive / safe to re-run: uses `skipDuplicates`):
+Import legacy JSON data:
 
 ```bash
-cd backend
 npm run db:seed:json
 ```
 
-### (B) Google Sheets → DB (students/registrations)
-
-Imports Google Sheets rows (1 row = 1 registration) into PostgreSQL (safe to re-run via `importHash` uniqueness):
+Import Google Sheets data:
 
 ```bash
-cd backend
 npm run db:import:sheets
 ```
 
-## 6) Start server
+## Run the server
 
 ```bash
-cd backend
 npm start
 ```
 
-## Reset / Re-run strategy (dev)
+The backend listens on port `3000` by default.
 
-- If you need a clean DB: `npx prisma migrate reset` (drops and recreates schema; **destructive**).
-- Otherwise, the provided import scripts are designed to be re-runnable without duplicating data.
+## Production notes
 
+- The current deployment model is EC2 + PM2 + PostgreSQL.
+- If PostgreSQL is self-hosted on the same EC2 instance, use a local
+  `DATABASE_URL` such as `postgresql://USER:PASSWORD@127.0.0.1:5432/DB?schema=public`.
+- If you use a managed PostgreSQL service, add `sslmode=require` when needed.
+- Use `ecosystem.config.cjs` when starting the production process with PM2.
+
+## Reset strategy for development
+
+To reset the local database completely:
+
+```bash
+npx prisma migrate reset
+```
+
+This is destructive and should only be used in development.

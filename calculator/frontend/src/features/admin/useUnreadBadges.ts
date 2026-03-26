@@ -22,6 +22,11 @@ type Settings = {
 }
 type SettingsPatch = Record<string, unknown>
 
+const toRecord = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as Record<string, unknown>
+}
+
 const normalizeDate = (value: unknown) => {
   if (!value) return null
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
@@ -35,7 +40,7 @@ const mergeSettings = (base: Record<string, unknown>, patch: Record<string, unkn
   const next = { ...(base || {}) }
   Object.entries(patch || {}).forEach(([key, value]) => {
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      next[key] = { ...(base?.[key] || {}), ...value }
+      next[key] = { ...toRecord(base?.[key]), ...value }
     } else {
       next[key] = value
     }
