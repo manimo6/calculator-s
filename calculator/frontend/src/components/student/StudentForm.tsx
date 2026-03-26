@@ -1,6 +1,6 @@
 import React, { useState, useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { applyCourseConfigSetData, courseConfigSetName, courseInfo, courseTree, resetCourseConfigSetData, type CourseInfo } from '../../utils/data';
+import { applyCourseConfigSetData, courseConfigSetName, courseInfo, courseTree, getCourseName, resetCourseConfigSetData, type CourseInfo } from '../../utils/data';
 import { createCartItem, calculateTotalFee } from '../../utils/calculatorLogic';
 import { generateClipboardText } from '../../utils/clipboardUtils';
 import { loadClipboardHistory, saveClipboardHistoryEntry, CLIPBOARD_HISTORY_LIMIT } from '../../utils/clipboardHistory';
@@ -1115,7 +1115,7 @@ const StudentForm = () => {
                                 ) : (
                                     <div className="flex justify-between items-center p-4 bg-secondary/30 border border-border rounded-xl">
                                         <span className="font-bold text-lg text-primary ml-2">
-                                            {courseInfo[state.mainCourseKey]?.name || state.mainCourseKey}
+                                            {getCourseName(state.mainCourseKey)}
                                         </span>
                                         <Button
                                             variant="outline"
@@ -1230,7 +1230,7 @@ const StudentForm = () => {
                                 {state.mainCourseKey && (
                                     <div className="p-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 opacity-70 animate-pulse">
                                         <div className="flex justify-between items-center text-primary">
-                                            <span className="font-medium">(추가 예정) {courseInfo[state.mainCourseKey]?.name || ''}</span>
+                                            <span className="font-medium">(추가 예정) {getCourseName(state.mainCourseKey)}</span>
                                             <span className="font-bold">{previewFee.toLocaleString()}원</span>
                                         </div>
                                     </div>

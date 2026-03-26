@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -102,11 +103,14 @@ const CalendarNoteDialog = ({
             <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/80 backdrop-blur-xl border-none shadow-2xl rounded-2xl gap-0 ring-1 ring-black/5">
 
                 {/* Header */}
-                <div className="px-6 pt-6 pb-2">
+                <DialogHeader className="px-6 pt-6 pb-2 text-left">
                     <DialogTitle className="text-xl font-semibold tracking-tight text-foreground/90">
                         {formattedDate}
                     </DialogTitle>
-                </div>
+                    <DialogDescription className="text-sm text-muted-foreground">
+                        선택한 날짜의 캘린더 메모를 추가하거나 수정합니다.
+                    </DialogDescription>
+                </DialogHeader>
 
                 <div className="p-6 space-y-6">
                     {/* Input Area (Always visible, focused) */}

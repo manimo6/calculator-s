@@ -41,6 +41,28 @@ function isAuthPath(path: string) {
   return path.startsWith('/api/auth/');
 }
 
+function decodeJwtPayload(token: string) {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+    const json = atob(padded);
+    return JSON.parse(json) as JsonRecord;
+  } catch (e) {
+    return null;
+  }
+}
+
+function shouldRefreshBeforeRequest(token: string) {
+  const payload = decodeJwtPayload(token);
+  const exp = Number(payload?.exp || 0);
+  if (!Number.isFinite(exp) || exp <= 0) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return exp <= now + 15;
+}
+
 async function ensureCsrfToken() {
   if (getCookie(CSRF_COOKIE_NAME)) return;
   // GET 요청으로 CSRF 쿠키 사전 발급 유도
@@ -69,7 +91,6 @@ async function refreshSession() {
 
   async function request<T = unknown>(path: string, options: RequestOptions = {}) {
     const url = `${API_URL}${path}`;
-    const token = getToken();
     const csrfToken = getCookie(CSRF_COOKIE_NAME);
     const {
       skipRefresh: skipRefreshRaw,
@@ -77,6 +98,17 @@ async function refreshSession() {
       ...fetchOptions
     } = options;
     const skipRefresh = skipRefreshRaw === true;
+    let token = getToken();
+
+    if (!skipRefresh && !isAuthPath(path) && token && shouldRefreshBeforeRequest(token)) {
+      try {
+        await refreshSession();
+      } catch (e) {
+        /* fall back to the original request path */
+      }
+      token = getToken();
+    }
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

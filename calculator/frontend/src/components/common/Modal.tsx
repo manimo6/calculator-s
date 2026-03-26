@@ -9,15 +9,16 @@ type ModalProps = {
 }
 
 const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-    if (!isOpen) return null;
-
     useEffect(() => {
+        if (!isOpen) return;
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
