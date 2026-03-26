@@ -51,6 +51,18 @@ const corsOptions = {
     return callback(new Error('Not allowed by CORS'));
   },
 };
+
+const SERVER_READY_BANNER = `
+    ===============================================================
+          \uBC31\uC5D4\uB4DC \uC11C\uBC84\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC2DC\uC791\uB418\uC5C8\uC2B5\uB2C8\uB2E4!
+    ===============================================================
+    - \uC778\uC2A4\uD134\uC2A4 \uB85C\uCEEC
+    - \uD3EC\uD2B8: ${port}
+    - \uC9C0\uAE08\uBD80\uD130 \uC694\uCCAD\uC744 \uCC98\uB9AC\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+    - \uD14C\uC2A4\uD2B8 URL: http://localhost:${port}/api/students
+    ===============================================================
+  `;
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
@@ -80,14 +92,5 @@ initSocket(httpServer, allowedOrigins);
 setupGracefulShutdown(httpServer);
 
 httpServer.listen(port, () => {
-  console.log(`
-    ===============================================================
-          🔥 백엔드 서버가 성공적으로 작동했습니다! 🔥
-    ===============================================================
-    - 호스트: 로컬
-    - 포트: ${port}
-    - 지금부터의 요청을 준비가 끝났습니다.
-    - 테스트 URL: http://localhost:${port}/api/students
-    ===============================================================
-  `);
+  console.log(SERVER_READY_BANNER);
 });

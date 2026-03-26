@@ -1,6 +1,4 @@
 const express = require('express') as typeof import('express');
-const { v4: uuidv4 } = require('uuid');
-
 const { prisma } = require('../db/prisma');
 const { PAGE_SIZE } = require('../config');
 const { authMiddleware } = require('../middleware/authMiddleware');
@@ -18,6 +16,16 @@ const {
   normalizeRecordingDates,
   parseExcludeMath,
 } = require('../utils/parsers');
+const {
+  buildCourseIdentity,
+  buildExistingStudentMap,
+  buildStudentCreateRows,
+  buildStudentUpdateData,
+  buildStudentWhereClause,
+  findStudentDuplicates,
+  formatStudentRecord,
+  formatStudentResults,
+} = require('../services/studentRouteService');
 
 type RegistrationRow = {
   id?: string
@@ -43,29 +51,6 @@ const router = express.Router();
 
 router.use(authMiddleware());
 
-
-
-
-function buildCourseIdentity(courseId: unknown, courseName: unknown) {
-  const id = normalizeCourseId(courseId);
-  if (id) return `id:${id}`;
-  const name = String(courseName ?? '').trim();
-  return name ? `name:${name}` : '';
-}
-
-function extractCourseLabelPrefixes(courseTreeValue: unknown): string[] {
-  if (!Array.isArray(courseTreeValue)) return [];
-  const out = new Set<string>();
-  for (const group of courseTreeValue) {
-    const items = Array.isArray(group?.items) ? group.items : [];
-    for (const item of items) {
-      const label = String(item?.label ?? '').trim();
-      if (label) out.add(label);
-    }
-  }
-  return Array.from(out);
-}
-
 // GET /api/students
 router.get('/', validateStudentQuery, async (req, res) => {
   console.log(`[${new Date().toISOString()}] GET /api/students 요청. Query:`, req.query);
@@ -74,46 +59,10 @@ router.get('/', validateStudentQuery, async (req, res) => {
     const normalizedSearchTerm = String(searchTerm || '').trim();
     const normalizedCourseConfigSetName = String(courseConfigSetName || '').trim();
 
-    const baseWhere: any = {
-      ...(normalizedSearchTerm
-        ? { name: { contains: normalizedSearchTerm, mode: 'insensitive' } }
-        : {}),
-    };
-
-    let where = baseWhere;
-    if (normalizedCourseConfigSetName) {
-      let legacyCoursePrefixes: string[] = [];
-      try {
-        const currentCourseConfig = await prisma.courseConfig.findUnique({
-          where: { key: 'courses' },
-          select: { data: true },
-        });
-        const activeSetName = String(
-          currentCourseConfig?.data?.courseConfigSetName || ''
-        ).trim();
-        if (activeSetName === normalizedCourseConfigSetName) {
-          legacyCoursePrefixes = extractCourseLabelPrefixes(
-            currentCourseConfig?.data?.courseTree
-          );
-        }
-      } catch {
-        legacyCoursePrefixes = [];
-      }
-
-      const legacyCourseFilters = legacyCoursePrefixes.map((prefix: string) => ({
-        course: { startsWith: prefix },
-      }));
-
-      where = {
-        ...baseWhere,
-        OR: [
-          { courseConfigSetName: normalizedCourseConfigSetName },
-          ...(legacyCourseFilters.length
-            ? [{ courseConfigSetName: null, OR: legacyCourseFilters }]
-            : []),
-        ],
-      };
-    }
+    const where = await buildStudentWhereClause({
+      searchTerm: normalizedSearchTerm,
+      courseConfigSetName: normalizedCourseConfigSetName,
+    });
 
     const currentPage = Math.max(1, Number(page) || 1);
 
@@ -130,27 +79,7 @@ router.get('/', validateStudentQuery, async (req, res) => {
       take: PAGE_SIZE,
     });
 
-    const results = rows.map((row: RegistrationRow) => ({
-      id: row.id || '',
-      timestamp: row.timestamp ? row.timestamp.toISOString() : '',
-      name: row.name || '',
-      course: row.course || '',
-      courseId: row.courseId || '',
-      courseConfigSetName: row.courseConfigSetName || '',
-      startDate: formatDateOnly(row.startDate),
-      endDate: formatDateOnly(row.endDate),
-      withdrawnAt: formatDateOnly(row.withdrawnAt),
-      transferFromId: row.transferFromId || '',
-      transferToId: row.transferToId || '',
-      transferAt: formatDateOnly(row.transferAt),
-      weeks: row.weeks !== null && row.weeks !== undefined ? String(row.weeks) : '',
-      tuitionFee: row.tuitionFee ?? null,
-      excludeMath: !!row.excludeMath,
-      recordingDates: Array.isArray(row.recordingDates) ? row.recordingDates.filter(Boolean) : [],
-      skipWeeks: Array.isArray(row.skipWeeks)
-        ? row.skipWeeks.filter((w: unknown) => Number.isInteger(w))
-        : [],
-    }));
+    const results = formatStudentResults(rows);
 
     console.log(`[${new Date().toISOString()}] 쿼리 성공. ${results.length}개의 결과 반환`);
     res.json({
@@ -180,27 +109,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ status: '실패', message: '해당 ID를 찾을 수 없습니다.' });
     }
 
-    const record = {
-      id: row.id || '',
-      timestamp: row.timestamp ? row.timestamp.toISOString() : '',
-      name: row.name || '',
-      course: row.course || '',
-      courseId: row.courseId || '',
-      courseConfigSetName: row.courseConfigSetName || '',
-      startDate: formatDateOnly(row.startDate),
-      endDate: formatDateOnly(row.endDate),
-      withdrawnAt: formatDateOnly(row.withdrawnAt),
-      transferFromId: row.transferFromId || '',
-      transferToId: row.transferToId || '',
-      transferAt: formatDateOnly(row.transferAt),
-      weeks: row.weeks !== null && row.weeks !== undefined ? String(row.weeks) : '',
-      tuitionFee: row.tuitionFee ?? null,
-      excludeMath: !!row.excludeMath,
-      recordingDates: Array.isArray(row.recordingDates) ? row.recordingDates.filter(Boolean) : [],
-      skipWeeks: Array.isArray(row.skipWeeks)
-        ? row.skipWeeks.filter((w: unknown) => Number.isInteger(w))
-        : [],
-    };
+    const record = formatStudentRecord(row);
 
     res.json({ status: '성공', record });
   } catch (error) {
@@ -257,30 +166,8 @@ router.post('/', ...validateStudentBody, async (req, res) => {
       select: { id: true, name: true, course: true, courseId: true, courseConfigSetName: true },
     });
 
-    const existingByKey: Map<string, RegistrationRow> = new Map(
-      existingRows.map((r: RegistrationRow) => [
-        `${r.courseConfigSetName || ''}||${r.name}||${buildCourseIdentity(r.courseId, r.course)}`,
-        r,
-      ])
-    );
-
-    const duplicates: Array<Record<string, unknown>> = [];
-    for (const newRecord of newRecords) {
-      const configSetName = normalizeCourseConfigSetName(newRecord.courseConfigSetName) || '';
-      const courseIdentity = buildCourseIdentity(newRecord.courseId, newRecord.course);
-      const existing = existingByKey.get(
-        `${configSetName}||${newRecord.name}||${courseIdentity}`
-      );
-      if (existing) {
-        duplicates.push({
-          name: newRecord.name,
-          course: newRecord.course,
-          courseId: newRecord.courseId || '',
-          courseConfigSetName: configSetName,
-          id: existing.id,
-        });
-      }
-    }
+    const existingByKey = buildExistingStudentMap(existingRows);
+    const duplicates = findStudentDuplicates(newRecords, existingByKey);
 
     if (duplicates.length > 0) {
       console.log(`[${new Date().toISOString()}] 중복 기록 발견: ${duplicates.length}건`);
@@ -292,31 +179,7 @@ router.post('/', ...validateStudentBody, async (req, res) => {
     }
 
     const timestamp = new Date();
-    const createdIds: string[] = [];
-
-    const rowsToCreate = newRecords.map((record: StudentRecord) => {
-      const id = uuidv4();
-      createdIds.push(id);
-
-      return {
-        id,
-        timestamp,
-        name: record.name,
-        course: record.course,
-        courseId: normalizeCourseId(record.courseId),
-        courseConfigSetName: normalizeCourseConfigSetName(record.courseConfigSetName),
-        startDate: parseDateOnly(record.startDate),
-        endDate: parseDateOnly(record.endDate),
-        withdrawnAt: parseDateOnly(record.withdrawnAt),
-        weeks: parseWeeks(record.weeks),
-        tuitionFee: parseTuitionFee(record.tuitionFee),
-        skipWeeks: parseSkipWeeks(record.skipWeeks),
-        excludeMath: parseExcludeMath(record.excludeMath),
-        recordingDates: normalizeRecordingDates(record.recordingDates),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-    });
+    const { createdIds, rowsToCreate } = buildStudentCreateRows(newRecords, timestamp);
 
     await prisma.registration.createMany({ data: rowsToCreate });
 
@@ -350,35 +213,9 @@ router.put('/:id', validateStudentUpdate, async (req, res) => {
     }
 
     const timestamp = new Date();
-    const hasCourseConfigSetName = Object.prototype.hasOwnProperty.call(
-      updateRecord,
-      'courseConfigSetName'
-    );
-    const hasSkipWeeks = Object.prototype.hasOwnProperty.call(updateRecord, 'skipWeeks');
-    const hasExcludeMath = Object.prototype.hasOwnProperty.call(updateRecord, 'excludeMath');
-    const hasCourseId = Object.prototype.hasOwnProperty.call(updateRecord, 'courseId');
-    const hasTuitionFee = Object.prototype.hasOwnProperty.call(updateRecord, 'tuitionFee');
-    const hasWithdrawnAt = Object.prototype.hasOwnProperty.call(updateRecord, 'withdrawnAt');
     await prisma.registration.update({
       where: { id },
-      data: {
-        timestamp,
-        name: updateRecord.name,
-        course: updateRecord.course,
-        ...(hasCourseId ? { courseId: normalizeCourseId(updateRecord.courseId) } : {}),
-        ...(hasCourseConfigSetName
-          ? { courseConfigSetName: normalizeCourseConfigSetName(updateRecord.courseConfigSetName) }
-          : {}),
-        startDate: parseDateOnly(updateRecord.startDate),
-        endDate: parseDateOnly(updateRecord.endDate),
-        weeks: parseWeeks(updateRecord.weeks),
-        ...(hasTuitionFee ? { tuitionFee: parseTuitionFee(updateRecord.tuitionFee) } : {}),
-        ...(hasWithdrawnAt ? { withdrawnAt: parseDateOnly(updateRecord.withdrawnAt) } : {}),
-        ...(hasSkipWeeks ? { skipWeeks: parseSkipWeeks(updateRecord.skipWeeks) } : {}),
-        ...(hasExcludeMath ? { excludeMath: parseExcludeMath(updateRecord.excludeMath) } : {}),
-        recordingDates: normalizeRecordingDates(updateRecord.recordingDates),
-        updatedAt: timestamp,
-      },
+      data: buildStudentUpdateData(updateRecord, timestamp),
     });
 
     console.log(`[${new Date().toISOString()}] ID ${id} 업데이트 완료.`);

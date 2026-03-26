@@ -1,329 +1,194 @@
 const express = require('express') as typeof import('express');
-const crypto = require('crypto');
-const { prisma } = require('../db/prisma');
-const { sign, verify } = require('../services/authToken');
-const { getEffectivePermissions } = require('../services/permissionService');
-const { isRateLimited, clearAttempts } = require('../services/rateLimiter');
+const { verify } = require('../services/authToken');
+const { isRateLimited } = require('../services/rateLimiter');
 const { authMiddleware } = require('../middleware/authMiddleware');
+const { revokeRefreshToken } = require('../services/refreshTokenService');
 const {
-  issueRefreshToken,
-  rotateRefreshToken,
-  revokeRefreshToken,
-} = require('../services/refreshTokenService');
+  AUTH_MESSAGES,
+  fail,
+  getClientIp,
+  sendSessionSuccess,
+} = require('../services/authHttpService');
+const {
+  authenticateUserAndIssueSession,
+  buildRateLimitKeys,
+  changePasswordAndIssueSession,
+  loadSessionUserFromToken,
+  resolveAuthToken,
+  rotateRefreshSession,
+} = require('../services/authRouteService');
 const {
   AUTH_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
-  setAuthCookies,
   clearAuthCookies,
   ensureCsrfCookie,
 } = require('../services/authCookies');
-
-const { hashPassword } = require('../services/passwordUtils');
 
 const router = express.Router();
 
 const RATE_LIMIT_WINDOW_MS = 30 * 1000;
 const RATE_LIMIT_MAX = 10;
 
-function getClientIp(req: import('express').Request) {
-  return req.ip || req.connection?.remoteAddress || '';
-}
-
-function normalizeUsername(username: string | null | undefined) {
-  if (!username) return '';
-  return String(username).trim().toLowerCase();
-}
-
-function buildRateLimitKeys({
-  ip,
-  username,
-  scope = 'login',
-}: {
-  ip: string
-  username: string | null | undefined
-  scope?: string
-}) {
-  const normalizedUsername = normalizeUsername(username);
-  const keys = [];
-  if (ip) keys.push(`${scope}:ip:${ip}`);
-  if (normalizedUsername) {
-    keys.push(`${scope}:user:${normalizedUsername}`);
-    if (ip) keys.push(`${scope}:ipuser:${ip}:${normalizedUsername}`);
-  }
-  return keys;
-}
-
-function verifyPassword(
-  user: {
-    salt: string
-    hash: string
-    iterations?: number
-    keylen?: number
-    digest?: string
-  } | null,
-  password: string
-) {
-  if (!user || !password) return false;
-  const { salt, hash, iterations = 100000, keylen = 32, digest = 'sha256' } = user;
-  const computed = crypto.pbkdf2Sync(password, Buffer.from(salt, 'base64'), iterations, keylen, digest);
-  const stored = Buffer.from(hash, 'base64');
-  return crypto.timingSafeEqual(computed, stored);
-}
-
-async function buildUserPayload(user: { id: string; username: string; role: string; mustChangePassword?: boolean }) {
-  const { allow, deny } = await getEffectivePermissions({
-    userId: user.id,
-    roleName: user.role,
-  });
-  const categoryAccess = await prisma.userCategoryAccess.findMany({
-    where: { userId: user.id },
-    select: { courseConfigSetName: true, categoryKey: true, effect: true },
-  });
-  return {
-    username: user.username,
-    role: user.role,
-    permissions: Array.from(allow),
-    permissionDenies: Array.from(deny),
-    categoryAccess,
-    mustChangePassword: Boolean(user.mustChangePassword),
-  };
-}
-
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body || {};
   const ip = getClientIp(req);
   const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'login' });
+
   if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
-    return res.status(429).json({
-      status: 'fail',
-      message: 'Too many login attempts. Please try again later.',
-    });
+    return fail(res, 429, AUTH_MESSAGES.loginRateLimited);
   }
 
   if (!username || !password) {
-    return res.status(400).json({ status: '실패', message: '아이디와 비밀번호가 필요합니다.' });
+    return fail(res, 400, AUTH_MESSAGES.missingCredentials);
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || !verifyPassword(user, password)) {
-      return res.status(401).json({ status: '실패', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    const session = await authenticateUserAndIssueSession({ username, password });
+    if (!session) {
+      return fail(res, 401, AUTH_MESSAGES.invalidCredentials);
     }
 
-    const nowSec = Math.floor(Date.now() / 1000);
-    const accessToken = await sign({
-      username: user.username,
-      role: user.role,
-      reauthAt: nowSec,
-      tokenVersion: user.tokenVersion,
-    });
-    const { token: refreshToken } = await issueRefreshToken(user, prisma, nowSec);
-    setAuthCookies(res, { accessToken, refreshToken });
-    await clearAttempts(rateLimitKeys);
-    const userPayload = await buildUserPayload(user);
-
-    res.json({
-      status: '성공',
-      token: accessToken,
-      user: userPayload,
-    });
+    return sendSessionSuccess({ res, session, rateLimitKeys });
   } catch (error) {
-    console.error('로그인 처리 중 오류:', error);
-    res.status(500).json({ status: '실패', message: '서버 오류가 발생했습니다.' });
+    console.error('\uB85C\uADF8\uC778 \uCC98\uB9AC \uC911 \uC624\uB958:', error);
+    return fail(res, 500, AUTH_MESSAGES.serverError);
   }
 });
 
-// GET /api/auth/me
 router.get('/me', async (req, res) => {
   try {
-    const rawAuth = req.headers.authorization;
-    const authHeader = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth || '';
-    const headerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    const cookieToken = req.cookies?.[AUTH_COOKIE_NAME] || null;
-    const token = headerToken || cookieToken;
-    if (!token) return res.status(401).json({ status: '실패', message: '토큰이 없습니다.' });
+    const token = resolveAuthToken(
+      req.headers.authorization,
+      req.cookies?.[AUTH_COOKIE_NAME] || null
+    );
 
-    const payload = await verify(token);
-    if (payload?.tokenUse === 'refresh') {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'Invalid token.',
-      });
+    if (!token) {
+      return fail(res, 401, AUTH_MESSAGES.missingToken);
     }
-    const user = await prisma.user.findUnique({
-      where: { username: payload.username },
-    });
-    if (!user) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'Missing token.',
-      });
+
+    const sessionUser = await loadSessionUserFromToken(token);
+    if (sessionUser.status === 'missing-token') {
+      return fail(res, 401, AUTH_MESSAGES.missingToken);
     }
-    const payloadVersion = Number.isInteger(payload.tokenVersion)
-      ? payload.tokenVersion
-      : null;
-    if (payloadVersion === null || user.tokenVersion !== payloadVersion) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'Invalid token.',
-      });
+    if (sessionUser.status === 'invalid-token') {
+      return fail(res, 401, AUTH_MESSAGES.invalidToken);
     }
-    const userPayload = await buildUserPayload(user);
+
     ensureCsrfCookie(req, res);
-    res.json({ status: '성공', user: userPayload });
+    return res.json({ status: 'success', user: sessionUser.userPayload });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unauthorized';
-    res.status(401).json({ status: '실패', message });
+    const message = error instanceof Error ? error.message : AUTH_MESSAGES.invalidToken;
+    return fail(res, 401, message);
   }
 });
 
-// POST /api/auth/reauth
 router.post('/reauth', authMiddleware(), async (req, res) => {
   const { password } = req.body || {};
   const ip = getClientIp(req);
   const username = req.user?.username;
   const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'reauth' });
+
   if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
-    return res.status(429).json({
-      status: 'fail',
-      message: 'Too many login attempts. Please try again later.',
-    });
+    return fail(res, 429, AUTH_MESSAGES.reauthRateLimited);
   }
+
   if (!password) {
-    return res.status(400).json({ status: 'fail', message: 'Password is required.' });
+    return fail(res, 400, AUTH_MESSAGES.missingPassword);
   }
+
   try {
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || !verifyPassword(user, password)) {
-      return res.status(401).json({ status: 'fail', message: 'Invalid credentials.' });
+    const session = await authenticateUserAndIssueSession({ username, password });
+    if (!session) {
+      return fail(res, 401, AUTH_MESSAGES.invalidCredentials);
     }
-    const nowSec = Math.floor(Date.now() / 1000);
-    const accessToken = await sign({
-      username: user.username,
-      role: user.role,
-      reauthAt: nowSec,
-      tokenVersion: user.tokenVersion,
-    });
-    const { token: refreshToken } = await issueRefreshToken(user, prisma, nowSec);
-    setAuthCookies(res, { accessToken, refreshToken });
-    const userPayload = await buildUserPayload(user);
-    await clearAttempts(rateLimitKeys);
-    res.json({ status: 'success', token: accessToken, user: userPayload });
+
+    return sendSessionSuccess({ res, session, rateLimitKeys });
   } catch (error) {
-    console.error('Reauth failed:', error);
-    res.status(500).json({ status: 'fail', message: 'Failed to reauthenticate.' });
+    console.error('\uC7AC\uC778\uC99D \uC2E4\uD328:', error);
+    return fail(res, 500, AUTH_MESSAGES.serverError);
   }
 });
 
-// POST /api/auth/password
 router.post('/password', authMiddleware([], { allowPasswordChange: true }), async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   const ip = getClientIp(req);
   const username = req.user?.username;
   const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'password' });
+
   if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
-    return res.status(429).json({
-      status: 'fail',
-      message: 'Too many password change attempts. Please try again later.',
-    });
+    return fail(res, 429, AUTH_MESSAGES.passwordRateLimited);
   }
+
   if (!currentPassword || !newPassword) {
-    return res.status(400).json({ status: 'fail', message: 'Current and new passwords are required.' });
+    return fail(res, 400, AUTH_MESSAGES.passwordFieldsRequired);
   }
+
   const normalizedNew = String(newPassword || '').trim();
   if (!normalizedNew || normalizedNew === '0') {
-    return res.status(400).json({ status: 'fail', message: 'Invalid new password.' });
+    return fail(res, 400, AUTH_MESSAGES.invalidNewPassword);
   }
+
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ status: 'fail', message: 'Missing auth.' });
+      return fail(res, 401, AUTH_MESSAGES.missingAuth);
     }
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !verifyPassword(user, currentPassword)) {
-      return res.status(401).json({ status: 'fail', message: 'Invalid credentials.' });
-    }
-    const updated = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        ...hashPassword(normalizedNew),
-        mustChangePassword: false,
-        tokenVersion: { increment: 1 },
-      },
-    });
 
-    const nowSec = Math.floor(Date.now() / 1000);
-    const accessToken = await sign({
-      username: updated.username,
-      role: updated.role,
-      reauthAt: nowSec,
-      tokenVersion: updated.tokenVersion,
+    const session = await changePasswordAndIssueSession({
+      userId,
+      currentPassword,
+      newPassword: normalizedNew,
     });
-    const { token: refreshToken } = await issueRefreshToken(updated, prisma, nowSec);
-    setAuthCookies(res, { accessToken, refreshToken });
-    const userPayload = await buildUserPayload(updated);
-    await clearAttempts(rateLimitKeys);
-    return res.json({ status: 'success', token: accessToken, user: userPayload });
+    if (session.status !== 'success') {
+      return fail(res, 401, AUTH_MESSAGES.invalidCredentials);
+    }
+
+    return sendSessionSuccess({ res, session, rateLimitKeys });
   } catch (error) {
-    console.error('Password change failed:', error);
-    return res.status(500).json({ status: 'fail', message: 'Failed to change password.' });
+    console.error('\uBE44\uBC00\uBC88\uD638 \uBCC0\uACBD \uC2E4\uD328:', error);
+    return fail(res, 500, AUTH_MESSAGES.passwordChangeFailed);
   }
 });
 
-
-// POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
   const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!refreshToken) {
     clearAuthCookies(res);
-    return res.status(401).json({ status: 'fail', message: 'Missing refresh token.' });
+    return fail(res, 401, AUTH_MESSAGES.missingRefreshToken);
   }
+
   let payload = null;
   try {
     payload = await verify(refreshToken);
   } catch (error) {
     clearAuthCookies(res);
-    return res.status(401).json({ status: 'fail', message: 'Invalid refresh token.' });
+    return fail(res, 401, AUTH_MESSAGES.invalidRefreshToken);
   }
 
   const ip = getClientIp(req);
   const username = payload?.username;
   const rateLimitKeys = buildRateLimitKeys({ ip, username, scope: 'refresh' });
+
   if (await isRateLimited(rateLimitKeys, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX)) {
-    return res.status(429).json({
-      status: 'fail',
-      message: 'Too many refresh attempts. Please try again later.',
-    });
+    return fail(res, 429, AUTH_MESSAGES.refreshRateLimited);
   }
+
   try {
-    const rotated = await rotateRefreshToken(refreshToken);
-    const reauthAt = Number(payload?.reauthAt || 0);
-    const accessToken = await sign({
-      username: rotated.user.username,
-      role: rotated.user.role,
-      reauthAt,
-      tokenVersion: rotated.user.tokenVersion,
-    });
-    setAuthCookies(res, { accessToken, refreshToken: rotated.token });
-    const userPayload = await buildUserPayload(rotated.user);
-    await clearAttempts(rateLimitKeys);
-    return res.json({ status: 'success', token: accessToken, user: userPayload });
+    const session = await rotateRefreshSession(refreshToken, Number(payload?.reauthAt || 0));
+    return sendSessionSuccess({ res, session, rateLimitKeys });
   } catch (error) {
     clearAuthCookies(res);
-    return res.status(401).json({ status: 'fail', message: 'Invalid refresh token.' });
+    return fail(res, 401, AUTH_MESSAGES.invalidRefreshToken);
   }
 });
 
-
-// POST /api/auth/logout
 router.post('/logout', async (req, res) => {
   const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
   if (refreshToken) {
     await revokeRefreshToken(refreshToken);
   }
   clearAuthCookies(res);
-  res.json({ status: 'success' });
+  return res.json({ status: 'success' });
 });
 
 module.exports = router;

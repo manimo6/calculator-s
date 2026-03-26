@@ -7,13 +7,11 @@ const {
   requirePermissions,
 } = require('../middleware/permissionMiddleware');
 const {
-  buildCategoryAccessMap,
-  buildCourseConfigSetIndexMap,
-  getAccessForSet,
-  isCategoryAllowed,
-  isCategoryAccessBypassed,
-  resolveCategoryForCourse,
-} = require('../services/categoryAccessService');
+  filterCourseNotes,
+  isCourseNoteAllowed,
+  loadCourseNoteAccessContext,
+  normalizeCourseList,
+} = require('../services/courseNoteAccessService');
 
 type CourseNoteRow = {
   id: string
@@ -51,70 +49,18 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
-    const accessPromise = bypassCategoryAccess
-      ? Promise.resolve([])
-      : prisma.userCategoryAccess.findMany({
-          where: { userId: authUser.id, courseConfigSetName: setName },
-          select: { courseConfigSetName: true, categoryKey: true, effect: true },
-        });
-    const setPromise = prisma.courseConfigSet.findMany({
-      where: { name: { in: [setName] } },
-      select: { name: true, data: true },
-    });
-    const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-    const access = getAccessForSet(
-      buildCategoryAccessMap(accessRows),
-      setName,
-      bypassCategoryAccess
-    );
-    const indexMap = buildCourseConfigSetIndexMap(
-      setRows as Array<{ name?: string; data?: Record<string, unknown> }>
-    );
-    const index = indexMap.get(setName);
-    const courseCategory = course && index
-      ? resolveCategoryForCourse({ courseName: course }, index)
-      : '';
+    const { access, index } = await loadCourseNoteAccessContext(authUser, setName);
 
     const all: CourseNoteRow[] = await prisma.courseNote.findMany({
       where: { courseConfigSetName: setName },
     });
-    const filtered = all
-      .map((n) => ({
-        ...n,
-        courses: Array.isArray(n.courses)
-          ? n.courses
-          : n.course
-            ? [n.course]
-            : [],
-      }))
-      .filter((n) => {
-        if (category && n.category !== category) return false;
-        if (!isCategoryAllowed(n.category, access)) return false;
-        if (course && !n.courses.includes(course)) {
-          if (n.courses.length === 0) {
-            if (!category && (!courseCategory || n.category !== courseCategory)) {
-              return false;
-            }
-          } else {
-            return false;
-          }
-        }
-        if (search) {
-          const s = String(search).toLowerCase();
-          const hay = `${n.title || ''} ${n.content || ''} ${Array.isArray(n.tags) ? n.tags.join(' ') : ''}`.toLowerCase();
-          if (!hay.includes(s)) return false;
-        }
-        if (index && Array.isArray(n.courses) && n.courses.length) {
-          const deniedCourse = n.courses.find((c) => {
-            const mappedCategory = resolveCategoryForCourse({ courseName: c }, index);
-            return !isCategoryAllowed(mappedCategory, access);
-          });
-          if (deniedCourse) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+    const filtered = filterCourseNotes(all, {
+      category,
+      course,
+      search,
+      access,
+      index,
+    });
     res.json({ status: '성공', results: filtered });
   } catch (err) {
     console.error('과목별 메모 조회 오류:', err);
@@ -146,44 +92,14 @@ router.post('/', async (req, res) => {
         message: 'courseConfigSetName is required.',
       });
     }
-    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
-    const accessPromise = bypassCategoryAccess
-      ? Promise.resolve([])
-      : prisma.userCategoryAccess.findMany({
-          where: { userId: authUser.id, courseConfigSetName: setName },
-          select: { courseConfigSetName: true, categoryKey: true, effect: true },
-        });
-    const setPromise = prisma.courseConfigSet.findMany({
-      where: { name: { in: [setName] } },
-      select: { name: true, data: true },
-    });
-    const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-    const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
-    const indexMap = buildCourseConfigSetIndexMap(
-      setRows as Array<{ name?: string; data?: Record<string, unknown> }>
-    );
-    const index = indexMap.get(setName);
-
-    const courseList = Array.isArray(courses)
-      ? courses.filter(Boolean).map(String)
-      : course
-        ? [String(course)]
-        : [];
+    const { access, index } = await loadCourseNoteAccessContext(authUser, setName);
+    const courseList = normalizeCourseList(courses, course);
     const categoryKey = String(category || '').trim();
     if (!title) {
       return res.status(400).json({ status: 'fail', message: 'Title is required.' });
     }
-    if (categoryKey && !isCategoryAllowed(categoryKey, access)) {
+    if (!isCourseNoteAllowed({ category: categoryKey, courses: courseList }, access, index)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-    }
-    if (index && courseList.length) {
-      const deniedCourse = courseList.find((c) => {
-        const mappedCategory = resolveCategoryForCourse({ courseName: c }, index);
-        return !isCategoryAllowed(mappedCategory, access);
-      });
-      if (deniedCourse) {
-        return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-      }
     }
     const now = new Date();
 
@@ -235,23 +151,7 @@ router.put('/:id', async (req, res) => {
         message: 'courseConfigSetName is required.',
       });
     }
-    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
-    const accessPromise = bypassCategoryAccess
-      ? Promise.resolve([])
-      : prisma.userCategoryAccess.findMany({
-          where: { userId: authUser.id, courseConfigSetName: setName },
-          select: { courseConfigSetName: true, categoryKey: true, effect: true },
-        });
-    const setPromise = prisma.courseConfigSet.findMany({
-      where: { name: { in: [setName] } },
-      select: { name: true, data: true },
-    });
-    const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-    const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
-    const indexMap = buildCourseConfigSetIndexMap(
-      setRows as Array<{ name?: string; data?: Record<string, unknown> }>
-    );
-    const index = indexMap.get(setName);
+    const { access, index } = await loadCourseNoteAccessContext(authUser, setName);
 
     const existing: CourseNoteRow | null = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '실패', message: '메모를 찾을 수 없습니다.' });
@@ -259,24 +159,11 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ status: 'fail', message: 'Note not found.' });
     }
 
-    const courseList = Array.isArray(courses)
-      ? courses.filter(Boolean).map(String)
-      : course
-        ? [String(course)]
-        : existing.courses || [];
+    const courseList = normalizeCourseList(courses, course, existing.courses || []);
     const normalizedCategory = category !== undefined ? String(category || '').trim() : undefined;
     const finalCategory = normalizedCategory !== undefined ? normalizedCategory : String(existing.category || '').trim();
-    if (finalCategory && !isCategoryAllowed(finalCategory, access)) {
+    if (!isCourseNoteAllowed({ category: finalCategory, courses: courseList }, access, index)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-    }
-    if (index && courseList.length) {
-      const deniedCourse = courseList.find((c) => {
-        const mappedCategory = resolveCategoryForCourse({ courseName: c }, index);
-        return !isCategoryAllowed(mappedCategory, access);
-      });
-      if (deniedCourse) {
-        return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-      }
     }
 
     const updated = await prisma.courseNote.update({
@@ -314,40 +201,15 @@ router.delete('/:id', async (req, res) => {
         message: 'courseConfigSetName is required.',
       });
     }
-    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
-    const accessPromise = bypassCategoryAccess
-      ? Promise.resolve([])
-      : prisma.userCategoryAccess.findMany({
-          where: { userId: authUser.id, courseConfigSetName: setName },
-          select: { courseConfigSetName: true, categoryKey: true, effect: true },
-        });
-    const setPromise = prisma.courseConfigSet.findMany({
-      where: { name: { in: [setName] } },
-      select: { name: true, data: true },
-    });
-    const [accessRows, setRows] = await Promise.all([accessPromise, setPromise]);
-    const access = getAccessForSet(buildCategoryAccessMap(accessRows), setName, bypassCategoryAccess);
-    const indexMap = buildCourseConfigSetIndexMap(
-      setRows as Array<{ name?: string; data?: Record<string, unknown> }>
-    );
-    const index = indexMap.get(setName);
+    const { access, index } = await loadCourseNoteAccessContext(authUser, setName);
 
     const existing: CourseNoteRow | null = await prisma.courseNote.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ status: '실패', message: '메모를 찾을 수 없습니다.' });
     if (existing.courseConfigSetName !== setName) {
       return res.status(404).json({ status: 'fail', message: 'Note not found.' });
     }
-    if (!isCategoryAllowed(existing.category, access)) {
+    if (!isCourseNoteAllowed(existing, access, index)) {
       return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-    }
-    if (index && Array.isArray(existing.courses) && existing.courses.length) {
-      const deniedCourse = existing.courses.find((c) => {
-        const mappedCategory = resolveCategoryForCourse({ courseName: c }, index);
-        return !isCategoryAllowed(mappedCategory, access);
-      });
-      if (deniedCourse) {
-        return res.status(403).json({ status: 'fail', message: 'Permission denied.' });
-      }
     }
     await prisma.courseNote.delete({ where: { id } });
     res.json({ status: '성공' });
