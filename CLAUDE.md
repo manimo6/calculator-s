@@ -18,19 +18,23 @@
 calculator/
 ├── frontend/src/
 │   ├── pages/              # 4개: Login, Student, Admin, ChangePassword
-│   ├── features/admin/     # 8개 관리 탭 (공지, 캘린더, 수업, 등록현황, 출석, 메모, 계정, 설정)
+│   ├── features/admin/     # 8개 관리 탭
+│   │   ├── attendance/     # 출석부 (Board, Tab, CourseBrowser + model/state/copy)
+│   │   ├── courses/        # 과목설정 (CourseDialog, CategoryDialog + state/payload/copy)
+│   │   ├── registrations/  # 등록현황 (Gantt, Sidebar, Cards, Transfer, Withdraw, Note, Merge, Installment + model/selectors/copy)
+│   │   └── ...             # 공지, 캘린더, 메모, 계정, 설정
 │   ├── components/ui/      # Radix 기반 UI 컴포넌트
-│   ├── components/student/  # 학생용 컴포넌트
-│   ├── components/common/  # 공통 컴포넌트 (ErrorBoundary 등)
-│   ├── utils/              # 계산기 로직, 클립보드
-│   ├── api-client.ts       # 40+ API 메서드
+│   ├── components/student/ # 학생용 컴포넌트
+│   ├── components/common/  # 공통 컴포넌트 (ErrorBoundary, Modal 등)
+│   ├── utils/              # calculatorLogic, searchUtils, clipboardUtils
+│   ├── api-client.ts       # 40+ API 메서드 (토큰 만료 15초 전 자동 리프레시)
 │   ├── auth.ts / auth-store.ts / auth-context.tsx / auth-routing.ts
 │   └── ProtectedRoute.tsx
 ├── backend/
-│   ├── routes/             # 14개 라우트 파일
-│   ├── services/           # 인증, 권한, Rate Limit
-│   ├── middleware/          # Auth, CSRF, Permission, Reauth, ErrorHandler, RequestLogger, InputValidator
-│   ├── utils/              # apiError, shutdown, processErrorHandlers
+│   ├── routes/             # 19개 라우트 파일 (registrations → 5개 분리)
+│   ├── services/           # 15+ 서비스 (인증, 권한, 등록, 전반, 메모 등)
+│   ├── middleware/         # Auth, CSRF, Permission, Reauth, ErrorHandler, RequestLogger, InputValidator
+│   ├── utils/              # apiError, shutdown, processErrorHandlers, dateUtils, parsers
 │   ├── validators/         # 입력 검증 규칙
 │   ├── realtime/           # Socket.io (socket, socketAuth, socketRateLimiter)
 │   ├── db/prisma.ts        # Prisma 싱글톤
@@ -46,6 +50,7 @@ calculator/
 npm run dev              # Vite dev 서버
 npm run build            # 프로덕션 빌드
 npm run typecheck        # 타입 체크
+npm run test             # Vitest (120개 테스트)
 
 # Backend (calculator/backend/)
 npm run build            # TS → dist/ 컴파일
@@ -84,78 +89,35 @@ npm run prisma:migrate:dev  # 마이그레이션
 
 ---
 
-# 안정화 작업 계획 (7 Phase)
+## 완료된 안정화 작업
 
-## 진행 상태
+서버 생존성, 입력값 검증, WebSocket 보강, Error Boundary, 에러 Sanitize, CORS, CSRF — 7 Phase 전체 완료.
 
-| Phase | 작업 | 상태 | 리스크 |
-|-------|------|------|--------|
-| 1 | 서버 생존성 (에러핸들러, 셧다운, 로깅) | **완료** ✔ `8b935fc` | 없음 (순수 추가) |
-| 2 | 입력값 검증 레이어 | **완료** ✔ `d237d8c` | 낮음 (순수 추가) |
-| 3 | WebSocket 보강 (Rate Limit, 인증 분리) | **완료** ✔ `0298f68` | 중간 (리팩토링) |
-| 4 | Error Boundary (프론트) | **완료** ✔ `2700586` | 없음 (순수 추가) |
-| 5 | 에러 메시지 Sanitize | **완료** ✔ `689be25` | 낮음 (동작 변경) |
-| 6 | CORS 기본값 수정 | **완료** ✔ `7b5693e` | 없음 (1줄) |
-| 7 | CSRF 로직 수정 (프론트+백 동시) | **완료** ✔ `04bfc9f` | 높음 (2단계 롤아웃) |
+---
 
-## Phase 상세
+## 프론트엔드 아키텍처 규칙
 
-### Phase 1: 서버 생존성
-새 파일 4개 생성, server.ts에 import 추가만. 기존 라우트 수정 없음.
-- `middleware/errorHandler.ts` — 글로벌 에러 핸들러
-- `middleware/requestLogger.ts` — 요청 로깅
-- `utils/shutdown.ts` — graceful shutdown + Prisma disconnect
-- `utils/processErrorHandlers.ts` — uncaughtException, unhandledRejection
+- **컴포넌트 200줄 이하**: 초과 시 하위 컴포넌트로 분리
+- **Model/View 분리**: 순수 로직은 `*Model.ts`, 컴포넌트는 렌더링만 담당
+- **Copy 파일 분리**: UI 문자열(라벨, 메시지)은 `*Copy.ts`로 분리
+- **Barrel export**: 분리된 파일들은 원본 파일에서 thin re-export (기존 import 경로 유지)
+- **Selector 패턴**: 파생 데이터는 `*Selectors.ts`에서 계산 (컴포넌트 내 직접 계산 금지)
+- **테스트**: Model, Selector, Utils는 반드시 Vitest 테스트 작성
 
-### Phase 2: 입력값 검증
-각 라우트에 미들웨어로 끼워넣기. 기존 로직 변경 없음.
-- `middleware/inputValidator.ts` — 공통 검증 유틸
-- `validators/studentValidator.ts` — 학생 API 검증
-- `validators/registrationValidator.ts` — 등록 API 검증
+## 백엔드 아키텍처 규칙
 
-### Phase 3: WebSocket 보강
-socket.ts에서 인증/Rate Limit 로직을 분리. handshake 흐름 동일 유지.
-- `realtime/socketRateLimiter.ts` — 소켓 전용 Rate Limit
-- `realtime/socketAuth.ts` — 소켓 인증/권한 분리
+- **라우트 = 파싱 + 응답**: 라우트 핸들러는 요청 파싱과 응답 포맷만 담당
+- **비즈니스 로직 = services/**: 모든 DB 쿼리와 비즈니스 로직은 서비스 파일로 분리
+- **공유 유틸**: `utils/dateUtils.ts` (날짜), `utils/parsers.ts` (파싱), `services/passwordUtils.ts` (해싱)
+- **라우트 분리 기준**: 단일 도메인 라우트가 200줄 초과 시 하위 라우트 파일로 분리
 
-### Phase 4: Error Boundary
-App.tsx에서 감싸기만. 기존 컴포넌트 수정 없음.
-- `components/common/ErrorBoundary.tsx` — 글로벌 에러 경계
-- `components/common/ErrorFallback.tsx` — fallback UI
-
-### Phase 5: 에러 메시지 Sanitize
-AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
-- `utils/apiError.ts` — 커스텀 에러 (userMessage + internalMessage 분리)
-- `middleware/errorHandler.ts` 확장
-
-### Phase 6: CORS 기본값
-`config/index.ts`에서 `'*'` → `'http://localhost:5173'`. .env 설정 있으면 영향 없음.
-
-### Phase 7: CSRF 수정 (2단계)
-**Step A** (백엔드 선행): CSRF 토큰 사전 발급 엔드포인트 추가. 면제 아직 유지.
-**Step B** (프론트+백 동시): 프론트에 CSRF 확보 로직 추가 → 백엔드 면제 제거.
+---
 
 ## 검증 기준
 
-- `npm run test` (프론트) — Vitest 24개 테스트 통과
-- `npm run typecheck` (프론트) — 기존 에러 9개 외 새 에러 없음
+- `npm run test` (프론트) — Vitest 120개 테스트 통과
+- `npm run typecheck` (프론트) — 타입 에러 0개
 - `npm run build` (백엔드) — 컴파일 에러 없음
-- Phase별 독립 커밋 — 문제 시 해당 Phase만 revert
-
-## 이미 완료된 정리 작업
-
-- [x] 백엔드 레거시 Store 파일 7개 삭제 (data/*Store.ts)
-- [x] 프론트엔드 레거시 admin 컴포넌트 10개 삭제 (components/admin/)
-- [x] 루트 table.txt 삭제
-- [x] 전반(transfer) 기능 분리: `useTransfer.ts` + `TransferDialog.tsx` (`f4e337e`)
-
-## RegistrationsTab.tsx 추가 분리 대상
-
-| 기능 | 분리 파일명 (제안) | 상태 |
-|------|---------------------|------|
-| 퇴원(withdraw) 다이얼로그 + 핸들러 | `WithdrawDialog.tsx` + `useWithdraw.ts` | **완료** ✔ |
-| 메모(note) 다이얼로그 + 핸들러 | `NoteDialog.tsx` + `useNote.ts` | **완료** ✔ |
-| 전반 버그 수정 (endDate 미계산, skipWeeks 복사) | `useTransfer.ts` + 백엔드 | **완료** ✔ |
 
 ## 기능 확장 시 반드시 같이 진행할 사항
 
@@ -163,15 +125,10 @@ AppError 클래스 도입. 응답 형식 `{ status, message }` 유지.
 |------|-----------|-------------|
 | **TS strict 모드** | 새 코드부터 strict 적용, 기존 코드 점진적 전환 | 새 기능 코드 작성 시 |
 | **ESM 전환** | 백엔드 CJS → ESM import 전환 | 백엔드 구조 변경 시 |
-| **다크모드 정리** | 주석 제거하고 feature flag로 재구현, 또는 완전 삭제 | 다크모드 다시 살릴 때 |
 | **상태 관리 통합** | auth 4파일(auth.ts, auth-store.ts, auth-context.tsx, auth-routing.ts) 통합 | auth 관련 기능 확장 시 |
-| **useCourseManager 리팩토링** | 전역 뮤터블 상태 제거 (delete, push 직접 변경) | 과목 관리 기능 수정 시 |
 | **HTTP Rate Limiter Redis 연동** | 인메모리 → Redis 기반으로 전환 | 다중 인스턴스 배포 시 |
 
 ## 주의사항
 
-- 기존 타입 에러 9개 존재 (Radix UI prop 타입 불일치) — 안정화 작업과 무관
 - backend/data/*.json — 시드 스크립트용, DB에 데이터 있으면 불필요하나 백업용 보관
-- 다크모드 — 현재 주석처리로 비활성화 상태
 - sqlite3 의존성 제거됨 (PostgreSQL만 사용)
-- 테스트: Vitest 도입 완료, calculatorLogic 순수 함수 24개 테스트 커버
