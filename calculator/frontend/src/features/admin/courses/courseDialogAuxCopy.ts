@@ -1,0 +1,19 @@
+export const COURSE_DIALOG_AUX_COPY = {
+  installmentTitle: "\uBD84\uB0A9 \uC635\uC158",
+  installmentDescription: "\uBD84\uB0A9\uC774 \uAC00\uB2A5\uD55C \uACFC\uBAA9\uC774\uBA74 \uCCB4\uD06C\uD558\uC138\uC694.",
+  installmentLabel: "\uBD84\uB0A9 \uAC00\uB2A5 \uACFC\uBAA9",
+  recordingTitle: "\uB179\uD654 \uAC15\uC758 \uC81C\uACF5",
+  recordingDescription:
+    "\uC628\uB77C\uC778/\uC624\uD504\uB77C\uC778\uBCC4 \uB179\uD654 \uC81C\uACF5 \uC5EC\uBD80\uB97C \uC124\uC815\uD569\uB2C8\uB2E4.",
+  onlineLabel: "\uC628\uB77C\uC778",
+  offlineLabel: "\uC624\uD504\uB77C\uC778",
+  recordingAvailableLabel: "\uC81C\uACF5",
+  additionalNoteTitle: "\uC548\uB0B4\uBB38 \uCD94\uAC00 \uBB38\uAD6C",
+  additionalNoteDescription: "\uC218\uAC15\uC0DD\uC5D0\uAC8C \uC804\uB2EC\uD560 \uBB38\uAD6C\uB97C \uC785\uB825\uD558\uC138\uC694.",
+  additionalNotePlaceholder: "\uCD94\uAC00 \uC548\uB0B4\uBB38\uC744 \uC785\uB825\uD558\uC138\uC694",
+  mathOptionTitle: "SAT \uC218\uD559 \uC81C\uC678 \uC635\uC158",
+  mathOptionDescription:
+    "SAT \uC218\uD559 \uC81C\uC678 \uC120\uD0DD\uACFC \uC8FC\uB2F9 \uC218\uAC15\uB8CC\uB97C \uC124\uC815\uD569\uB2C8\uB2E4.",
+  mathOptionToggleLabel: "SAT \uC218\uD559 \uC81C\uC678 \uC635\uC158 \uC81C\uACF5",
+  mathOptionPlaceholder: "SAT \uC218\uD559 \uC81C\uC678 \uC8FC\uB2F9 \uC218\uAC15\uB8CC",
+} as const

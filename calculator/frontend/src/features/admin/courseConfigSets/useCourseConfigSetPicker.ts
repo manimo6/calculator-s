@@ -88,9 +88,15 @@ export function useCourseConfigSetPicker({
       storedRecents.length > 0
 
     if (normalizedCourseConfigSetList.length === 0 && hasStored) {
-      setArchivedSets(storedArchived)
-      setFavoriteSets(storedFavorites)
-      setRecentSets(storedRecents)
+      if (!isSameList(storedArchived, archivedSets)) {
+        setArchivedSets(storedArchived)
+      }
+      if (!isSameList(storedFavorites, favoriteSets)) {
+        setFavoriteSets(storedFavorites)
+      }
+      if (!isSameList(storedRecents, recentSets)) {
+        setRecentSets(storedRecents)
+      }
       return
     }
 
@@ -115,10 +121,23 @@ export function useCourseConfigSetPicker({
       writeStoredList(STORAGE_RECENTS, storageScope, nextRecents)
     }
 
-    setArchivedSets(nextArchived)
-    setFavoriteSets(nextFavorites)
-    setRecentSets(nextRecents)
-  }, [normalizedCourseConfigSetList, recentLimit, storageScope])
+    if (!isSameList(nextArchived, archivedSets)) {
+      setArchivedSets(nextArchived)
+    }
+    if (!isSameList(nextFavorites, favoriteSets)) {
+      setFavoriteSets(nextFavorites)
+    }
+    if (!isSameList(nextRecents, recentSets)) {
+      setRecentSets(nextRecents)
+    }
+  }, [
+    archivedSets,
+    favoriteSets,
+    normalizedCourseConfigSetList,
+    recentLimit,
+    recentSets,
+    storageScope,
+  ])
 
   useEffect(() => {
     if (!open) {
@@ -143,12 +162,15 @@ export function useCourseConfigSetPicker({
       ...storedRecents.filter((name) => name !== selectedCourseConfigSet),
     ].slice(0, recentLimit)
 
+    if (isSameList(nextRecents, recentSets)) return
+
     writeStoredList(STORAGE_RECENTS, storageScope, nextRecents)
     setRecentSets(nextRecents)
   }, [
     archivedSets,
     normalizedCourseConfigSetList,
     recentLimit,
+    recentSets,
     selectedCourseConfigSet,
     storageScope,
   ])

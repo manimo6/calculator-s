@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -48,6 +49,9 @@ export default function CategoryDialog(props: CategoryDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{editingCategory ? "카테고리 수정" : "카테고리 추가"}</DialogTitle>
+          <DialogDescription>
+            과목을 묶을 카테고리 이름을 입력하고 저장합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -73,4 +77,3 @@ export default function CategoryDialog(props: CategoryDialogProps) {
     </Dialog>
   )
 }
-
