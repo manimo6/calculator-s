@@ -65,6 +65,33 @@ function courseFormReducer(state: CourseFormState, action: CourseAction): Course
         ...state,
         breakRanges: state.breakRanges.filter((_, index) => index !== action.index),
       }
+    case "ADD_DAILY_FEE":
+      return {
+        ...state,
+        dailyFees: [...state.dailyFees, { days: 0, fee: 0 }],
+      }
+    case "UPDATE_DAILY_FEE": {
+      const nextFees = [...state.dailyFees]
+      nextFees[action.index] = { ...nextFees[action.index], [action.key]: action.value }
+      return { ...state, dailyFees: nextFees }
+    }
+    case "REMOVE_DAILY_FEE":
+      return {
+        ...state,
+        dailyFees: state.dailyFees.filter((_, index) => index !== action.index),
+      }
+    case "TOGGLE_AVAILABLE_DATE": {
+      const dateStr = action.date
+      const has = state.availableDates.includes(dateStr)
+      return {
+        ...state,
+        availableDates: has
+          ? state.availableDates.filter((d) => d !== dateStr)
+          : [...state.availableDates, dateStr].sort(),
+      }
+    }
+    case "SET_AVAILABLE_DATES":
+      return { ...state, availableDates: [...action.dates].sort() }
     default:
       return state
   }
@@ -77,6 +104,7 @@ export type {
   CourseAction,
   CourseData,
   CourseFormState,
+  DailyFeeEntry,
   DynamicOption,
   RecordingData,
   TextbookState,

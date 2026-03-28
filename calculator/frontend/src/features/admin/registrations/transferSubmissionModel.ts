@@ -1,10 +1,11 @@
 import { TRANSFER_COPY } from "./transferCopy"
 import {
+  calcRemainingDays,
   calcRemainingWeeks,
   makeCourseValue,
   parseCourseValue,
 } from "./transferModel"
-import { formatDateYmd, parseDate } from "./utils"
+import { formatDateYmd, isDailyRegistration, parseDate } from "./utils"
 
 type TransferRegistrationRow = {
   id?: string | number
@@ -13,6 +14,8 @@ type TransferRegistrationRow = {
   courseConfigSetName?: string
   startDate?: string | Date
   weeks?: number | string
+  durationUnit?: "weekly" | "daily"
+  selectedDates?: string[]
 } & Record<string, unknown>
 
 export function buildOpenTransferDialogDraft(
@@ -20,17 +23,26 @@ export function buildOpenTransferDialogDraft(
   transferCourseLabelMap: Map<string, string>,
   today: string = formatDateYmd(new Date())
 ) {
+  const isDaily = isDailyRegistration(registration)
   const targetValue = makeCourseValue(registration?.courseId, registration?.course)
   const hasTargetValue = !!targetValue && transferCourseLabelMap.has(targetValue)
   const transferDate = hasTargetValue ? today : ""
-  const remainingWeeks = transferDate
-    ? calcRemainingWeeks(registration, transferDate)
-    : Number(registration?.weeks) || 0
+
+  let remaining: number
+  if (transferDate) {
+    remaining = isDaily
+      ? calcRemainingDays(registration, transferDate)
+      : calcRemainingWeeks(registration, transferDate)
+  } else {
+    remaining = isDaily
+      ? (registration?.selectedDates?.length || 0)
+      : Number(registration?.weeks) || 0
+  }
 
   return {
     transferCourseValue: hasTargetValue ? targetValue : "",
     transferDate,
-    transferWeeks: remainingWeeks > 0 ? String(remainingWeeks) : "",
+    transferWeeks: remaining > 0 ? String(remaining) : "",
   }
 }
 
@@ -67,13 +79,15 @@ export function validateTransferSubmission({
     return { ok: false as const, error: TRANSFER_COPY.dateAfterStart }
   }
 
+  const isDaily = isDailyRegistration(transferTarget)
+
   if (!transferWeeks) {
-    return { ok: false as const, error: TRANSFER_COPY.weeksRequired }
+    return { ok: false as const, error: isDaily ? TRANSFER_COPY.daysRequired : TRANSFER_COPY.weeksRequired }
   }
 
   const weeksValue = Number(transferWeeks)
   if (!Number.isInteger(weeksValue) || weeksValue <= 0) {
-    return { ok: false as const, error: TRANSFER_COPY.weeksPositiveInteger }
+    return { ok: false as const, error: isDaily ? TRANSFER_COPY.daysPositiveInteger : TRANSFER_COPY.weeksPositiveInteger }
   }
 
   const courseLabel = transferCourseLabelMap.get(String(transferCourseValue))

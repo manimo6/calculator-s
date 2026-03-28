@@ -94,27 +94,31 @@ export function useCourseTreeActions({
         return false
       }
 
-      const days = Array.isArray(formData?.days) ? formData.days : []
-      if (days.length === 0) {
-        showToast(COPY.classDaysRequired)
-        return false
-      }
+      const isDaily = formData?.durationUnit === "daily"
 
-      const endDays = Array.isArray(formData?.endDays) ? formData.endDays : []
-      if (endDays.length === 0) {
-        showToast(COPY.endDaysRequired)
-        return false
-      }
-      if (endDays.length !== 1) {
-        showToast(COPY.endDaysSingleRequired)
-        return false
-      }
-
-      if (!courseId) {
-        const startDays = Array.isArray(formData?.startDays) ? formData.startDays : []
-        if (startDays.length === 0) {
-          showToast(COPY.startDaysRequired)
+      if (!isDaily) {
+        const days = Array.isArray(formData?.days) ? formData.days : []
+        if (days.length === 0) {
+          showToast(COPY.classDaysRequired)
           return false
+        }
+
+        const endDays = Array.isArray(formData?.endDays) ? formData.endDays : []
+        if (endDays.length === 0) {
+          showToast(COPY.endDaysRequired)
+          return false
+        }
+        if (endDays.length !== 1) {
+          showToast(COPY.endDaysSingleRequired)
+          return false
+        }
+
+        if (!courseId) {
+          const startDays = Array.isArray(formData?.startDays) ? formData.startDays : []
+          if (startDays.length === 0) {
+            showToast(COPY.startDaysRequired)
+            return false
+          }
         }
       }
 

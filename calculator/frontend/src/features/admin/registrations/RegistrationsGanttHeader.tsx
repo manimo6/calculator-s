@@ -14,8 +14,10 @@ import { REGISTRATIONS_GANTT_COPY as COPY } from "./registrationsGanttCopy"
 
 export function RegistrationsGanttCardHeader({
   model,
+  isDaily,
 }: {
   model: RegistrationsGanttModel
+  isDaily?: boolean
 }) {
   return (
     <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/5 pb-6 pt-6">
@@ -40,7 +42,7 @@ export function RegistrationsGanttCardHeader({
           className="bg-slate-100 px-3 py-1 text-slate-600 hover:bg-slate-200"
         >
           {model.weeks.length}
-          {COPY.weekSuffix}
+          {isDaily ? COPY.daySuffix : COPY.weekSuffix}
         </Badge>
       </div>
     </CardHeader>
@@ -53,12 +55,14 @@ export function RegistrationsGanttTimelineHeader({
   gridTemplateColumns,
   timelineWidth,
   gridBackgroundImage,
+  isDaily,
 }: {
   model: RegistrationsGanttModel
   weekTotals: Array<{ count: number; transferred: number }>
   gridTemplateColumns: string
   timelineWidth: number
   gridBackgroundImage: string
+  isDaily?: boolean
 }) {
   return (
     <div className="sticky top-0 z-30">
@@ -70,7 +74,7 @@ export function RegistrationsGanttTimelineHeader({
           data-gantt-left
           className="sticky left-0 z-40 flex items-center justify-end border-r border-border/10 bg-slate-100 px-4 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500"
         >
-          {COPY.weeklyTotal}
+          {isDaily ? COPY.dailyTotal : COPY.weeklyTotal}
         </div>
         <div
           data-gantt-left
@@ -134,7 +138,7 @@ export function RegistrationsGanttTimelineHeader({
             >
               <span className="rounded-full bg-indigo-500 px-1.5 py-px text-[9px] font-bold text-white">
                 {i + 1}
-                {COPY.weekSuffix}
+                {isDaily ? COPY.daySuffix : COPY.weekSuffix}
               </span>
               <span className="text-[12px] font-semibold text-slate-700">
                 {formatWeekLabel(w.start, w.end)}

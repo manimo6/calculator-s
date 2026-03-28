@@ -107,38 +107,46 @@ export default function CourseDialog(props: CourseDialogProps) {
               editingCourseId={editingCourseId}
             />
 
-            <CourseDialogDurationSection
-              state={state}
-              dispatch={dispatch}
-            />
+            {state.durationUnit !== "daily" && (
+              <CourseDialogDurationSection
+                state={state}
+                dispatch={dispatch}
+              />
+            )}
 
-            <CourseDialogBreakRangesSection
-              state={state}
-              dispatch={dispatch}
-              breakPickerOpen={breakPickerOpen}
-              setBreakPickerOpen={setBreakPickerOpen}
-            />
+            {state.durationUnit !== "daily" && (
+              <CourseDialogBreakRangesSection
+                state={state}
+                dispatch={dispatch}
+                breakPickerOpen={breakPickerOpen}
+                setBreakPickerOpen={setBreakPickerOpen}
+              />
+            )}
 
-            <CourseDialogInstallmentSection
-              checked={state.installmentEligible}
-              onChange={(checked) =>
-                dispatch({
-                  type: "SET_FIELD",
-                  field: "installmentEligible",
-                  value: checked,
-                })
-              }
-            />
+            {state.durationUnit !== "daily" && (
+              <CourseDialogInstallmentSection
+                checked={state.installmentEligible}
+                onChange={(checked) =>
+                  dispatch({
+                    type: "SET_FIELD",
+                    field: "installmentEligible",
+                    value: checked,
+                  })
+                }
+              />
+            )}
 
             <CourseDialogTimeSection
               state={state}
               dispatch={dispatch}
             />
 
-            <CourseDialogScheduleSection
-              state={state}
-              dispatch={dispatch}
-            />
+            {state.durationUnit !== "daily" && (
+              <CourseDialogScheduleSection
+                state={state}
+                dispatch={dispatch}
+              />
+            )}
 
             <CourseDialogRecordingSection
               timeType={state.timeType}

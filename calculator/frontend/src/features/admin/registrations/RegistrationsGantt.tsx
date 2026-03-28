@@ -34,6 +34,7 @@ type RegistrationsGanttProps = {
   simulationDate?: Date | null
   maxHeightClassName?: string
   disableCardOverflow?: boolean
+  durationUnit?: "weekly" | "daily"
 }
 
 export default function RegistrationsGantt({
@@ -52,6 +53,7 @@ export default function RegistrationsGantt({
   simulationDate = null,
   maxHeightClassName = "max-h-[560px]",
   disableCardOverflow = false,
+  durationUnit,
 }: RegistrationsGanttProps) {
   const ganttScrollRef = useRef<HTMLDivElement | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -90,8 +92,9 @@ export default function RegistrationsGantt({
         courseDays,
         getCourseDaysForCourse,
         simulationDate,
+        durationUnit,
       }),
-    [courseDays, getCourseDaysForCourse, rangeRegistrations, registrations, simulationDate]
+    [courseDays, durationUnit, getCourseDaysForCourse, rangeRegistrations, registrations, simulationDate]
   )
 
   const visibleRows = useVisibleRows(model.rows, false, registrationMap, showTransferChain)
@@ -173,7 +176,7 @@ export default function RegistrationsGantt({
           disableCardOverflow ? "" : "overflow-hidden"
         }`}
       >
-        <RegistrationsGanttCardHeader model={model} />
+        <RegistrationsGanttCardHeader model={model} isDaily={durationUnit === "daily"} />
 
         <CardContent className="p-0">
           {!model.range || !model.weeks.length ? (
@@ -191,6 +194,7 @@ export default function RegistrationsGantt({
               mergeWeekRangesNormalized={mergeWeekRangesNormalized}
               openDetail={openDetail}
               onNote={onNote}
+              isDaily={durationUnit === "daily"}
             />
           )}
         </CardContent>

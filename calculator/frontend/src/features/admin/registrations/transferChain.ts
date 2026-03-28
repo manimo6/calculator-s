@@ -79,5 +79,11 @@ export function findActiveInChain<T extends ChainRow>(
       if (dist < closestDist) { closestDist = dist; closest = reg }
     }
   }
+  // closest가 전반된(이전) 등록이면 체인 마지막(현재 등록)을 우선
+  if (closest && closest.transferToId) {
+    const tail = chain[chain.length - 1]
+    if (tail && !tail.transferToId) return tail
+  }
+
   return closest || chain[0] || null
 }

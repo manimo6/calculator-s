@@ -17,6 +17,8 @@ export type CourseTreeGroup = {
   items: CourseTreeItem[];
 };
 
+export type DailyFeeEntry = { days: number; fee: number };
+
 export type CourseInfo = {
   name?: string;
   fee?: number;
@@ -25,6 +27,9 @@ export type CourseInfo = {
   textbook?: Record<string, unknown>;
   minDuration?: number;
   maxDuration?: number;
+  durationUnit?: "weekly" | "daily";
+  dailyFees?: DailyFeeEntry[];
+  availableDates?: string[];
   hasMathOption?: boolean;
   installmentEligible?: boolean;
   dynamicOptions?: Record<string, string | undefined>;

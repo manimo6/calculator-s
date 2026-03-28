@@ -1,7 +1,17 @@
 import { courseInfo, timeTable, recordingAvailable, getCourseName, weekdayName } from './data';
-import type { BreakRangeInput, CourseInfo, TimeTableDynamicOption } from './data';
+import type { BreakRangeInput, CourseInfo, DailyFeeEntry, TimeTableDynamicOption } from './data';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 일 단위 요금 조회: 정확한 일수 매칭 → 없으면 1일 단가 × 일수 → 없으면 null */
+export function resolveDailyFee(dailyFees: DailyFeeEntry[], days: number): number | null {
+    if (days <= 0) return null;
+    const exact = dailyFees.find((f) => f.days === days);
+    if (exact) return exact.fee;
+    const unit = dailyFees.find((f) => f.days === 1);
+    if (unit) return unit.fee * days;
+    return null;
+}
 export const ALL_WEEK_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 type DateInput = string | number | Date | null | undefined;
@@ -52,6 +62,7 @@ type CourseDetailsOptions = {
     dynamicTime?: string | null;
     courseType?: string | null;
     scheduleWeeks?: number | null;
+    selectedDates?: string[];
 };
 
 type CourseDetailsResult = {
@@ -72,6 +83,7 @@ type SingleCourseInputs = {
     skipWeeks?: Array<number | string>;
     recordingDates?: string[];
     excludeMath?: boolean;
+    selectedDates?: string[];
 };
 
 type CalculateTotalFeeInputs = {
@@ -274,6 +286,26 @@ export function getScheduleWeeks(options: ScheduleWeeksOptions = {}): ScheduleWe
     return { scheduleWeeks, skipWeeks: normalizedSkipWeeks, breakWeekSet };
 }
 
+// Helper: Calculate end date for daily courses (N-th class day from start)
+export function computeEndDateByDays(startDate: DateInput, durationDays: number, courseDays: number[]) {
+    const start = parseDateOnly(startDate);
+    if (!start) return null;
+    const days = Number(durationDays);
+    if (!Number.isFinite(days) || days <= 0) return null;
+    const allowedDays = courseDays.length ? courseDays : ALL_WEEK_DAYS;
+
+    let count = 0;
+    const current = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    while (count < days) {
+        if (allowedDays.includes(current.getDay())) {
+            count++;
+            if (count === days) return new Date(current);
+        }
+        if (count < days) current.setDate(current.getDate() + 1);
+    }
+    return null;
+}
+
 // Helper: Calculate end date based on duration and allowed days
 export function getEndDate(startDate: DateInput, durationWeeks: number | string, endDayOfWeek?: number | null) {
     return computeEndDateByWeeks(startDate, durationWeeks, endDayOfWeek);
@@ -363,7 +395,8 @@ export function getCourseDetails({
     satCampus = null,
     dynamicTime = null,
     courseType = null, // '온라인' | '오프라인'
-    scheduleWeeks = null
+    scheduleWeeks = null,
+    selectedDates
 }: CourseDetailsOptions): CourseDetailsResult | null {
     const c = courseInfo[courseKey];
     if (!c) return null;
@@ -415,31 +448,60 @@ export function getCourseDetails({
         }
     }
 
-    let totalFee = weeklyFee * duration;
+    const isDaily = c.durationUnit === "daily";
+    let totalFee: number;
+
+    if (isDaily) {
+        const dailyFees = Array.isArray(c.dailyFees) ? c.dailyFees : [];
+        totalFee = resolveDailyFee(dailyFees, duration) ?? 0;
+    } else {
+        totalFee = weeklyFee * duration;
+    }
 
     let rawStartDate: Date | null = null;
     let rawEndDate: Date | null = null;
 
-    const normalizedScheduleWeeks =
-        typeof scheduleWeeks === 'number' && Number.isFinite(scheduleWeeks) && scheduleWeeks > 0
-            ? scheduleWeeks
-            : duration;
-    const durationLabel = normalizedScheduleWeeks > duration
-        ? `${duration}주 수강 / 총 ${normalizedScheduleWeeks}주 일정`
-        : `${duration}주`;
+    if (isDaily) {
+        const sorted = Array.isArray(selectedDates) && selectedDates.length > 0
+            ? [...selectedDates].sort()
+            : [];
+        const durationLabel = `${duration}\uC77C`;
 
-    if (customStartDate) {
-        let start = new Date(customStartDate);
-        let end = getEndDate(customStartDate, normalizedScheduleWeeks, c.endDays ? c.endDays[0] : (c.endDay !== undefined ? c.endDay : 5));
-        if (!(end instanceof Date)) end = null;
-
-        let sm = start.getMonth() + 1, sd = start.getDate(), sw = weekdayName[start.getDay()];
-        let em = end ? end.getMonth() + 1 : 0, ed = end ? end.getDate() : 0, ew = end ? weekdayName[end.getDay()] : '';
-        durationStr = `${sm}.${sd}(${sw}) ~ ${em}.${ed}(${ew}) (${durationLabel})`;
-        rawStartDate = start;
-        rawEndDate = end;
+        if (sorted.length > 0) {
+            const first = new Date(sorted[0] + "T00:00:00");
+            const last = new Date(sorted[sorted.length - 1] + "T00:00:00");
+            const dateLabels = sorted.map((ds) => {
+                const d = new Date(ds + "T00:00:00");
+                return `${d.getMonth() + 1}/${d.getDate()}(${weekdayName[d.getDay()]})`;
+            });
+            durationStr = `${dateLabels.join(", ")} (${durationLabel})`;
+            rawStartDate = first;
+            rawEndDate = last;
+        } else {
+            durationStr = `\uAE30\uAC04 \uBBF8\uC815 (${durationLabel})`;
+        }
     } else {
-        durationStr = `기간 미정 (${durationLabel})`;
+        const normalizedScheduleWeeks =
+            typeof scheduleWeeks === 'number' && Number.isFinite(scheduleWeeks) && scheduleWeeks > 0
+                ? scheduleWeeks
+                : duration;
+        const durationLabel = normalizedScheduleWeeks > duration
+            ? `${duration}\uC8FC \uC218\uAC15 / \uCD1D ${normalizedScheduleWeeks}\uC8FC \uC77C\uC815`
+            : `${duration}\uC8FC`;
+
+        if (customStartDate) {
+            const start = new Date(customStartDate);
+            let end = getEndDate(customStartDate, normalizedScheduleWeeks, c.endDays ? c.endDays[0] : (c.endDay !== undefined ? c.endDay : 5));
+            if (!(end instanceof Date)) end = null;
+
+            const sm = start.getMonth() + 1, sd = start.getDate(), sw = weekdayName[start.getDay()];
+            const em = end ? end.getMonth() + 1 : 0, ed = end ? end.getDate() : 0, ew = end ? weekdayName[end.getDay()] : '';
+            durationStr = `${sm}.${sd}(${sw}) ~ ${em}.${ed}(${ew}) (${durationLabel})`;
+            rawStartDate = start;
+            rawEndDate = end;
+        } else {
+            durationStr = `\uAE30\uAC04 \uBBF8\uC815 (${durationLabel})`;
+        }
     }
 
     // Time String Logic
@@ -515,20 +577,30 @@ export function calculateTotalFee(inputs: CalculateTotalFeeInputs): CalculateTot
     const { period, recordingDates = [], skipWeeks: rawSkipWeeks = [] } = singleCourseInputs;
     if (!period) return { totalFee: 0 };
 
+    const isDaily = c.durationUnit === "daily";
     const recordingDays = recordingDates.length;
     const endDay = c.endDays ? c.endDays[0] : (c.endDay !== undefined ? c.endDay : 5);
     const courseDays = c.days || [1, 2, 3, 4, 5];
-    const scheduleMeta = getScheduleWeeks({
-        startDate: singleCourseInputs.startDate,
-        durationWeeks: period,
-        skipWeeks: rawSkipWeeks,
-        courseDays,
-        endDayOfWeek: endDay,
-        breakRanges: c.breakRanges
-    });
-    const skipWeeks = scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, period);
-    const scheduleWeeks = scheduleMeta.scheduleWeeks || period + skipWeeks.length;
-    const totalDays = calculateTotalDays(courseDays, endDay, period);
+
+    let scheduleWeeks = 0;
+    let totalDays: number;
+
+    if (isDaily) {
+        totalDays = period;
+        scheduleWeeks = 0;
+    } else {
+        const scheduleMeta = getScheduleWeeks({
+            startDate: singleCourseInputs.startDate,
+            durationWeeks: period,
+            skipWeeks: rawSkipWeeks,
+            courseDays,
+            endDayOfWeek: endDay,
+            breakRanges: c.breakRanges
+        });
+        const skipWeeks = scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, period);
+        scheduleWeeks = scheduleMeta.scheduleWeeks || period + skipWeeks.length;
+        totalDays = calculateTotalDays(courseDays, endDay, period);
+    }
 
     if (recordingDays > 0 && recordingDays >= totalDays) {
         return { totalFee: 0, error: "All days cannot be recording" };
@@ -542,13 +614,14 @@ export function calculateTotalFee(inputs: CalculateTotalFeeInputs): CalculateTot
         satCampus: singleCourseInputs.selectedSatCampus,
         dynamicTime: singleCourseInputs.selectedDynamicTime,
         courseType: singleCourseInputs.courseType,
-        scheduleWeeks
+        scheduleWeeks: isDaily ? null : scheduleWeeks,
+        selectedDates: singleCourseInputs.selectedDates
     });
 
     if (!details) return { totalFee: 0 };
 
     let resultFee = 0;
-    if (recordingDays > 0) {
+    if (recordingDays > 0 && totalDays > 0) {
         resultFee = calculateRecordingFee(details.totalFee, totalDays, recordingDays, discount).total;
     } else {
         resultFee = Math.round(details.totalFee * (1 - discount));
@@ -569,8 +642,18 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
     // Validation
     const { startDate, period, courseType, drwLevel, selectedSatCampus, selectedDynamicTime, skipWeeks: rawSkipWeeks = [] } = singleCourseInputs;
     const validationErrors: string[] = [];
+    const isDailyValidation = c.durationUnit === "daily";
 
-    if (!startDate) validationErrors.push('수강 시작일을 입력하세요.');
+    if (isDailyValidation) {
+        const selDates = singleCourseInputs.selectedDates || [];
+        if (selDates.length === 0) validationErrors.push('수강 날짜를 선택하세요.');
+        const dailyFeeList = Array.isArray(c.dailyFees) ? c.dailyFees : [];
+        if (selDates.length > 0 && resolveDailyFee(dailyFeeList, selDates.length) === null) {
+            validationErrors.push(`${selDates.length}일에 해당하는 수강료가 설정되지 않았습니다.`);
+        }
+    } else {
+        if (!startDate) validationErrors.push('수강 시작일을 입력하세요.');
+    }
 
     const allowedStartDays = Array.isArray(c.startDays)
         ? c.startDays
@@ -578,7 +661,7 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
             .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
         : [];
 
-    if (startDate && allowedStartDays.length > 0) {
+    if (!isDailyValidation && startDate && allowedStartDays.length > 0) {
         const startDateObj = new Date(`${startDate}T00:00:00`);
         if (Number.isNaN(startDateObj.getTime())) {
             validationErrors.push('수강 시작일 형식이 올바르지 않습니다.');
@@ -615,19 +698,22 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
     if (['drw_morning', 'drw_a', 'drw_b'].includes(mainCourseKey) && !drwLevel)
         validationErrors.push('레벨을 선택하세요.');
 
+    const isDailyCart = c.durationUnit === "daily";
     const recordingDates = singleCourseInputs.recordingDates || [];
     const recordingDays = recordingDates.length;
     const endDay = c.endDays ? c.endDays[0] : (c.endDay !== undefined ? c.endDay : 5);
     const courseDays = c.days || [1, 2, 3, 4, 5];
-    const scheduleMeta = getScheduleWeeks({
-        startDate,
-        durationWeeks: period,
-        skipWeeks: rawSkipWeeks,
-        courseDays,
-        endDayOfWeek: endDay,
-        breakRanges: c.breakRanges
-    });
-    const normalizedSkipWeeks = scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, period);
+    const scheduleMeta = isDailyCart
+        ? { scheduleWeeks: 0, skipWeeks: [], breakWeekSet: new Set<number>() }
+        : getScheduleWeeks({
+            startDate,
+            durationWeeks: period,
+            skipWeeks: rawSkipWeeks,
+            courseDays,
+            endDayOfWeek: endDay,
+            breakRanges: c.breakRanges
+        });
+    const normalizedSkipWeeks = isDailyCart ? [] : (scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, period));
 
     if (recordingDays > 0) {
         const config =
@@ -663,14 +749,14 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
         }
     }
 
-    const totalDays = calculateTotalDays(courseDays, endDay, period);
+    const totalDays = isDailyCart ? period : calculateTotalDays(courseDays, endDay, period);
 
     if (recordingDays > 0 && recordingDays >= totalDays) {
-        validationErrors.push('최소 1일은 실시간 수업으로 진행되어야 합니다.');
+        validationErrors.push('\uCD5C\uC18C 1\uC77C\uC740 \uC2E4\uC2DC\uAC04 \uC218\uC5C5\uC73C\uB85C \uC9C4\uD589\uB418\uC5B4\uC57C \uD569\uB2C8\uB2E4.');
     }
 
-    if (Array.isArray(rawSkipWeeks) && rawSkipWeeks.map(Number).includes(1)) {
-        validationErrors.push('1주차는 휴강할 수 없습니다.');
+    if (!isDailyCart && Array.isArray(rawSkipWeeks) && rawSkipWeeks.map(Number).includes(1)) {
+        validationErrors.push('1\uC8FC\uCC28\uB294 \uD734\uAC15\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
     }
 
     if (validationErrors.length > 0) {
@@ -695,7 +781,7 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
     }
 
     // Calculation
-    const scheduleWeeks = scheduleMeta.scheduleWeeks || period + normalizedSkipWeeks.length;
+    const scheduleWeeks = isDailyCart ? 0 : (scheduleMeta.scheduleWeeks || period + normalizedSkipWeeks.length);
 
     const details = getCourseDetails({
         courseKey: mainCourseKey,
@@ -705,7 +791,8 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
         satCampus: selectedSatCampus,
         dynamicTime: selectedDynamicTime,
         courseType: courseType,
-        scheduleWeeks
+        scheduleWeeks: isDailyCart ? null : scheduleWeeks,
+        selectedDates: singleCourseInputs.selectedDates
     });
     if (!details) {
         throw new Error('과목 정보를 불러오지 못했습니다.');
@@ -716,7 +803,16 @@ export function createCartItem(inputs: CartInputs, currentCart: CartItem[] = [])
     let recordingFee = 0;
     const hasRecording = recordingDays > 0;
 
-    if (hasRecording) {
+    if (isDailyCart && hasRecording && totalDays > 0) {
+        const fees = calculateRecordingFee(details.totalFee, totalDays, recordingDays, discount);
+        normalFee = fees.normal;
+        recordingFee = fees.recording;
+        finalFee = fees.total;
+    } else if (isDailyCart) {
+        finalFee = Math.round(details.totalFee * (1 - discount));
+        normalFee = finalFee;
+        recordingFee = 0;
+    } else if (hasRecording) {
         const fees = calculateRecordingFee(details.totalFee, totalDays, recordingDays, discount);
         normalFee = fees.normal;
         recordingFee = fees.recording;

@@ -1,11 +1,14 @@
-import { getRegistrationStatus, parseDate, type NormalizedWeekRange } from "./utils"
+import { getRegistrationStatus, parseDate, addDays, formatDateYmd, type NormalizedWeekRange } from "./utils"
 import { normalizeSkipWeeks } from "@/utils/calculatorLogic"
+import { isDailyRegistration } from "./registrationDateUtils"
 
 import {
   WEEK_WIDTH_PX,
+  DAY_WIDTH_PX,
   type RecordingWeek,
   type WeekRangeDates,
   buildWeeks,
+  buildDays,
   getWeekClassDates,
   groupRecordingDates,
   isWeekInRanges,
@@ -13,11 +16,13 @@ import {
 
 export {
   BAR_HEIGHT_PX,
+  DAY_WIDTH_PX,
   LABEL_WIDTH_PX,
   NOTE_WIDTH_PX,
   ROW_HEIGHT_PX,
   WEEK_WIDTH_PX,
   adjustEndToLastClassDay,
+  buildDays,
   buildWeeks,
   formatDateKorean,
   formatWeekLabel,
@@ -41,8 +46,10 @@ export type RegistrationRow = {
   isTransferredOut?: boolean
   transferToId?: string | number
   transferFromId?: string | number
+  selectedDates?: string[]
   recordingDates?: Array<string | Date>
   note?: string
+  durationUnit?: "weekly" | "daily"
 } & Record<string, unknown>
 
 export type BaseRow = {
@@ -84,6 +91,7 @@ type BuildRegistrationsGanttModelParams = {
   courseDays: number[]
   getCourseDaysForCourse?: (courseName?: string) => number[]
   simulationDate?: Date | null
+  durationUnit?: "weekly" | "daily"
 }
 
 export function buildRegistrationsGanttModel({
@@ -92,6 +100,7 @@ export function buildRegistrationsGanttModel({
   courseDays,
   getCourseDaysForCourse,
   simulationDate = null,
+  durationUnit,
 }: BuildRegistrationsGanttModelParams): RegistrationsGanttModel {
   const rows = (registrations || []).map<BaseRow>((r) => {
     const start = parseDate(r?.startDate)
@@ -141,7 +150,7 @@ export function buildRegistrationsGanttModel({
       })),
       range: null,
       weeks: [],
-      unitWidth: WEEK_WIDTH_PX,
+      unitWidth: durationUnit === "daily" ? DAY_WIDTH_PX : WEEK_WIDTH_PX,
       timelineWidth: 0,
     }
   }
@@ -155,8 +164,39 @@ export function buildRegistrationsGanttModel({
     valid[0].end
   )
 
-  let weeks = buildWeeks(minStart, maxEnd, courseDays)
-  if (!weeks.length) weeks = buildWeeks(minStart, maxEnd, [])
+  const isDaily = durationUnit === "daily"
+  let dailyDatesSet: Set<string> | undefined
+  if (isDaily) {
+    const collected = new Set<string>()
+    for (const r of registrations || []) {
+      const dates = Array.isArray(r?.selectedDates) && r.selectedDates.length > 0
+        ? r.selectedDates
+        : null
+      if (dates) {
+        for (const d of dates) {
+          if (typeof d === "string" && d) collected.add(d)
+        }
+      } else {
+        const rStart = parseDate(r?.startDate)
+        const rEnd = parseDate(r?.endDate)
+        if (rStart && rEnd) {
+          let cur = new Date(rStart.getTime())
+          while (cur <= rEnd) {
+            const ymd = formatDateYmd(cur)
+            if (ymd) collected.add(ymd)
+            cur = addDays(cur, 1)
+          }
+        }
+      }
+    }
+    if (collected.size > 0) dailyDatesSet = collected
+  }
+  let weeks = isDaily
+    ? buildDays(minStart, maxEnd, dailyDatesSet)
+    : buildWeeks(minStart, maxEnd, courseDays)
+  if (!weeks.length) weeks = isDaily
+    ? buildDays(minStart, maxEnd)
+    : buildWeeks(minStart, maxEnd, [])
 
   const rowsWithRecording = rows.map<ModelRow>((row) => {
     const paidWeeks = Number(row?.r?.weeks) || 0
@@ -201,8 +241,8 @@ export function buildRegistrationsGanttModel({
     range: { start: minStart, end: maxEnd },
     weeks,
     globalStartIndex: normalizedGlobalStartIndex,
-    unitWidth: WEEK_WIDTH_PX,
-    timelineWidth: weeks.length * WEEK_WIDTH_PX,
+    unitWidth: isDaily ? DAY_WIDTH_PX : WEEK_WIDTH_PX,
+    timelineWidth: weeks.length * (isDaily ? DAY_WIDTH_PX : WEEK_WIDTH_PX),
   }
 }
 
@@ -229,7 +269,9 @@ export function buildWeekTotals(
         if (row.skipWeeks?.includes(studentRelativeWeek)) continue
       }
 
-      if (Array.isArray(row.courseDays) && row.courseDays.length > 0) {
+      const isDailyColumn = week.start.getTime() === week.end.getTime()
+      const isRowDaily = isDailyRegistration(row.r)
+      if (Array.isArray(row.courseDays) && row.courseDays.length > 0 && !(isRowDaily && isDailyColumn)) {
         const dates = getWeekClassDates(week, row.start, row.end, row.courseDays)
         inWeek = dates.length > 0
       } else {

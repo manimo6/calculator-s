@@ -8,7 +8,9 @@ export {
   parseCourseValue,
 } from "./transferCourseValueUtils"
 export {
+  calcRemainingDays,
   calcRemainingWeeks,
+  getDailyTransferExpectedEndDate,
   getTransferExpectedEndDate,
 } from "./transferScheduleUtils"
 export type {

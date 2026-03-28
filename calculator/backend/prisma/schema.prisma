@@ -185,8 +185,10 @@ model Registration {
   transferToId   String?   @db.Uuid
   transferAt     DateTime? @db.Date
   weeks          Int?
+  durationUnit   String   @default("weekly")
   tuitionFee     Int?
   skipWeeks      Int[]    @default([])
+  selectedDates  String[]  @default([])
   recordingDates String[]  @default([])
   excludeMath    Boolean  @default(false)
   importHash     String?   @unique

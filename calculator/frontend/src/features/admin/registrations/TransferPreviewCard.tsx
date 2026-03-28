@@ -6,10 +6,12 @@ export function TransferPreviewCard({
   date,
   expectedEndDate,
   weeksNum,
+  isDaily,
 }: {
   date: string
   expectedEndDate: string
   weeksNum: number
+  isDaily?: boolean
 }) {
   return (
     <div className="overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 ring-1 ring-emerald-200/60">
@@ -26,9 +28,11 @@ export function TransferPreviewCard({
           <div>
             <div className="text-lg font-bold text-emerald-800">
               {weeksNum}
-              {TRANSFER_COPY.weeksUnit}
+              {isDaily ? TRANSFER_COPY.daysUnit : TRANSFER_COPY.weeksUnit}
             </div>
-            <div className="text-xs text-emerald-600">{TRANSFER_COPY.remainingWeeksLabel}</div>
+            <div className="text-xs text-emerald-600">
+              {isDaily ? TRANSFER_COPY.remainingDaysLabel : TRANSFER_COPY.remainingWeeksLabel}
+            </div>
           </div>
         </div>
         <div className="text-right">

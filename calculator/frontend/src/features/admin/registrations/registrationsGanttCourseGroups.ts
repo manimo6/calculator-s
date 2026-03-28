@@ -1,5 +1,5 @@
 import { findActiveInChain, getFullChain } from "./transferChain"
-import { getCourseKey, getCourseLabel, normalizeCourse } from "./utils"
+import { getCourseKey, getCourseLabel, isDailyRegistration, normalizeCourse, resolveCourseInfo } from "./utils"
 import type { CourseConfigSet, RegistrationRow } from "./registrationsTypes"
 import {
   collectCourseDays,
@@ -49,13 +49,10 @@ export function buildCourseGroupMaps({
     }
 
     for (const chainRegistration of chain) {
-      if (
-        !sourceList.some(
-          (sourceRegistration) => String(sourceRegistration?.id) === String(chainRegistration?.id)
-        )
-      ) {
-        continue
-      }
+      const inSource = sourceList.some(
+        (sourceRegistration) => String(sourceRegistration?.id) === String(chainRegistration?.id)
+      )
+      if (!inSource) continue
 
       const isActiveAtRef =
         activeRegistration && String(chainRegistration?.id) === String(activeRegistration?.id)
@@ -104,8 +101,7 @@ export function buildCourseGroups({
   courseConfigSetIdToLabel: Map<string, string>
   selectedCourseConfigSetObj: CourseConfigSet | null
 }) {
-  const courseIdLabelMap =
-    courseConfigSetIdToLabel instanceof Map ? courseConfigSetIdToLabel : new Map()
+  const courseIdLabelMap = courseConfigSetIdToLabel
 
   return Array.from(map.entries())
     .sort((a, b) => {
@@ -116,13 +112,22 @@ export function buildCourseGroups({
     .map(([courseKey, rows]) => {
       const courseNames = rows.map((row) => normalizeCourse(row?.course)).filter(Boolean)
 
+      const firstRow = rows?.[0]
+      const resolvedInfo = resolveCourseInfo(
+        firstRow?.courseId,
+        firstRow?.course,
+        selectedCourseConfigSetObj
+      )
+
       return {
         key: courseKey,
-        label: getCourseLabel(courseKey, courseIdLabelMap, rows?.[0]?.course),
+        label: getCourseLabel(courseKey, courseIdLabelMap, firstRow?.course),
         registrations: rows,
         rangeRegistrations: rangeMap.get(courseKey) || rows,
         courseDays: collectCourseDays(courseNames, selectedCourseConfigSetObj),
         count: countVisibleRegistrations(rows),
+        durationUnit: resolvedInfo?.durationUnit
+          || (rows.some((r) => isDailyRegistration(r)) ? "daily" as const : undefined),
       }
     })
 }

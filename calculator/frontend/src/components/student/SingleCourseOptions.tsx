@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { weekdayName, timeTable, recordingAvailable, type CourseInfo, type TimeTableEntry } from '../../utils/data';
-import { DAY_MS, getAvailableRecordingDates, getScheduleWeeks, normalizeSkipWeeks, parseDateOnly } from '../../utils/calculatorLogic';
+import { DAY_MS, getAvailableRecordingDates, getScheduleWeeks, normalizeSkipWeeks, parseDateOnly, resolveDailyFee } from '../../utils/calculatorLogic';
 import { Calendar as CalendarIcon, Clock, MapPin, Monitor, CheckCircle2, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -31,6 +31,7 @@ type CourseInputs = {
     recordingEnabled?: boolean
     recordingDates?: string[]
     excludeMath?: boolean
+    selectedDates?: string[]
 }
 
 type DynamicOption = { label: string; time: string }
@@ -146,15 +147,44 @@ const SingleCourseOptions = ({
         }
     }, [inputs.excludeMath, onChange, shouldShowMathExclude]);
 
-    // Options for dropdowns
+    const isDaily = c.durationUnit === "daily";
+    const dailyFees = Array.isArray(c.dailyFees) ? c.dailyFees.filter((f) => f.days > 0) : [];
+    const availableDates = useMemo(
+        () => (Array.isArray(c.availableDates) ? [...c.availableDates].sort() : []),
+        [c.availableDates]
+    );
+    const selectedDates = useMemo(
+        () => (Array.isArray(inputs.selectedDates) ? inputs.selectedDates : []),
+        [inputs.selectedDates]
+    );
+
+    // Auto-sync period from selectedDates count for daily courses
+    useEffect(() => {
+        if (!isDaily) return;
+        const count = selectedDates.length;
+        if (Number(inputs.period) !== count) {
+            onChange('period', count);
+        }
+    }, [isDaily, selectedDates.length]);
+
+    // Compute fee for daily based on selected dates count
+    const dailyFeeForSelection = useMemo(() => {
+        if (!isDaily) return null;
+        const count = selectedDates.length;
+        if (count === 0) return null;
+        return resolveDailyFee(dailyFees, count);
+    }, [isDaily, selectedDates.length, dailyFees]);
+
+    // Options for dropdowns (weekly only)
     const durationOptions = useMemo(() => {
+        if (isDaily) return [];
         if (!c.minDuration && !c.maxDuration) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         const opts = [];
         const min = c.minDuration || 1;
         const max = c.maxDuration || 12;
         for (let i = min; i <= max; i++) opts.push(i);
         return opts;
-    }, [c]);
+    }, [c, isDaily]);
 
     const periodValue = Number(inputs.period) || 0;
     const rawSkipWeeks = Array.isArray(inputs.skipWeeks) ? inputs.skipWeeks : [];
@@ -168,6 +198,7 @@ const SingleCourseOptions = ({
     const calendarDefaultDate = selectedStartDate || calendarMinDate || undefined;
     const calendarKey = calendarMinDate ? calendarMinDate.toISOString() : "calendar-default";
     const scheduleMeta = useMemo(() => {
+        if (isDaily) return { scheduleWeeks: 0, skipWeeks: [] as number[], breakWeekSet: new Set<number>() };
         const scheduleInput: Parameters<typeof getScheduleWeeks>[0] = {
             startDate: inputs.startDate,
             durationWeeks: periodValue,
@@ -177,15 +208,15 @@ const SingleCourseOptions = ({
             breakRanges: c.breakRanges
         };
         return getScheduleWeeks(scheduleInput);
-    }, [c.breakRanges, c.days, endDay, inputs.startDate, periodValue, rawSkipWeeks, skipWeeksEnabled]);
+    }, [c.breakRanges, c.days, endDay, inputs.startDate, isDaily, periodValue, rawSkipWeeks, skipWeeksEnabled]);
     const normalizedSkipWeeks = useMemo(
-        () => (skipWeeksEnabled ? scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, periodValue) : []),
-        [periodValue, rawSkipWeeks, scheduleMeta.skipWeeks, skipWeeksEnabled]
+        () => (!isDaily && skipWeeksEnabled ? scheduleMeta.skipWeeks || normalizeSkipWeeks(rawSkipWeeks, periodValue) : []),
+        [isDaily, periodValue, rawSkipWeeks, scheduleMeta.skipWeeks, skipWeeksEnabled]
     );
-    const scheduleWeeks = scheduleMeta.scheduleWeeks || periodValue + normalizedSkipWeeks.length;
+    const scheduleWeeks = isDaily ? 0 : (scheduleMeta.scheduleWeeks || periodValue + normalizedSkipWeeks.length);
     const weekChips = useMemo(
-        () => Array.from({ length: scheduleWeeks }, (_, idx) => idx + 1),
-        [scheduleWeeks]
+        () => (isDaily ? [] : Array.from({ length: scheduleWeeks }, (_, idx) => idx + 1)),
+        [isDaily, scheduleWeeks]
     );
 
     const recordingMeta = useMemo(() => {
@@ -227,6 +258,7 @@ const SingleCourseOptions = ({
     }, [inputs.recordingDates, inputs.recordingEnabled, isRecordingAvailableForSelection, onChange, onRecordingChange]);
 
     useEffect(() => {
+        if (isDaily) return;
         if (!skipWeeksEnabled) {
             if (rawSkipWeeks.length) {
                 onChange('skipWeeks', []);
@@ -235,14 +267,26 @@ const SingleCourseOptions = ({
         }
         if (areArraysEqual(normalizedSkipWeeks, rawSkipWeeks)) return;
         onChange('skipWeeks', normalizedSkipWeeks);
-    }, [normalizedSkipWeeks, onChange, rawSkipWeeks, skipWeeksEnabled]);
+    }, [isDaily, normalizedSkipWeeks, onChange, rawSkipWeeks, skipWeeksEnabled]);
 
-    // Derived state for recording calendar
+    // Derived state for recording calendar (weekly)
     const [calendarDates, setCalendarDates] = useState<string[]>([]);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     useEffect(() => {
-        // Generate calendar grid if recording is enabled and dates are selected
+        if (isDaily) {
+            // For daily courses, recording dates are a subset of selectedDates
+            setCalendarDates([]);
+            if (inputs.recordingEnabled && selectedDates.length > 0) {
+                const selected = Array.isArray(inputs.recordingDates) ? inputs.recordingDates : [];
+                const filtered = selected.filter((d) => selectedDates.includes(d));
+                if (!areArraysEqual(selected, filtered)) {
+                    onRecordingChange(filtered);
+                }
+            }
+            return;
+        }
+        // Weekly recording calendar logic
         if (inputs.recordingEnabled && inputs.startDate && periodValue) {
             const allowedDays = c.days || [1, 2, 3, 4, 5];
             const dates = getAvailableRecordingDates(
@@ -263,17 +307,20 @@ const SingleCourseOptions = ({
             setCalendarDates([]);
         }
     }, [
+        isDaily,
         inputs.recordingEnabled,
         inputs.startDate,
         periodValue,
         scheduleWeeks,
         normalizedSkipWeeks,
         recordingDates,
+        selectedDates,
         c,
         onRecordingChange
     ]);
+
     const calendarWeeks = useMemo(() => {
-        if (!inputs.startDate || calendarDates.length === 0) return [];
+        if (isDaily || !inputs.startDate || calendarDates.length === 0) return [];
         const start = parseDateOnly(inputs.startDate);
         if (!start) return [];
         const dateSet = new Set(calendarDates);
@@ -308,7 +355,7 @@ const SingleCourseOptions = ({
                 cells
             };
         });
-    }, [calendarDates, inputs.startDate]);
+    }, [isDaily, calendarDates, inputs.startDate]);
 
     const weekdayLabels = WEEKDAY_ORDER.map((dayIndex) => weekdayName[dayIndex]);
 
@@ -334,7 +381,6 @@ const SingleCourseOptions = ({
     };
 
     const handleDateClick = (dateStr: string) => {
-        // Toggle date in recordingDates
         const current = Array.isArray(inputs.recordingDates) ? inputs.recordingDates : [];
         let nextDates;
         if (current.includes(dateStr)) {
@@ -396,69 +442,160 @@ const SingleCourseOptions = ({
         }
     };
 
+    // Daily course: toggle a date in selectedDates
+    const handleDailyDateToggle = (dateStr: string) => {
+        const current = [...selectedDates];
+        const idx = current.indexOf(dateStr);
+        if (idx >= 0) {
+            current.splice(idx, 1);
+        } else {
+            current.push(dateStr);
+            current.sort();
+        }
+        onChange('selectedDates', current);
+    };
+
+    // Daily course: recording date toggle from selectedDates
+    const handleDailyRecordingToggle = (dateStr: string) => {
+        const current = Array.isArray(inputs.recordingDates) ? inputs.recordingDates : [];
+        let next;
+        if (current.includes(dateStr)) {
+            next = current.filter((d) => d !== dateStr);
+        } else {
+            next = [...current, dateStr].sort();
+        }
+        onRecordingChange(next);
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Start Date & Duration Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label className="flex items-center text-sm font-semibold text-muted-foreground">
-                        <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
-                        수강 시작일
-                    </Label>
-                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className={cn(
-                                    "w-full justify-between text-left font-normal h-12 rounded-xl",
-                                    !inputs.startDate && "text-muted-foreground"
-                                )}
-                            >
-                                {inputs.startDate
-                                    ? format(new Date(inputs.startDate), "PPP", { locale: ko })
-                                    : "날짜를 선택하세요"}
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                            className="w-auto border-none bg-transparent p-0 shadow-none"
-                            align="start"
-                        >
-                            <Calendar
-                                key={calendarKey}
-                                mode="single"
-                                selected={inputs.startDate ? new Date(inputs.startDate) : undefined}
-                                onSelect={handleCalendarSelect}
-                                minDate={calendarMinDate || undefined}
-                                maxDate={calendarMaxDate || undefined}
-                                defaultDate={calendarDefaultDate}
-                                initialFocus
-                                disabled={disabledStartDays ? { dayOfWeek: disabledStartDays } : undefined}
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
+            {isDaily ? (
+                /* ========== DAILY COURSE: Date Selection ========== */
+                <>
+                    <div className="space-y-3">
+                        <Label className="flex items-center text-sm font-semibold text-muted-foreground">
+                            <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
+                            수강 날짜 선택
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            수강할 날짜를 선택하세요. 선택한 일수에 따라 수강료가 자동 계산됩니다.
+                        </p>
 
-                <div className="space-y-2">
-                    <Label className="flex items-center text-sm font-semibold text-muted-foreground">
-                        <Clock className="w-4 h-4 mr-2 text-primary" />
-                        수강 기간
-                    </Label>
-                    <Select
-                        value={String(inputs.period)}
-                        onValueChange={(val) => onChange('period', parseInt(val))}
-                    >
-                        <SelectTrigger className="h-12 rounded-xl">
-                            <SelectValue placeholder="기간 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {durationOptions.map(w => (
-                                <SelectItem key={w} value={String(w)}>{w}주</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
+                        {availableDates.length === 0 ? (
+                            <div className="text-sm text-muted-foreground bg-muted/40 p-4 rounded-xl text-center">
+                                수강 가능한 날짜가 설정되지 않았습니다.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                {availableDates.map((dateStr) => {
+                                    const d = new Date(dateStr + "T00:00:00");
+                                    const label = format(d, "M/d(EEE)", { locale: ko });
+                                    const isSelected = selectedDates.includes(dateStr);
+                                    return (
+                                        <button
+                                            key={dateStr}
+                                            type="button"
+                                            onClick={() => handleDailyDateToggle(dateStr)}
+                                            className={cn(
+                                                "px-3 py-2.5 text-sm rounded-xl border-2 font-medium transition-all",
+                                                isSelected
+                                                    ? "border-primary bg-primary/10 text-primary shadow-sm"
+                                                    : "border-muted bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                            )}
+                                        >
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                {isSelected ? (
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                ) : (
+                                                    <Circle className="w-4 h-4 opacity-30" />
+                                                )}
+                                                {label}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {selectedDates.length > 0 && (
+                            <div className="flex items-center justify-between bg-primary/5 rounded-xl px-4 py-3 border border-primary/20">
+                                <span className="text-sm font-semibold text-primary">
+                                    {selectedDates.length}일 선택
+                                </span>
+                                <span className="text-sm font-bold text-primary">
+                                    {dailyFeeForSelection !== null
+                                        ? `${dailyFeeForSelection.toLocaleString()}원`
+                                        : "해당 일수의 요금이 설정되지 않았습니다"}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </>
+            ) : (
+                /* ========== WEEKLY COURSE: Start Date & Duration ========== */
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label className="flex items-center text-sm font-semibold text-muted-foreground">
+                                <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
+                                수강 시작일
+                            </Label>
+                            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-between text-left font-normal h-12 rounded-xl",
+                                            !inputs.startDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {inputs.startDate
+                                            ? format(new Date(inputs.startDate), "PPP", { locale: ko })
+                                            : "날짜를 선택하세요"}
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    className="w-auto border-none bg-transparent p-0 shadow-none"
+                                    align="start"
+                                >
+                                    <Calendar
+                                        key={calendarKey}
+                                        mode="single"
+                                        selected={inputs.startDate ? new Date(inputs.startDate) : undefined}
+                                        onSelect={handleCalendarSelect}
+                                        minDate={calendarMinDate || undefined}
+                                        maxDate={calendarMaxDate || undefined}
+                                        defaultDate={calendarDefaultDate}
+                                        initialFocus
+                                        disabled={disabledStartDays ? { dayOfWeek: disabledStartDays } : undefined}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="flex items-center text-sm font-semibold text-muted-foreground">
+                                <Clock className="w-4 h-4 mr-2 text-primary" />
+                                수강 기간
+                            </Label>
+                            <Select
+                                value={String(inputs.period)}
+                                onValueChange={(val) => onChange('period', parseInt(val))}
+                            >
+                                <SelectTrigger className="h-12 rounded-xl">
+                                    <SelectValue placeholder="기간 선택" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {durationOptions.map((w) => (
+                                        <SelectItem key={w} value={String(w)}>{w}주</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* Dynamic Time Options */}
             {timeMeta.isDynamic && timeMeta.dynamicOptions.length > 0 && (
@@ -593,8 +730,8 @@ const SingleCourseOptions = ({
                 )}
             </div>
 
-            {/* Skip Weeks */}
-            <div className="pt-6 border-t border-border">
+            {/* Skip Weeks - hidden for daily courses */}
+            {!isDaily && <div className="pt-6 border-t border-border">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox
@@ -661,7 +798,7 @@ const SingleCourseOptions = ({
                         </p>
                     </div>
                 )}
-            </div>
+            </div>}
 
             {/* Recording Toggle */}
             {isRecordingAvailableForSelection && (
@@ -688,56 +825,89 @@ const SingleCourseOptions = ({
                                 </span>
                             </div>
 
-                            {!inputs.startDate ? (
-                                <div className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-lg text-center">
-                                    ⚠️ 시작일을 먼저 선택해주세요.
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto no-scrollbar">
-                                    <div className="min-w-[600px] space-y-2">
-                                        <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2 text-xs text-muted-foreground">
-                                            <div className="text-center font-semibold text-muted-foreground/70">주차</div>
-                                            {weekdayLabels.map((label, index) => (
-                                                <div key={`${label}-${index}`} className="text-center font-semibold">
+                            {isDaily ? (
+                                /* Daily recording: pick from selectedDates */
+                                selectedDates.length === 0 ? (
+                                    <div className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-lg text-center">
+                                        수강 날짜를 먼저 선택해주세요.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                        {selectedDates.map((dateStr) => {
+                                            const d = new Date(dateStr + "T00:00:00");
+                                            const label = format(d, "M/d(EEE)", { locale: ko });
+                                            const isRecording = recordingDates.includes(dateStr);
+                                            return (
+                                                <button
+                                                    key={dateStr}
+                                                    type="button"
+                                                    onClick={() => handleDailyRecordingToggle(dateStr)}
+                                                    className={cn(
+                                                        "px-3 py-2 text-sm rounded-lg border font-medium transition-all",
+                                                        isRecording
+                                                            ? "bg-primary border-primary text-primary-foreground shadow-md"
+                                                            : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+                                                    )}
+                                                >
                                                     {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )
+                            ) : (
+                                /* Weekly recording: calendar grid */
+                                !inputs.startDate ? (
+                                    <div className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-lg text-center">
+                                        시작일을 먼저 선택해주세요.
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto no-scrollbar">
+                                        <div className="min-w-[600px] space-y-2">
+                                            <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2 text-xs text-muted-foreground">
+                                                <div className="text-center font-semibold text-muted-foreground/70">주차</div>
+                                                {weekdayLabels.map((label, index) => (
+                                                    <div key={`${label}-${index}`} className="text-center font-semibold">
+                                                        {label}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {calendarWeeks.map((week) => (
+                                                <div
+                                                    key={`week-${week.weekIndex}`}
+                                                    className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2"
+                                                >
+                                                    <div className="flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-xs font-semibold text-muted-foreground">
+                                                        {week.weekIndex}주차
+                                                    </div>
+                                                    {week.cells.map((cell) =>
+                                                        cell.selectable ? (
+                                                            <button
+                                                                key={cell.dateKey}
+                                                                type="button"
+                                                                onClick={() => handleDateClick(cell.dateKey)}
+                                                                className={cn(
+                                                                    "px-2 py-2 text-[11px] leading-tight rounded-lg transition-all font-medium border",
+                                                                    recordingDates.includes(cell.dateKey)
+                                                                        ? "bg-primary border-primary text-primary-foreground shadow-md transform scale-105"
+                                                                        : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+                                                                )}
+                                                            >
+                                                                {getDayLabel(cell.dateKey)}
+                                                            </button>
+                                                        ) : (
+                                                            <div
+                                                                key={`empty-${cell.dateKey}`}
+                                                                className="h-8 rounded-lg border border-dashed border-border/50 bg-muted/30"
+                                                                aria-hidden="true"
+                                                            />
+                                                        )
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
-                                        {calendarWeeks.map((week) => (
-                                            <div
-                                                key={`week-${week.weekIndex}`}
-                                                className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2"
-                                            >
-                                                <div className="flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-xs font-semibold text-muted-foreground">
-                                                    {week.weekIndex}주차
-                                                </div>
-                                                {week.cells.map((cell) =>
-                                                    cell.selectable ? (
-                                                        <button
-                                                            key={cell.dateKey}
-                                                            type="button"
-                                                            onClick={() => handleDateClick(cell.dateKey)}
-                                                            className={cn(
-                                                                "px-2 py-2 text-[11px] leading-tight rounded-lg transition-all font-medium border",
-                                                                recordingDates.includes(cell.dateKey)
-                                                                    ? "bg-primary border-primary text-primary-foreground shadow-md transform scale-105"
-                                                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
-                                                            )}
-                                                        >
-                                                            {getDayLabel(cell.dateKey)}
-                                                        </button>
-                                                    ) : (
-                                                        <div
-                                                            key={`empty-${cell.dateKey}`}
-                                                            className="h-8 rounded-lg border border-dashed border-border/50 bg-muted/30"
-                                                            aria-hidden="true"
-                                                        />
-                                                    )
-                                                )}
-                                            </div>
-                                        ))}
                                     </div>
-                                </div>
+                                )
                             )}
                         </div>
                     )}

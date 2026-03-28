@@ -12,11 +12,15 @@ type TextbookState = {
 
 type DynamicOption = { label: string; time: string }
 type BreakRange = { startDate: string; endDate: string }
+type DailyFeeEntry = { days: number; fee: number }
 
 type CourseFormState = {
   category: string
   courseName: string
   fee: number
+  durationUnit: "weekly" | "daily"
+  dailyFees: DailyFeeEntry[]
+  availableDates: string[]
   textbook: TextbookState
   days: number[]
   startDays: number[]
@@ -61,6 +65,11 @@ type CourseAction =
   | { type: "ADD_BREAK_RANGE" }
   | { type: "UPDATE_BREAK_RANGE"; index: number; key: keyof BreakRange; value: string }
   | { type: "REMOVE_BREAK_RANGE"; index: number }
+  | { type: "ADD_DAILY_FEE" }
+  | { type: "UPDATE_DAILY_FEE"; index: number; key: keyof DailyFeeEntry; value: number }
+  | { type: "REMOVE_DAILY_FEE"; index: number }
+  | { type: "TOGGLE_AVAILABLE_DATE"; date: string }
+  | { type: "SET_AVAILABLE_DATES"; dates: string[] }
 
 type TimeData =
   | string
@@ -100,6 +109,9 @@ const initialCourseFormState: CourseFormState = {
   category: "",
   courseName: "",
   fee: 0,
+  durationUnit: "weekly",
+  dailyFees: [],
+  availableDates: [],
   textbook: {
     defaultOption: "none",
     defaultAmount: 0,
@@ -135,6 +147,7 @@ export type {
   CourseAction,
   CourseData,
   CourseFormState,
+  DailyFeeEntry,
   DynamicOption,
   RecordingData,
   TextbookState,

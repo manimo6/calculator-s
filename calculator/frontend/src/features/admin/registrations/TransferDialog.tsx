@@ -20,7 +20,7 @@ import {
 } from "./TransferDialogSections"
 import type { TransferDialogRegistrationRow } from "./TransferDialogSections"
 import { TRANSFER_COPY } from "./transferCopy"
-import { formatDateYmd, parseDate } from "./utils"
+import { formatDateYmd, isDailyRegistration, parseDate } from "./utils"
 import type { TransferGroup } from "./useTransfer"
 
 type TransferDialogProps = {
@@ -65,10 +65,17 @@ export default function TransferDialog({
   const endDate = parseDate(target?.endDate)
   const courseDaySet = new Set(courseDays || [])
   const hasCourseDayRestriction = courseDaySet.size > 0
+  const isDaily = isDailyRegistration(target)
+  const targetSelectedDatesSet = isDaily && Array.isArray(target?.selectedDates) && target.selectedDates.length > 0
+    ? new Set(target.selectedDates)
+    : null
 
   const isDateDisabled = (day: Date) => {
     if (startDate && day.getTime() < startDate.getTime()) return true
     if (endDate && day.getTime() > endDate.getTime()) return true
+    if (targetSelectedDatesSet) {
+      return !targetSelectedDatesSet.has(formatDateYmd(day))
+    }
     if (hasCourseDayRestriction && !courseDaySet.has(day.getDay())) return true
     return false
   }
@@ -172,6 +179,7 @@ export default function TransferDialog({
                 date={date}
                 expectedEndDate={expectedEndDate}
                 weeksNum={weeksNum}
+                isDaily={isDaily}
               />
             ) : null}
           </div>

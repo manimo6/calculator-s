@@ -66,3 +66,11 @@ export function formatTimestampKo(value: DateInput) {
 
   return `${month}.${day} ${meridiem} ${displayHour}:${minutes}`
 }
+
+export function isDailyRegistration(
+  reg: { durationUnit?: string; selectedDates?: unknown[] } | null | undefined
+): boolean {
+  if (!reg) return false
+  return reg.durationUnit === "daily"
+    || (Array.isArray(reg.selectedDates) && reg.selectedDates.length > 0)
+}

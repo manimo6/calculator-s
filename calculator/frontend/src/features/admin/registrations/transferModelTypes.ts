@@ -15,6 +15,8 @@ export type RegistrationRow = {
   transferAt?: string | Date
   note?: string
   skipWeeks?: Array<number | string>
+  durationUnit?: "weekly" | "daily"
+  selectedDates?: string[]
 } & Record<string, unknown>
 
 export type RegistrationRowForOptions = {

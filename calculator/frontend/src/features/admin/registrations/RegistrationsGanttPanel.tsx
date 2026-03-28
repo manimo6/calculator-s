@@ -94,6 +94,7 @@ export default function RegistrationsGanttPanel({
             onNote={openNoteDialog}
             showTransferChain={showTransferChain}
             simulationDate={simulationDate}
+            durationUnit={group.durationUnit}
           />
         </div>
       ))}

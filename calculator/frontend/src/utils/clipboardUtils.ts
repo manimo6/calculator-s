@@ -22,6 +22,7 @@ type SingleCourseInputs = {
     startDate?: string;
     skipWeeks?: Array<number | string>;
     excludeMath?: boolean;
+    selectedDates?: string[];
 };
 
 type CourseDetails = {
@@ -240,38 +241,58 @@ export function generateClipboardText({
         const skipWeeks = normalizeSkipWeeks(rawSkipWeeks, period);
         const courseKey = item?.mainCourseKey;
         const courseMeta = courseKey ? courseInfo?.[courseKey] : null;
+        const isDaily = courseMeta?.durationUnit === 'daily';
         const courseDays = normalizeCourseDays(courseMeta?.days);
         const endDay = resolveEndDay(courseMeta);
         const breakRanges = courseMeta?.breakRanges || [];
         const rawStart = item?.details?.rawStartDate || item?.singleCourseInputs?.startDate;
-        const scheduleInput: ScheduleInput = {
-            startDate: rawStart,
-            durationWeeks: period,
-            skipWeeks,
-            courseDays,
-            endDayOfWeek: endDay,
-            breakRanges
-        };
-        const scheduleMeta = getScheduleWeeks(scheduleInput);
-        const scheduleWeeks = scheduleMeta.scheduleWeeks || period + skipWeeks.length;
-        const rawEnd =
-            item?.details?.rawEndDate ||
-            (rawStart && scheduleWeeks > 0
-                ? getEndDate(rawStart, scheduleWeeks, endDay)
-                : null);
-        const startLabel = rawStart ? formatDateWithWeekday(rawStart) : '';
-        const endLabel = rawEnd ? formatDateWithWeekday(rawEnd) : '';
-        const durationLine =
-            startLabel && endLabel && scheduleWeeks > 0
-                ? `${startLabel}~${endLabel} ${scheduleWeeks}주`
-                : item.details.durationStr;
-        const skipLines = buildSkipPeriodLines(rawStart, skipWeeks);
-        const breakLines = buildTermBreakLines({
-            startDate: rawStart,
-            endDate: rawEnd,
-            courseDays,
-            breakRanges
-        });
+
+        let durationLine: string;
+        let skipLines: string[] = [];
+        let breakLines: string[] = [];
+
+        if (isDaily) {
+            const selDates = item.singleCourseInputs?.selectedDates
+            if (selDates && selDates.length > 0) {
+                const sorted = [...selDates].sort()
+                durationLine = sorted.map((d) => {
+                    const date = parseDateOnly(d)
+                    if (!date) return d
+                    return `${date.getMonth() + 1}/${date.getDate()}`
+                }).join(', ')
+            } else {
+                durationLine = item.details.durationStr
+            }
+        } else {
+            const scheduleInput: ScheduleInput = {
+                startDate: rawStart,
+                durationWeeks: period,
+                skipWeeks,
+                courseDays,
+                endDayOfWeek: endDay,
+                breakRanges
+            };
+            const scheduleMeta = getScheduleWeeks(scheduleInput);
+            const scheduleWeeks = scheduleMeta.scheduleWeeks || period + skipWeeks.length;
+            const rawEnd =
+                item?.details?.rawEndDate ||
+                (rawStart && scheduleWeeks > 0
+                    ? getEndDate(rawStart, scheduleWeeks, endDay)
+                    : null);
+            const startLabel = rawStart ? formatDateWithWeekday(rawStart) : '';
+            const endLabel = rawEnd ? formatDateWithWeekday(rawEnd) : '';
+            durationLine =
+                startLabel && endLabel && scheduleWeeks > 0
+                    ? `${startLabel}~${endLabel} ${scheduleWeeks}주`
+                    : item.details.durationStr;
+            skipLines = buildSkipPeriodLines(rawStart, skipWeeks);
+            breakLines = buildTermBreakLines({
+                startDate: rawStart,
+                endDate: rawEnd,
+                courseDays,
+                breakRanges
+            });
+        }
 
         const recDates = formatRecordingDates(item.selectedRecordingDates);
         const baseCourseName = String(item?.displayCourseName || '').trim();

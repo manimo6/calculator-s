@@ -24,6 +24,8 @@ type RegistrationListRow = RegistrationMutationRow & {
   transferToId?: string | null
   transferAt?: Date | string | null
   recordingDates?: unknown[] | null
+  selectedDates?: unknown[] | null
+  durationUnit?: string | null
 }
 
 type RegistrationNoteMap = Map<string, { content: string; updatedAt: Date }>
@@ -84,6 +86,8 @@ function formatRegistrationResults(
       skipWeeks: Array.isArray(row.skipWeeks)
         ? row.skipWeeks.filter((w: unknown) => Number.isInteger(w))
         : [],
+      selectedDates: Array.isArray(row.selectedDates) ? row.selectedDates.filter(Boolean) : [],
+      durationUnit: row.durationUnit || 'weekly',
     };
   });
 }

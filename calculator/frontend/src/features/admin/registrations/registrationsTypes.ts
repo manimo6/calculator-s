@@ -28,6 +28,8 @@ export type RegistrationRow = {
   note?: string
   noteUpdatedAt?: string | number | Date
   timestamp?: string | number | Date
+  durationUnit?: "weekly" | "daily"
+  selectedDates?: string[]
 } & Record<string, unknown>
 
 export type MergeWeekRange = { start: number; end: number }

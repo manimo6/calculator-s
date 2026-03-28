@@ -50,7 +50,42 @@ export function formatWeekLabel(start: Date, end: Date) {
   const em = pad2(end.getMonth() + 1)
   const ed = pad2(end.getDate())
 
+  if (start.getTime() === end.getTime()) {
+    const dow = WEEKDAY_LABELS[start.getDay()] || ""
+    return `${sm}/${sd}(${dow})`
+  }
+
   return sm === em ? `${sm}/${sd}~${ed}` : `${sm}/${sd}~${em}/${ed}`
+}
+
+export const DAY_WIDTH_PX = 64
+
+export function buildDays(
+  rangeStart: DateInput,
+  rangeEnd: DateInput,
+  selectedDatesSet?: Set<string>
+) {
+  const start = parseDate(rangeStart)
+  const end = parseDate(rangeEnd)
+  if (!start || !end || start > end) return []
+
+  const days: WeekRangeDates[] = []
+  let cur = new Date(start.getTime())
+  while (cur <= end) {
+    if (!selectedDatesSet || selectedDatesSet.has(formatYmd(cur))) {
+      const d = new Date(cur.getTime())
+      days.push({ start: d, end: d })
+    }
+    cur = addDays(cur, 1)
+  }
+  return days
+}
+
+function formatYmd(d: Date) {
+  const y = d.getFullYear()
+  const m = pad2(d.getMonth() + 1)
+  const day = pad2(d.getDate())
+  return `${y}-${m}-${day}`
 }
 
 export function formatDateKorean(date: Date | null | undefined) {

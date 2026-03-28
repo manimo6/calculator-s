@@ -14,11 +14,13 @@ export function resolveCategoryFromLabel(
   if (!normalizedLabel) return ""
   if (courseCatMap.has(normalizedLabel)) return courseCatMap.get(normalizedLabel) || ""
 
+  let bestBase = ""
   for (const base of courseConfigSetBaseCourses) {
-    if (normalizedLabel.startsWith(base)) {
-      return courseCatMap.get(base) || ""
+    if (normalizedLabel.startsWith(base) && base.length > bestBase.length) {
+      bestBase = base
     }
   }
+  if (bestBase) return courseCatMap.get(bestBase) || ""
 
   return ""
 }

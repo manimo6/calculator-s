@@ -25,6 +25,7 @@ export function RegistrationsGanttTimeline({
   mergeWeekRangesNormalized,
   openDetail,
   onNote,
+  isDaily,
 }: {
   ganttScrollRef: RefObject<HTMLDivElement | null>
   maxHeightClassName: string
@@ -37,6 +38,7 @@ export function RegistrationsGanttTimeline({
   mergeWeekRangesNormalized: NormalizedWeekRange[]
   openDetail: (row: RegistrationRow) => void
   onNote: (row: RegistrationRow) => void
+  isDaily?: boolean
 }) {
   return (
     <TooltipProvider delayDuration={0}>
@@ -52,6 +54,7 @@ export function RegistrationsGanttTimeline({
               gridTemplateColumns={gridTemplateColumns}
               timelineWidth={timelineWidth}
               gridBackgroundImage={gridBackgroundImage}
+              isDaily={isDaily}
             />
 
             <div className="relative">

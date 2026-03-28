@@ -87,6 +87,7 @@ export default function RegistrationsChartOverlay({
                 simulationDate={simulationDate}
                 maxHeightClassName="max-h-[calc(100vh-10rem)]"
                 disableCardOverflow={false}
+                durationUnit={activeGanttGroup.durationUnit}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

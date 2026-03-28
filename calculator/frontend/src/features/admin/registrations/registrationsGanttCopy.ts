@@ -4,6 +4,8 @@ export const REGISTRATIONS_GANTT_COPY = {
   weeklyTotal: "\uC8FC\uAC04 \uD569\uACC4",
   studentCourse: "\uD559\uC0DD / \uACFC\uBAA9",
   weekSuffix: "\uC8FC\uCC28",
+  daySuffix: "\uC77C\uCC28",
+  dailyTotal: "\uC77C\uBCC4 \uD569\uACC4",
   memberSuffix: "\uBA85",
   transferPrefix: "\uC804\uBC18",
   noRangeMessage:

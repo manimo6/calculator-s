@@ -3,7 +3,8 @@ import { useCallback, useState } from "react"
 import {
   buildOpenTransferDialogDraft,
 } from "./transferSubmissionModel"
-import { calcRemainingWeeks } from "./transferModel"
+import { calcRemainingDays, calcRemainingWeeks } from "./transferModel"
+import { isDailyRegistration } from "./utils"
 import type { RegistrationRow } from "./transferModelTypes"
 
 export function useTransferDialogState({
@@ -51,7 +52,9 @@ export function useTransferDialogState({
     (date: string) => {
       setTransferDateValue(date)
       if (transferTarget && date) {
-        const remaining = calcRemainingWeeks(transferTarget, date)
+        const remaining = isDailyRegistration(transferTarget)
+          ? calcRemainingDays(transferTarget, date)
+          : calcRemainingWeeks(transferTarget, date)
         setTransferWeeks(remaining > 0 ? String(remaining) : "")
       }
     },
@@ -61,6 +64,7 @@ export function useTransferDialogState({
   const handleTransferCourseChange = useCallback((value: string) => {
     setTransferCourseValueValue(value)
     setTransferDateValue("")
+    setTransferWeeks("")
     setTransferPickerOpen(false)
   }, [])
 

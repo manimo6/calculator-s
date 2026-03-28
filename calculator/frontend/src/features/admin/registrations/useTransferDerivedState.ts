@@ -6,8 +6,10 @@ import {
   buildTransferCourseGroups,
   buildTransferCourseLabelMap,
   buildTransferCourseOptions,
+  getDailyTransferExpectedEndDate,
   getTransferExpectedEndDate,
 } from "./transferModel"
+import { isDailyRegistration } from "./utils"
 
 type RegistrationRow = {
   course?: string
@@ -17,6 +19,8 @@ type RegistrationRow = {
 type TransferTarget = {
   course?: string
   courseId?: string | number
+  durationUnit?: "weekly" | "daily"
+  selectedDates?: string[]
 } & Record<string, unknown>
 
 type CourseInfoRecord = Record<string, CourseInfo | undefined>
@@ -70,9 +74,14 @@ export function useTransferDerivedState({
     return resolveCourseDays(label)
   }, [resolveCourseDays, transferCourseLabelMap, transferCourseValue])
 
+  const isDaily = isDailyRegistration(transferTarget)
+
   const transferExpectedEndDate = useMemo(() => {
+    if (isDaily && transferTarget) {
+      return getDailyTransferExpectedEndDate(transferTarget, transferDate)
+    }
     return getTransferExpectedEndDate(transferDate, transferWeeks)
-  }, [transferDate, transferWeeks])
+  }, [isDaily, transferDate, transferTarget, transferWeeks])
 
   return {
     transferCourseLabelMap,

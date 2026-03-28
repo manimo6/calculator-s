@@ -38,6 +38,7 @@ type SingleCourseInputs = {
     recordingDates: string[]
     skipWeeks: number[]
     skipWeeksEnabled: boolean
+    selectedDates: string[]
 }
 
 type CartItem = {
@@ -176,6 +177,7 @@ const initialState: FormState = {
         recordingDates: [],
         skipWeeks: [],
         skipWeeksEnabled: false,
+        selectedDates: [],
     },
 
     cart: []
@@ -905,21 +907,33 @@ const StudentForm = () => {
         }
 
         // Prepare records for API
-        const records = itemsToSave.map(item => ({
-            id: editingId || undefined,
-            name: studentNameForSave,
-            course: item.displayCourseName,
-            courseId: item.mainCourseKey,
-            courseConfigSetName,
-            startDate: item.details.rawStartDate ? new Date(item.details.rawStartDate).toISOString().split('T')[0] : (item.singleCourseInputs.startDate || ''),
-            endDate: item.details.rawEndDate ? new Date(item.details.rawEndDate).toISOString().split('T')[0] : '',
-            weeks: item.singleCourseInputs.period,
-            skipWeeks: item.singleCourseInputs.skipWeeks || [],
-            excludeMath: !!item.singleCourseInputs.excludeMath,
-            recordingDates: item.selectedRecordingDates,
-            tuitionFee: Number.isFinite(item.finalFee) ? Math.round(item.finalFee) : null,
-            timestamp: new Date().toISOString()
-        }));
+        const records = itemsToSave.map(item => {
+            const isItemDaily = courseInfo[item.mainCourseKey]?.durationUnit === "daily";
+            const selDates = item.singleCourseInputs.selectedDates || [];
+            const sortedSelDates = [...selDates].sort();
+
+            return {
+                id: editingId || undefined,
+                name: studentNameForSave,
+                course: item.displayCourseName,
+                courseId: item.mainCourseKey,
+                courseConfigSetName,
+                startDate: isItemDaily
+                    ? (sortedSelDates[0] || '')
+                    : (item.details.rawStartDate ? new Date(item.details.rawStartDate).toISOString().split('T')[0] : (item.singleCourseInputs.startDate || '')),
+                endDate: isItemDaily
+                    ? (sortedSelDates[sortedSelDates.length - 1] || '')
+                    : (item.details.rawEndDate ? new Date(item.details.rawEndDate).toISOString().split('T')[0] : ''),
+                weeks: item.singleCourseInputs.period,
+                durationUnit: isItemDaily ? "daily" : "weekly",
+                skipWeeks: isItemDaily ? [] : (item.singleCourseInputs.skipWeeks || []),
+                selectedDates: isItemDaily ? sortedSelDates : [],
+                excludeMath: !!item.singleCourseInputs.excludeMath,
+                recordingDates: item.selectedRecordingDates,
+                tuitionFee: Number.isFinite(item.finalFee) ? Math.round(item.finalFee) : null,
+                timestamp: new Date().toISOString()
+            };
+        });
 
         try {
             if (editingId && records.length === 1) {

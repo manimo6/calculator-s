@@ -95,6 +95,19 @@ export function buildCourseInfoValueFromForm({
   next.hasMathOption = hasMathOption
   next.mathExcludedFee = hasMathOption ? Number(formData?.mathExcludedFee || 0) : 0
   next.installmentEligible = !!formData?.installmentEligible
+  next.durationUnit = formData?.durationUnit || "weekly"
+  if (next.durationUnit === "daily") {
+    next.dailyFees = Array.isArray(formData?.dailyFees)
+      ? formData.dailyFees.filter((f) => f && f.days > 0 && f.fee >= 0)
+      : []
+    next.availableDates = Array.isArray(formData?.availableDates)
+      ? formData.availableDates.filter((d) => typeof d === "string" && d).sort()
+      : []
+  } else {
+    delete next.dailyFees
+    delete next.durationUnit
+    delete next.availableDates
+  }
   next.breakRanges = breakRanges
   if (formData?.timeType === "dynamic") next.dynamicTime = true
   else delete next.dynamicTime

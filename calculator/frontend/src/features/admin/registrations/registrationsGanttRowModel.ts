@@ -1,12 +1,13 @@
 import {
   BAR_HEIGHT_PX,
+  formatDateKorean,
   getWeekClassDates,
   isWeekInRanges,
   type ModelRow,
   type RegistrationRow,
   type WeekRangeDates,
 } from "./registrationsGanttModel"
-import { formatDateYmd, stripMathExcludeLabel, type NormalizedWeekRange } from "./utils"
+import { formatDateYmd, isDailyRegistration, stripMathExcludeLabel, type NormalizedWeekRange } from "./utils"
 
 export type GanttBarDescriptor = {
   key: string
@@ -41,22 +42,6 @@ const UNKNOWN_BAR_CLASS = "bg-muted-foreground/40"
 const TRANSFERRED_BAR_CLASS =
   "bg-[repeating-linear-gradient(135deg,_#94a3b8_0px,_#94a3b8_2px,_#e2e8f0_2px,_#e2e8f0_12px)] ring-1 ring-slate-300"
 const GHOST_BAR_CLASS = `${TRANSFERRED_BAR_CLASS} opacity-40`
-const WEEKDAY_LABELS = [
-  "\uC77C",
-  "\uC6D4",
-  "\uD654",
-  "\uC218",
-  "\uBAA9",
-  "\uAE08",
-  "\uD1A0",
-]
-
-function formatRecordingDateLabel(date: Date) {
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const dow = WEEKDAY_LABELS[date.getDay()] || ""
-  return `${month}\uC6D4 ${day}\uC77C (${dow})`
-}
 
 export function buildGanttRowMeta({
   registration,
@@ -148,11 +133,19 @@ export function buildGanttTimelineDescriptors({
   const skipWeekSet = new Set(skipWeeks || [])
   const hasCourseDays = Array.isArray(rowCourseDays) && rowCourseDays.length > 0
   const pad = 3
+  const isRowDaily = isDailyRegistration(r)
+  const rowSelectedDatesSet = isRowDaily && Array.isArray(r?.selectedDates) && r.selectedDates.length > 0
+    ? new Set(r.selectedDates)
+    : null
 
   if (hasDates && start && end && startIndex !== -1 && endIndex !== -1) {
     for (let weekIndex = startIndex; weekIndex <= endIndex; weekIndex += 1) {
       const week = weeks[weekIndex]
       if (!week) continue
+
+      // 일 단위 컬럼(start===end)에서만 selectedDates 필터 적용
+      const isDailyColumn = week.start.getTime() === week.end.getTime()
+      if (rowSelectedDatesSet && isDailyColumn && !rowSelectedDatesSet.has(formatDateYmd(week.start) ?? "")) continue
 
       const mergeRelativeWeek = weekIndex - globalStartIndex + 1
       if (!isWeekInRanges(mergeRelativeWeek, mergeWeekRangesNormalized)) continue
@@ -164,7 +157,7 @@ export function buildGanttTimelineDescriptors({
       let mode: "none" | "all" | "partial" = "none"
       let tooltipDates: Date[] = []
 
-      if (hasCourseDays) {
+      if (hasCourseDays && !(rowSelectedDatesSet && isDailyColumn)) {
         const classDates = getWeekClassDates(week, start, end, rowCourseDays)
         if (!classDates.length) continue
 
@@ -202,7 +195,7 @@ export function buildGanttTimelineDescriptors({
         markers.push({
           key: `${r?.id || rowIndex}-recording-${weekIndex}`,
           left: weekIndex * unitWidth + unitWidth / 2,
-          labels: tooltipDates.map((date) => formatRecordingDateLabel(date)),
+          labels: tooltipDates.map((date) => formatDateKorean(date)),
         })
       }
     }

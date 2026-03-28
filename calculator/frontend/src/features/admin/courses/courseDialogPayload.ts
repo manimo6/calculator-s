@@ -140,6 +140,13 @@ function buildCourseFormStatePayload(courseData: CourseData): Partial<CourseForm
     category: courseData.category || "",
     courseName: courseData.name || "",
     fee: info.fee || 0,
+    durationUnit: (info as Record<string, unknown>).durationUnit === "daily" ? "daily" : "weekly",
+    dailyFees: Array.isArray((info as Record<string, unknown>).dailyFees)
+      ? (info as Record<string, unknown>).dailyFees as { days: number; fee: number }[]
+      : [],
+    availableDates: Array.isArray((info as Record<string, unknown>).availableDates)
+      ? ((info as Record<string, unknown>).availableDates as string[]).filter((d) => typeof d === "string")
+      : [],
     textbook: buildTextbookState(info.textbook),
     days: info.days || [],
     startDays: info.startDays || [],

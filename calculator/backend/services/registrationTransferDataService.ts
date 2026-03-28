@@ -15,6 +15,8 @@ type RegistrationMutationRow = {
   transferFromId?: string | null
   transferToId?: string | null
   courseConfigSetName?: string | null
+  durationUnit?: string | null
+  selectedDates?: string[] | null
 } & Record<string, unknown>
 
 type TransferCancellationContext = {
@@ -29,6 +31,18 @@ function addDays(date: string | number | Date, days: number) {
   const next = new Date(base);
   next.setDate(base.getDate() + days);
   return next;
+}
+
+function isDailyRegistration(reg: RegistrationMutationRow) {
+  return reg.durationUnit === 'daily'
+    || (Array.isArray(reg.selectedDates) && reg.selectedDates.length > 0);
+}
+
+function formatYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 async function createTransferredRegistration({
@@ -48,6 +62,62 @@ async function createTransferredRegistration({
 }) {
   const transferId = uuidv4();
   const now = new Date();
+  if (isDailyRegistration(existing)) {
+    const existingDates = Array.isArray(existing.selectedDates)
+      ? [...existing.selectedDates].sort()
+      : [];
+    const transferYmd = formatYmd(transferAt);
+    const newSelectedDates = existingDates.filter((d: string) => d >= transferYmd);
+    if (!newSelectedDates.length) {
+      throw new Error('전반할 수 있는 날짜가 없습니다.');
+    }
+    const oldSelectedDates = existingDates.filter((d: string) => d < transferYmd);
+
+    const newStartDate = newSelectedDates.length > 0 ? new Date(newSelectedDates[0] + 'T00:00:00Z') : transferAt;
+    const newEndDate = newSelectedDates.length > 0 ? new Date(newSelectedDates[newSelectedDates.length - 1] + 'T00:00:00Z') : null;
+    const oldEndDate = oldSelectedDates.length > 0 ? new Date(oldSelectedDates[oldSelectedDates.length - 1] + 'T00:00:00Z') : addDays(transferAt, -1);
+
+    return prisma.$transaction(async (tx: import('@prisma/client').Prisma.TransactionClient) => {
+      const newRecord = await tx.registration.create({
+        data: {
+          id: transferId,
+          timestamp: now,
+          name: existing.name,
+          course: courseName,
+          courseId,
+          courseConfigSetName: courseConfigSetName || undefined,
+          startDate: newStartDate,
+          endDate: newEndDate,
+          withdrawnAt: null,
+          weeks: nextWeeks != null ? Number(nextWeeks) : newSelectedDates.length,
+          tuitionFee: existing.tuitionFee,
+          skipWeeks: [],
+          recordingDates: [],
+          selectedDates: newSelectedDates,
+          durationUnit: 'daily',
+          excludeMath: !!existing.excludeMath,
+          transferFromId: existing.id,
+          transferAt,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      await tx.registration.update({
+        where: { id: String(existing.id || '') },
+        data: {
+          endDate: oldEndDate,
+          selectedDates: oldSelectedDates,
+          transferToId: transferId,
+          transferAt,
+          updatedAt: now,
+        },
+      });
+
+      return newRecord;
+    });
+  }
+
   const oldEndDate = addDays(transferAt, -1);
   const effectiveWeeks = Number(nextWeeks ?? existing.weeks) || 0;
   const newEndDate = effectiveWeeks > 0 ? addDays(transferAt, effectiveWeeks * 7 - 1) : null;
@@ -98,6 +168,31 @@ async function cancelTransferredRegistration({
   transfer: RegistrationMutationRow
 }) {
   const now = new Date();
+  if (isDailyRegistration(original)) {
+    const origDates = Array.isArray(original.selectedDates) ? original.selectedDates : [];
+    const transferDates = Array.isArray(transfer.selectedDates) ? transfer.selectedDates : [];
+    const combined = [...new Set([...origDates, ...transferDates])].sort();
+    const restoredEndDate = combined.length > 0
+      ? parseDateOnly(combined[combined.length - 1])
+      : parseDateOnly(computeEndDate(original.startDate, original.weeks, original.skipWeeks));
+
+    await prisma.$transaction(async (tx: import('@prisma/client').Prisma.TransactionClient) => {
+      await tx.registration.delete({ where: { id: String(transfer.id || '') } });
+      await tx.registration.update({
+        where: { id: String(original.id || '') },
+        data: {
+          endDate: restoredEndDate,
+          selectedDates: combined,
+          transferToId: null,
+          transferAt: null,
+          updatedAt: now,
+        },
+      });
+    });
+
+    return restoredEndDate;
+  }
+
   const restoredEndDate = parseDateOnly(
     computeEndDate(original.startDate, original.weeks, original.skipWeeks)
   );

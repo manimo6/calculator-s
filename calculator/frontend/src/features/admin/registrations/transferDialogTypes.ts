@@ -6,4 +6,6 @@ export type TransferDialogRegistrationRow = {
   startDate?: string | Date
   endDate?: string | Date
   weeks?: number | string
+  durationUnit?: "weekly" | "daily"
+  selectedDates?: string[]
 } & Record<string, unknown>
