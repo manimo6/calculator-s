@@ -42,7 +42,7 @@ export function MergeManagerListSection({
         <h3 className="text-sm font-bold text-slate-800">{COPY.registeredMerges}</h3>
         {merges?.length ? (
           <Badge variant="secondary" className="rounded-full bg-indigo-100 text-indigo-700">
-            {merges.length}\uAC1C
+            {merges.length}개
           </Badge>
         ) : null}
       </div>

@@ -128,10 +128,13 @@ export function buildSidebarItems({
       }
     })
 
+    const totalCount = subCourses.reduce((sum, course) => sum + course.count, 0)
+    if (totalCount === 0) continue
+
     groups.push({
       key: `__merge__${merge.id}`,
       label: merge.name || merge.courses.join(" + "),
-      count: subCourses.reduce((sum, course) => sum + course.count, 0),
+      count: totalCount,
       isMerge: true,
       subCourses,
     })

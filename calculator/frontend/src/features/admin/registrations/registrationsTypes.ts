@@ -58,6 +58,7 @@ export type GanttGroup = {
   courseDays: number[]
   count: number
   mergeWeekRanges?: WeekRange[]
+  durationUnit?: "weekly" | "daily"
 }
 
 export type CourseOption = {
