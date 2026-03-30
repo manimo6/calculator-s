@@ -9,58 +9,65 @@ import {
 } from "@/components/ui/dialog"
 
 import { INSTALLMENT_BOARD_COPY as COPY } from "./installmentBoardCopy"
-import type { InstallmentRow } from "./installmentBoardModel"
 import InstallmentExtensionForm from "./InstallmentExtensionForm"
 import InstallmentExtensionNoticeSection from "./InstallmentExtensionNoticeSection"
 import InstallmentExtensionOverview from "./InstallmentExtensionOverview"
+import InstallmentExtensionScheduleOptions from "./InstallmentExtensionScheduleOptions"
+import InstallmentExtensionFeeBreakdown from "./InstallmentExtensionFeeBreakdown"
+import type { useInstallmentExtensionDraft } from "./useInstallmentExtensionDraft"
 
 type InstallmentExtensionDialogProps = {
   open: boolean
-  selectedRow: InstallmentRow | null
-  extendWeeks: number
-  extendFee: string
-  startDateOverride: string
-  startPickerOpen: boolean
-  extensionEndDate: string
-  noticePreview: string
-  copyState: string
-  saveError: string
-  currentFeeLabel: string
   onOpenChange: (open: boolean) => void
-  onCopy: () => void | Promise<void>
-  onSave: () => void | Promise<void>
-  onExtendWeeksChange: (value: number) => void
-  onExtendFeeChange: (value: string) => void
-  onStartPickerOpenChange: (open: boolean) => void
-  onStartDateChange: (value: string) => void
+  draft: ReturnType<typeof useInstallmentExtensionDraft>
 }
 
 export default function InstallmentExtensionDialog({
   open,
-  selectedRow,
-  extendWeeks,
-  extendFee,
-  startDateOverride,
-  startPickerOpen,
-  extensionEndDate,
-  noticePreview,
-  copyState,
-  saveError,
-  currentFeeLabel,
   onOpenChange,
-  onCopy,
-  onSave,
-  onExtendWeeksChange,
-  onExtendFeeChange,
-  onStartPickerOpenChange,
-  onStartDateChange,
+  draft,
 }: InstallmentExtensionDialogProps) {
+  const {
+    selectedRow,
+    extendWeeks,
+    extendFee,
+    extensionStartDate,
+    extensionEndDate,
+    noticePreview,
+    copyState,
+    saveError,
+    currentFeeLabel,
+    handleCopy,
+    handleSave,
+    setExtendWeeks,
+    setExtendFee,
+    skipWeeksEnabled,
+    setSkipWeeksEnabled,
+    skipWeeks,
+    handleSkipWeekToggle,
+    maxSkipWeeks,
+    scheduleWeeks,
+    recordingEnabled,
+    setRecordingEnabled,
+    recordingDates,
+    handleRecordingDateToggle,
+    availableRecordingDates,
+    isRecordingAvailable,
+    feeBreakdown,
+    totalDays,
+    recordingDays,
+    weeklyFee,
+    savedDiscount,
+    effectiveFee,
+  } = draft
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl sm:rounded-[24px]">
-        <DialogHeader className="space-y-3 pb-2">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-slate-200/70 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-xl sm:rounded-[24px]">
+        <DialogHeader className="space-y-2 pb-1">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
               <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -71,8 +78,8 @@ export default function InstallmentExtensionDialog({
               </svg>
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-slate-900">{COPY.dialogTitle}</DialogTitle>
-              <DialogDescription className="text-sm text-slate-600">
+              <DialogTitle className="text-lg font-bold text-slate-900">{COPY.dialogTitle}</DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
                 {COPY.dialogDescription}
               </DialogDescription>
             </div>
@@ -80,27 +87,52 @@ export default function InstallmentExtensionDialog({
         </DialogHeader>
 
         {selectedRow ? (
-          <div className="space-y-5 text-sm">
+          <div className="space-y-4">
             <InstallmentExtensionOverview
               selectedRow={selectedRow}
               currentFeeLabel={currentFeeLabel}
             />
+
             <InstallmentExtensionForm
               selectedRow={selectedRow}
               extendWeeks={extendWeeks}
               extendFee={extendFee}
-              startDateOverride={startDateOverride}
-              startPickerOpen={startPickerOpen}
               extensionEndDate={extensionEndDate}
-              onExtendWeeksChange={onExtendWeeksChange}
-              onExtendFeeChange={onExtendFeeChange}
-              onStartPickerOpenChange={onStartPickerOpenChange}
-              onStartDateChange={onStartDateChange}
+              weeklyFee={weeklyFee}
+              savedDiscount={savedDiscount}
+              effectiveFee={effectiveFee}
+              onExtendWeeksChange={setExtendWeeks}
+              onExtendFeeChange={setExtendFee}
             />
+
+            <InstallmentExtensionScheduleOptions
+              extendWeeks={extendWeeks}
+              scheduleWeeks={scheduleWeeks}
+              skipWeeksEnabled={skipWeeksEnabled}
+              onSkipWeeksEnabledChange={setSkipWeeksEnabled}
+              skipWeeks={skipWeeks}
+              onSkipWeekToggle={handleSkipWeekToggle}
+              maxSkipWeeks={maxSkipWeeks}
+              isRecordingAvailable={isRecordingAvailable}
+              recordingEnabled={recordingEnabled}
+              onRecordingEnabledChange={setRecordingEnabled}
+              recordingDates={recordingDates}
+              onRecordingDateToggle={handleRecordingDateToggle}
+              availableRecordingDates={availableRecordingDates}
+              extensionStartDate={extensionStartDate}
+              courseDays={selectedRow.courseDays}
+            />
+
+            <InstallmentExtensionFeeBreakdown
+              feeBreakdown={feeBreakdown}
+              totalDays={totalDays}
+              recordingDays={recordingDays}
+            />
+
             <InstallmentExtensionNoticeSection
               noticePreview={noticePreview}
               copyState={copyState}
-              onCopy={onCopy}
+              onCopy={handleCopy}
             />
           </div>
         ) : null}
@@ -108,18 +140,13 @@ export default function InstallmentExtensionDialog({
         {saveError ? (
           <div className="flex items-start gap-2 rounded-xl border border-rose-300/60 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
             <svg className="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="font-medium">{saveError}</span>
           </div>
         ) : null}
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 pt-2">
           <Button
             type="button"
             variant="outline"
@@ -130,9 +157,9 @@ export default function InstallmentExtensionDialog({
           </Button>
           <Button
             type="button"
-            onClick={onSave}
+            onClick={handleSave}
             disabled={!selectedRow}
-            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-semibold shadow-lg shadow-emerald-500/30 transition-all hover:shadow-xl hover:shadow-emerald-500/40"
+            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 font-semibold shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/35"
           >
             {COPY.dialogConfirm}
           </Button>

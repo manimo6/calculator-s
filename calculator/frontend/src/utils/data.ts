@@ -180,6 +180,34 @@ function getCourseName(courseKey: string) {
   return courseInfo[courseKey]?.name || courseKey;
 }
 
+// 과목 이름으로 courseTree config 키 찾기 (역방향 조회)
+function getCourseConfigKey(courseName: string): string {
+  const name = String(courseName || "").trim();
+  if (!name) return "";
+  let bestKey = "";
+  let bestLen = 0;
+  for (const group of courseTree) {
+    for (const item of group.items || []) {
+      if (!item.label) continue;
+      if (name.startsWith(item.label) && item.label.length > bestLen) {
+        bestKey = item.val;
+        bestLen = item.label.length;
+      }
+    }
+  }
+  if (bestKey) return bestKey;
+  // fallback: courseInfo에서 name 필드로 검색
+  for (const [key, info] of Object.entries(courseInfo)) {
+    const label = info?.name;
+    if (!label) continue;
+    if (name.startsWith(label) && label.length > bestLen) {
+      bestKey = key;
+      bestLen = label.length;
+    }
+  }
+  return bestKey;
+}
+
 
 export {
   weekdayName,
@@ -193,7 +221,8 @@ export {
   applyCourseConfigSetData,
   resetCourseConfigSetData,
   fetchCourseData, // Export fetch function
-  getCourseName // Export helper function
+  getCourseName, // Export helper function
+  getCourseConfigKey,
 };
 
 

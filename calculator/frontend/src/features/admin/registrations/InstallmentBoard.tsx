@@ -86,27 +86,12 @@ export default function InstallmentBoard({
     ]
   )
 
+  const extensionDraft = useInstallmentExtensionDraft({ onCreateExtension, courseConfigSet })
   const {
     dialogOpen,
-    selectedRow,
-    extendWeeks,
-    extendFee,
-    startDateOverride,
-    startPickerOpen,
-    extensionEndDate,
-    noticePreview,
-    copyState,
-    saveError,
-    currentFeeLabel,
     handleOpen,
-    handleCopy,
-    handleSave,
     handleDialogOpenChange,
-    setExtendWeeks,
-    setExtendFee,
-    setStartPickerOpen,
-    setStartDateOverride,
-  } = useInstallmentExtensionDraft({ onCreateExtension })
+  } = extensionDraft
 
   const handleSort = (key: SortKey) => {
     if (key === "course" && !canSortCourse) return
@@ -141,23 +126,8 @@ export default function InstallmentBoard({
       />
       <InstallmentExtensionDialog
         open={dialogOpen}
-        selectedRow={selectedRow}
-        extendWeeks={extendWeeks}
-        extendFee={extendFee}
-        startDateOverride={startDateOverride}
-        startPickerOpen={startPickerOpen}
-        extensionEndDate={extensionEndDate}
-        noticePreview={noticePreview}
-        copyState={copyState}
-        saveError={saveError}
-        currentFeeLabel={currentFeeLabel}
         onOpenChange={handleDialogOpenChange}
-        onCopy={handleCopy}
-        onSave={handleSave}
-        onExtendWeeksChange={setExtendWeeks}
-        onExtendFeeChange={setExtendFee}
-        onStartPickerOpenChange={setStartPickerOpen}
-        onStartDateChange={setStartDateOverride}
+        draft={extensionDraft}
       />
     </div>
   )

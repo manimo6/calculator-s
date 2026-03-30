@@ -151,6 +151,24 @@ router.post('/', async (req, res) => {
           computeEndDate(registration.startDate, nextWeeks, registration.skipWeeks)
         );
 
+    // 연장 휴강 주차 병합 (프론트에서 등록 전체 기준으로 변환된 값)
+    const incomingSkipWeeks = Array.isArray(req.body?.skipWeeks)
+      ? (req.body.skipWeeks as unknown[]).map(Number).filter((n: number) => Number.isInteger(n) && n > 0)
+      : [];
+    const existingSkipWeeks = Array.isArray(registration.skipWeeks) ? registration.skipWeeks : [];
+    const mergedSkipWeeks = incomingSkipWeeks.length > 0
+      ? Array.from(new Set([...existingSkipWeeks, ...incomingSkipWeeks])).sort((a: number, b: number) => a - b)
+      : undefined;
+
+    // 연장 녹화 날짜 병합
+    const incomingRecordingDates = Array.isArray(req.body?.recordingDates)
+      ? (req.body.recordingDates as unknown[]).filter((d): d is string => typeof d === 'string' && d.trim().length > 0)
+      : [];
+    const existingRecordingDates = Array.isArray(registration.recordingDates) ? registration.recordingDates : [];
+    const mergedRecordingDates = incomingRecordingDates.length > 0
+      ? Array.from(new Set([...existingRecordingDates, ...incomingRecordingDates])).sort()
+      : undefined;
+
     const result = await prisma.$transaction(async (tx: import('@prisma/client').Prisma.TransactionClient) => {
       const extension = await tx.registrationExtension.create({
         data: {
@@ -167,6 +185,8 @@ router.post('/', async (req, res) => {
         data: {
           weeks: nextWeeks || null,
           endDate: computedEndDate || registration.endDate,
+          ...(mergedSkipWeeks ? { skipWeeks: mergedSkipWeeks } : {}),
+          ...(mergedRecordingDates ? { recordingDates: mergedRecordingDates } : {}),
         },
       });
 

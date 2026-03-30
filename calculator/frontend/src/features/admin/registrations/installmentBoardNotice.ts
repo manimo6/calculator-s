@@ -1,4 +1,8 @@
-import { TUITION_ACCOUNT } from "@/utils/clipboardUtils"
+import {
+  TUITION_ACCOUNT,
+  formatRecordingDates,
+  buildSkipPeriodLines,
+} from "@/utils/clipboardUtils"
 import { formatDateWithWeekday } from "@/utils/calculatorLogic"
 
 import { INSTALLMENT_BOARD_COPY as COPY } from "./installmentBoardCopy"
@@ -27,6 +31,13 @@ export function buildInstallmentNoticeText({
   weeks,
   fee,
   includeCaution,
+  skipWeeks,
+  startDate,
+  recordingDates,
+  normalFee,
+  recordingFee,
+  totalDays,
+  recordingDays,
 }: {
   name: string
   course: string
@@ -34,6 +45,13 @@ export function buildInstallmentNoticeText({
   weeks: number
   fee: number | string
   includeCaution: boolean
+  skipWeeks?: number[]
+  startDate?: string
+  recordingDates?: string[]
+  normalFee?: number
+  recordingFee?: number
+  totalDays?: number
+  recordingDays?: number
 }) {
   const safeName = String(name || "").trim() || COPY.feeUnknown
   const safeCourse = String(course || "").trim() || COPY.feeUnknown
@@ -50,8 +68,40 @@ export function buildInstallmentNoticeText({
     `${COPY.course}: ${safeCourse}`,
     `${COPY.extensionRange}: ${safeRange}`,
     `${COPY.extensionWeeks}: ${safeWeeks}`,
-    `${COPY.extensionFee}: ${safeFee}`,
   ]
+
+  const safeSkipWeeks = Array.isArray(skipWeeks) ? skipWeeks : []
+  if (safeSkipWeeks.length > 0 && startDate) {
+    const skipLines = buildSkipPeriodLines(startDate, safeSkipWeeks)
+    if (skipLines.length > 0) {
+      lines.push(...skipLines)
+    }
+  }
+
+  const safeRecordingDates = Array.isArray(recordingDates) ? recordingDates : []
+  const recDays = Number(recordingDays) || safeRecordingDates.length
+  const normDays = Number(totalDays) || 0
+  const normFee = Number(normalFee)
+  const recFee = Number(recordingFee)
+
+  if (recDays > 0 && normDays > 0 && Number.isFinite(normFee) && Number.isFinite(recFee)) {
+    const normalDays = normDays - recDays
+    lines.push(
+      `${COPY.extensionFee}:`,
+      `  = ${COPY.normalFeeNote}(${normalDays}${COPY.daySuffix}): ${normFee.toLocaleString("ko-KR")}${COPY.feeSuffix}`,
+      `  + ${COPY.recordingFeeNote}(${recDays}${COPY.daySuffix}): ${recFee.toLocaleString("ko-KR")}${COPY.feeSuffix}`,
+      `  = 합계: ${safeFee}`
+    )
+  } else {
+    lines.push(`${COPY.extensionFee}: ${safeFee}`)
+  }
+
+  if (safeRecordingDates.length > 0) {
+    const formatted = formatRecordingDates(safeRecordingDates)
+    if (formatted) {
+      lines.push(`• ${COPY.recordingDatesLabel}: ${formatted}`)
+    }
+  }
 
   if (includeCaution) {
     lines.push("", TUITION_ACCOUNT)

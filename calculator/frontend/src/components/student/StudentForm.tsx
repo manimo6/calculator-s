@@ -79,7 +79,7 @@ type FormAction =
     | { type: 'UPDATE_RECORDING_DATES'; payload: string[] }
     | { type: 'ADD_TO_CART'; payload: CartItem }
     | { type: 'REMOVE_FROM_CART'; payload: number }
-    | { type: 'LOAD_HISTORY_RECORD'; payload: { key: string; inputs: Partial<SingleCourseInputs> } }
+    | { type: 'LOAD_HISTORY_RECORD'; payload: { key: string; inputs: Partial<SingleCourseInputs>; discount?: number } }
     | { type: 'RESET_AFTER_SAVE' }
     | { type: 'RESET_FOR_CONFIG' }
 
@@ -225,6 +225,7 @@ function formReducer(state: FormState, action: FormAction) {
             return {
                 ...state,
                 mainCourseKey: action.payload.key,
+                discount: action.payload.discount ?? state.discount,
                 singleCourseInputs: { ...state.singleCourseInputs, ...action.payload.inputs }
             };
         case 'RESET_AFTER_SAVE': {
@@ -931,6 +932,7 @@ const StudentForm = () => {
                 excludeMath: !!item.singleCourseInputs.excludeMath,
                 recordingDates: item.selectedRecordingDates,
                 tuitionFee: Number.isFinite(item.finalFee) ? Math.round(item.finalFee) : null,
+                discount: Number(item.discount || 0),
                 timestamp: new Date().toISOString()
             };
         });
@@ -1060,7 +1062,8 @@ const StudentForm = () => {
         dispatch({
             type: 'LOAD_HISTORY_RECORD', payload: {
                 key: resolvedKey,
-                inputs: inputs
+                inputs: inputs,
+                discount: Number(record?.discount) || 0,
             }
         });
 

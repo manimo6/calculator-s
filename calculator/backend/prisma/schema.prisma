@@ -187,6 +187,7 @@ model Registration {
   weeks          Int?
   durationUnit   String   @default("weekly")
   tuitionFee     Int?
+  discount       Float    @default(0)
   skipWeeks      Int[]    @default([])
   selectedDates  String[]  @default([])
   recordingDates String[]  @default([])

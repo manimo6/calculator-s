@@ -58,7 +58,7 @@ type TextbookFallback = {
 
 
 
-function formatRecordingDates(dates: DateInput[] | null | undefined) {
+export function formatRecordingDates(dates: DateInput[] | null | undefined) {
     if (!dates || dates.length === 0) return '';
     return dates
         .map((d) => {
@@ -93,7 +93,7 @@ function buildSkipWeekBlocks(skipWeeks: number[]) {
     return blocks;
 }
 
-function buildSkipPeriodLines(startDate: DateInput, skipWeeks: number[]) {
+export function buildSkipPeriodLines(startDate: DateInput, skipWeeks: number[]) {
     if (!startDate || !Array.isArray(skipWeeks) || skipWeeks.length === 0) return [];
     const base = startDate instanceof Date ? startDate : new Date(startDate);
     if (isNaN(base.getTime())) return [];
@@ -153,7 +153,7 @@ function buildTermBreakLines({
     return lines;
 }
 
-function stripDuplicateSuffix(name: string | null | undefined) {
+export function stripDuplicateSuffix(name: string | null | undefined) {
     const trimmed = String(name || '').trim();
     if (!trimmed) return '';
     const match = trimmed.match(/^(.+?)([A-Za-z]+)$/);

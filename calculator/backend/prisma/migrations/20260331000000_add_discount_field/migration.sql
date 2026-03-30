@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "registrations" ADD COLUMN "discount" DOUBLE PRECISION NOT NULL DEFAULT 0;

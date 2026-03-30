@@ -81,6 +81,7 @@ function formatRegistrationResults(
       noteUpdatedAt: note && note.updatedAt ? note.updatedAt.toISOString() : '',
       weeks,
       tuitionFee: row.tuitionFee ?? null,
+      discount: (row as any).discount ?? 0,
       excludeMath: !!row.excludeMath,
       recordingDates: Array.isArray(row.recordingDates) ? row.recordingDates.filter(Boolean) : [],
       skipWeeks: Array.isArray(row.skipWeeks)

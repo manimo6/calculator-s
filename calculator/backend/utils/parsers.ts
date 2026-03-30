@@ -51,6 +51,13 @@ function parseTuitionFee(value: unknown) {
   return i >= 0 ? i : null;
 }
 
+function parseDiscount(value: unknown): number {
+  if (value === undefined || value === null) return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 1) return 0;
+  return n;
+}
+
 function parseSkipWeeks(value: unknown) {
   if (!Array.isArray(value)) return [];
   const set = new Set<number>();
@@ -110,6 +117,7 @@ module.exports = {
   parseStrictDateOnly,
   parseWeeks,
   parseTuitionFee,
+  parseDiscount,
   parseSkipWeeks,
   normalizeRecordingDates,
   parseExcludeMath,
