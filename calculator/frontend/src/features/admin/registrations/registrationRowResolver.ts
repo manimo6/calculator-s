@@ -76,8 +76,10 @@ export function resolveRegistrationRows(
 
     const withdrawnDate = parseDate(registration?.withdrawnAt)
     const transferAt = parseDate(registration?.transferAt)
-    const isTransferredOut = Boolean(registration?.transferToId)
-    const isTransferredIn = Boolean(registration?.transferFromId)
+    const rawToId = registration?.transferToId
+    const rawFromId = registration?.transferFromId
+    const isTransferredOut = Boolean(rawToId && String(rawToId).trim())
+    const isTransferredIn = Boolean(rawFromId && String(rawFromId).trim())
     let effectiveEndDate = computedEndDate || registration?.endDate || ""
 
     if (isTransferredOut && transferAt) {

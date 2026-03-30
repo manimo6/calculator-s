@@ -61,10 +61,16 @@ export function buildCourseGroupMaps({
 
       if (isActiveAtRef) {
         if (!map.has(courseKey)) map.set(courseKey, [])
+        const originalTransferToId = chainRegistration?.transferToId
+        const hasScheduledTransfer = Boolean(originalTransferToId)
         map.get(courseKey)?.push({
           ...chainRegistration,
           isTransferredOut: false,
           transferToId: undefined,
+          ...(hasScheduledTransfer ? {
+            _transferScheduled: true,
+            _originalTransferToId: originalTransferToId,
+          } : {}),
         })
       } else if (showTransferChain) {
         if (!map.has(courseKey)) map.set(courseKey, [])

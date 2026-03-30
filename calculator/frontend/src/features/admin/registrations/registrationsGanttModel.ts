@@ -107,7 +107,7 @@ export function buildRegistrationsGanttModel({
     const end = parseDate(r?.endDate) || start
     const status = getRegistrationStatus(r, simulationDate || undefined)
     const isWithdrawn = Boolean(r?.isWithdrawn || r?.withdrawnAt)
-    const isTransferredOut = Boolean(r?.isTransferredOut || r?.transferToId)
+    const isTransferredOut = Boolean(r?.isTransferredOut || (r?.transferToId && String(r.transferToId).trim()))
     const recordingDates = Array.isArray(r?.recordingDates) ? r.recordingDates : []
     const rowCourseDays =
       typeof getCourseDaysForCourse === "function"

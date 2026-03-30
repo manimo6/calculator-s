@@ -86,14 +86,26 @@ export function useVisibleRows(
       if (!rowId) continue
       const segments: TransferDisplayModelRow[] = []
       const visited = new Set<string>()
-      let currentId = row.r?.transferFromId ? String(row.r.transferFromId) : null
 
+      // 역방향: transferFromId 체인 추적
+      let currentId = row.r?.transferFromId ? String(row.r.transferFromId) : null
       while (currentId && !visited.has(currentId)) {
         visited.add(currentId)
         const localRow = transferredById.get(currentId)
         if (localRow) segments.unshift(localRow)
         const registration = registrationMap?.get(currentId)
         currentId = registration?.transferFromId ? String(registration.transferFromId) : null
+      }
+
+      // 순방향: _originalTransferToId로 forward chain 추적 (미래 체인의 active 표시용)
+      const originalToId = (row.r as Record<string, unknown>)?._originalTransferToId
+      let forwardId = originalToId ? String(originalToId) : null
+      while (forwardId && !visited.has(forwardId)) {
+        visited.add(forwardId)
+        const localRow = transferredById.get(forwardId)
+        if (localRow) segments.push(localRow)
+        const registration = registrationMap?.get(forwardId)
+        forwardId = registration?.transferToId ? String(registration.transferToId) : null
       }
 
       if (segments.length) segmentMap.set(rowId, segments)

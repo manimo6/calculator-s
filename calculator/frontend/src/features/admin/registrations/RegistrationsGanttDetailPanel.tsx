@@ -54,13 +54,17 @@ export default function RegistrationsGanttDetailPanel({
 }: RegistrationsGanttDetailPanelProps) {
   const detailStatus = target ? getRegistrationStatus(target, simulationDate || undefined) : "active"
   const detailIsWithdrawn = Boolean(target?.isWithdrawn || target?.withdrawnAt)
+  const rawToId = target?.transferToId
+  const rawFromId = target?.transferFromId
   const detailIsTransferredOut = Boolean(
-    target?.isTransferredOut || target?.transferToId
+    target?.isTransferredOut || (rawToId && String(rawToId).trim())
   )
-  const detailIsTransferChild = Boolean(target?.transferFromId)
-  const detailCanWithdraw = !detailIsWithdrawn && !detailIsTransferredOut
-  const detailCanTransfer = !detailIsWithdrawn && !detailIsTransferredOut
-  const detailCanTransferCancel = detailIsTransferChild && !detailIsTransferredOut
+  const detailIsTransferChild = Boolean(rawFromId && String(rawFromId).trim())
+
+  const detailHasScheduledTransfer = Boolean((target as Record<string, unknown>)?._transferScheduled)
+  const detailCanWithdraw = !detailIsWithdrawn && !detailIsTransferredOut && !detailHasScheduledTransfer
+  const detailCanTransfer = !detailIsWithdrawn && !detailIsTransferredOut && !detailHasScheduledTransfer
+  const detailCanTransferCancel = detailIsTransferChild && !detailIsTransferredOut && !detailHasScheduledTransfer
 
   const detailCourseLabel = stripMathExcludeLabel(target?.course)
   const detailCourseDays =

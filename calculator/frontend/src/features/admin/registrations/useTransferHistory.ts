@@ -29,11 +29,14 @@ export function useTransferHistory(
     visited.clear()
     current = target
 
-    while (current?.transferToId) {
-      const toId = String(current.transferToId)
-      if (visited.has(toId)) break
-      visited.add(toId)
-      const next = registrationMap.get(toId)
+    while (true) {
+      const toId = current?.transferToId
+        || (current as Record<string, unknown>)?._originalTransferToId
+      if (!toId) break
+      const toIdStr = String(toId)
+      if (visited.has(toIdStr)) break
+      visited.add(toIdStr)
+      const next = registrationMap.get(toIdStr)
       if (!next) break
       chain.push(next)
       current = next
