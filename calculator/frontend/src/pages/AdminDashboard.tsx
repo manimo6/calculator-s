@@ -169,7 +169,7 @@ const AdminDashboard = () => {
             id: 'attendance', 
             element: (
                 <Suspense fallback={<TabLoader />}>
-                    <AttendanceTab user={user} />
+                    <AttendanceTab user={user} isActive={activeTab === 'attendance'} />
                 </Suspense>
             ) 
         },

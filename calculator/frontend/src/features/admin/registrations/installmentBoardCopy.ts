@@ -28,7 +28,7 @@ export const INSTALLMENT_BOARD_COPY = {
   tableExtend: "\uC5F0\uC7A5",
   tableRemaining: "\uC794\uC5EC",
   tableClassWeeksSuffix: "\uC8FC \uC218\uC5C5",
-  tableWithdrawn: "\uC911\uB3C4\uC774\uD0C8",
+  tableWithdrawn: "중도퇴원",
   tableExtensionCount: "\uC5F0\uC7A5",
   tableExtendAction: "\uC5F0\uC7A5",
   statusNoticeNeeded: "\uC548\uB0B4 \uD544\uC694",

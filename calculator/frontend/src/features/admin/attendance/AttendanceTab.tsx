@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { BookOpen, Search, Users } from "lucide-react"
 
 import type { AuthUser } from "@/auth-routing"
@@ -17,9 +17,10 @@ import FiltersCard from "../registrations/FiltersCard"
 import { useRegistrations } from "../registrations/useRegistrations"
 import { getCourseDaysByName } from "../registrations/utils"
 
-export default function AttendanceTab({ user }: { user: AuthUser | null }) {
+export default function AttendanceTab({ user, isActive }: { user: AuthUser | null; isActive?: boolean }) {
   const [courseSearch, setCourseSearch] = useState("")
   const [todayOnly, setTodayOnly] = useState(false)
+  const wasActive = useRef(false)
 
   const todayDayOfWeek = useMemo(() => new Date().getDay(), [])
 
@@ -53,6 +54,14 @@ export default function AttendanceTab({ user }: { user: AuthUser | null }) {
 
     courseOptionsForFilter,
   } = useRegistrations({ loadMerges: false, loadExtensions: false, enableVariants: true })
+
+  // 탭 활성화 시 데이터 갱신 (다른 탭에서 퇴원/전반 등 변경 반영)
+  useEffect(() => {
+    if (isActive && wasActive.current) {
+      loadRegistrations()
+    }
+    wasActive.current = !!isActive
+  }, [isActive, loadRegistrations])
 
   const selectedCourseConfigSetObj = useMemo(
     () => courseConfigSets.find((s) => s.name === selectedCourseConfigSet) || null,
