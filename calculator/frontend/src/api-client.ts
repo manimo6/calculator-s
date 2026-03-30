@@ -283,13 +283,9 @@ export const apiClient = {
     });
   },
   listRegistrationExtensions(params: { registrationIds?: string[] } = {}) {
-    const qs = new URLSearchParams();
-    if (Array.isArray(params.registrationIds) && params.registrationIds.length) {
-      qs.set('registrationIds', params.registrationIds.join(','));
-    }
-    const query = qs.toString();
-    return request(`/api/registration-extensions${query ? `?${query}` : ''}`, {
-      method: 'GET',
+    return request('/api/registration-extensions/query', {
+      method: 'POST',
+      body: JSON.stringify({ registrationIds: params.registrationIds || [] }),
     });
   },
   createRegistrationExtension(payload: JsonRecord) {

@@ -106,6 +106,65 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.post('/query', async (req, res) => {
+  try {
+    const authUser = await getRequestUser(req);
+    if (!authUser) {
+      return res.status(401).json({ status: 'fail', message: 'Missing auth.' });
+    }
+
+    const registrationIds = normalizeRegistrationIds(req.body?.registrationIds);
+    const registrationWhere = registrationIds.length
+      ? { id: { in: registrationIds } }
+      : {};
+    const registrations: RegistrationRow[] = await prisma.registration.findMany({
+      where: registrationWhere,
+      select: { id: true, courseId: true, course: true, courseConfigSetName: true },
+    });
+    const bypassCategoryAccess = isCategoryAccessBypassed(authUser);
+    const setNames = registrations
+      .map((row) => String(row.courseConfigSetName || '').trim())
+      .filter(Boolean);
+    const { accessMap, indexMap } = await loadAccessContext(
+      authUser.id,
+      setNames,
+      bypassCategoryAccess
+    );
+    const allowedIds = new Set<string | number>(
+      registrations
+        .filter((row) => isRegistrationAllowed(row, accessMap, indexMap, bypassCategoryAccess))
+        .map((row) => row.id)
+    );
+    const filteredIds = registrationIds.length
+      ? registrationIds.filter((id) => allowedIds.has(id))
+      : registrations.map((row) => row.id).filter((id) => allowedIds.has(id));
+    if (filteredIds.length === 0) {
+      return res.json({ status: 'success', results: [] });
+    }
+    const where = { registrationId: { in: filteredIds } };
+
+    const rows: ExtensionRow[] = await prisma.registrationExtension.findMany({
+      where,
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    const results = rows.map((row) => ({
+      id: row.id,
+      registrationId: row.registrationId,
+      startDate: formatDateOnly(row.startDate),
+      weeks: row.weeks ?? null,
+      tuitionFee: row.tuitionFee ?? null,
+      createdAt: row.createdAt ? row.createdAt.toISOString() : '',
+    }));
+
+    res.json({ status: 'success', results });
+  } catch (error) {
+    const message = getSafeErrorMessage(error, '연장 기록을 불러오지 못했습니다.');
+    console.error('Failed to fetch registration extensions:', error);
+    res.status(500).json({ status: 'fail', message });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const authUser = await getRequestUser(req);
