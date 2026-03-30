@@ -14,6 +14,7 @@ export default function RegistrationsShellOverlays(props: any) {
     handleTransferCancel,
     openNoteDialog,
     showTransferChain,
+    setShowTransferChain,
     simulationDate,
     canManageTransfers,
     noteDialogOpen,
@@ -69,6 +70,7 @@ export default function RegistrationsShellOverlays(props: any) {
         handleTransferCancel={handleTransferCancel}
         openNoteDialog={openNoteDialog}
         showTransferChain={showTransferChain}
+        setShowTransferChain={setShowTransferChain}
         simulationDate={simulationDate}
         canManageTransfers={canManageTransfers}
       />

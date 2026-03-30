@@ -1,6 +1,7 @@
+import { ArrowRightLeft } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
 
 import RegistrationsGantt from "./RegistrationsGantt"
 import { REGISTRATIONS_PANEL_COPY as COPY } from "./registrationsPanelCopy"
@@ -41,19 +42,6 @@ export default function RegistrationsGanttPanel({
 }: RegistrationsGanttPanelProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={showTransferChain}
-          onCheckedChange={setShowTransferChain}
-          id="transferChainToggle"
-        />
-        <label
-          htmlFor="transferChainToggle"
-          className="cursor-pointer text-xs font-semibold text-slate-500"
-        >
-          {COPY.transferHistory}
-        </label>
-      </div>
       {ganttGroups.map((group) => (
         <div key={group.key} className="space-y-2">
           <div className="flex items-center justify-between">
@@ -67,18 +55,34 @@ export default function RegistrationsGanttPanel({
                 {COPY.membersSuffix}
               </Badge>
             </h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-              onClick={() => {
-                setActiveGanttTab(group.key)
-                setChartOverlayOpen(true)
-              }}
-            >
-              {COPY.openLargeView}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={showTransferChain ? "default" : "outline"}
+                size="sm"
+                className={`gap-1.5 rounded-full ${
+                  showTransferChain
+                    ? "bg-rose-500 text-white shadow-sm shadow-rose-500/25 hover:bg-rose-600"
+                    : ""
+                }`}
+                onClick={() => setShowTransferChain(!showTransferChain)}
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                {COPY.transferHistory}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={() => {
+                  setActiveGanttTab(group.key)
+                  setChartOverlayOpen(true)
+                }}
+              >
+                {COPY.openLargeView}
+              </Button>
+            </div>
           </div>
           <RegistrationsGantt
             registrations={group.registrations}

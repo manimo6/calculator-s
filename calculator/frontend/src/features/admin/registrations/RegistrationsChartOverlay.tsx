@@ -1,3 +1,5 @@
+import { ArrowRightLeft } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog"
 
@@ -23,6 +25,7 @@ type RegistrationsChartOverlayProps = {
   handleTransferCancel: (...args: any[]) => void
   openNoteDialog: (...args: any[]) => void
   showTransferChain: boolean
+  setShowTransferChain: (value: boolean) => void
   simulationDate: Date | null
   canManageTransfers: boolean
 }
@@ -39,6 +42,7 @@ export default function RegistrationsChartOverlay({
   handleTransferCancel,
   openNoteDialog,
   showTransferChain,
+  setShowTransferChain,
   simulationDate,
   canManageTransfers,
 }: RegistrationsChartOverlayProps) {
@@ -59,14 +63,30 @@ export default function RegistrationsChartOverlay({
                   {REGISTRATIONS_CHART_OVERLAY_COPY.title}
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full px-4"
-                onClick={() => onOpenChange(false)}
-              >
-                {REGISTRATIONS_CHART_OVERLAY_COPY.close}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={showTransferChain ? "default" : "outline"}
+                  size="sm"
+                  className={`gap-1.5 rounded-full ${
+                    showTransferChain
+                      ? "bg-rose-500 text-white shadow-sm shadow-rose-500/25 hover:bg-rose-600"
+                      : ""
+                  }`}
+                  onClick={() => setShowTransferChain(!showTransferChain)}
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  전반 이력
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full px-4"
+                  onClick={() => onOpenChange(false)}
+                >
+                  {REGISTRATIONS_CHART_OVERLAY_COPY.close}
+                </Button>
+              </div>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden p-4">
