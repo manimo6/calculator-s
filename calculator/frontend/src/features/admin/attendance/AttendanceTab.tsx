@@ -11,6 +11,7 @@ import { ATTENDANCE_TAB_COPY as COPY } from "./attendanceTabCopy"
 import {
   countTodayAttendanceTabs,
   filterAttendanceVariantTabs,
+  groupTabsByStartTime,
 } from "./attendanceTabModel"
 import { useActiveChainRegistrations } from "./useActiveChainRegistrations"
 import FiltersCard from "../registrations/FiltersCard"
@@ -108,8 +109,19 @@ export default function AttendanceTab({ user, isActive }: { user: AuthUser | nul
         todayOnly,
         todayDayOfWeek,
         resolveCourseDays,
+        registrations: registrations || [],
       }),
-    [variantTabs, courseSearch, todayOnly, todayDayOfWeek, resolveCourseDays]
+    [variantTabs, courseSearch, todayOnly, todayDayOfWeek, resolveCourseDays, registrations]
+  )
+
+  const timeTable = useMemo(
+    () => (selectedCourseConfigSetObj?.data as Record<string, unknown> | null)?.timeTable as Record<string, unknown> || {},
+    [selectedCourseConfigSetObj]
+  )
+
+  const timeGroupedTabs = useMemo(
+    () => todayOnly ? groupTabsByStartTime(filteredVariantTabs, timeTable as any) : [],
+    [todayOnly, filteredVariantTabs, timeTable]
   )
 
   const todayCoursesCount = useMemo(
@@ -118,8 +130,9 @@ export default function AttendanceTab({ user, isActive }: { user: AuthUser | nul
         variantTabs,
         todayDayOfWeek,
         resolveCourseDays,
+        registrations: registrations || [],
       }),
-    [variantTabs, todayDayOfWeek, resolveCourseDays]
+    [variantTabs, todayDayOfWeek, resolveCourseDays, registrations]
   )
 
   const handleRefresh = useCallback(() => {
@@ -178,6 +191,7 @@ export default function AttendanceTab({ user, isActive }: { user: AuthUser | nul
         courseSearch={courseSearch}
         todayOnly={todayOnly}
         todayCoursesCount={todayCoursesCount}
+        timeGroupedTabs={timeGroupedTabs}
         onVariantFilterChange={setVariantFilter}
         onCourseSearchChange={setCourseSearch}
         onTodayOnlyChange={setTodayOnly}

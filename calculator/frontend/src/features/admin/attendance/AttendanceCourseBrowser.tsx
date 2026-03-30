@@ -5,9 +5,10 @@ import { BookOpen, CalendarCheck, Search, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { ATTENDANCE_TAB_COPY as COPY } from "./attendanceTabCopy"
-import type { AttendanceVariantTab } from "./attendanceTabModel"
+import type { AttendanceVariantTab, TimeGroupedTabs } from "./attendanceTabModel"
 
 type AttendanceCourseBrowserProps = {
   variantTabs: AttendanceVariantTab[]
@@ -16,6 +17,7 @@ type AttendanceCourseBrowserProps = {
   courseSearch: string
   todayOnly: boolean
   todayCoursesCount: number
+  timeGroupedTabs?: TimeGroupedTabs
   onVariantFilterChange: (value: string) => void
   onCourseSearchChange: (value: string) => void
   onTodayOnlyChange: (value: boolean) => void
@@ -28,11 +30,45 @@ export default function AttendanceCourseBrowser({
   courseSearch,
   todayOnly,
   todayCoursesCount,
+  timeGroupedTabs,
   onVariantFilterChange,
   onCourseSearchChange,
   onTodayOnlyChange,
 }: AttendanceCourseBrowserProps) {
   if (!variantTabs.length) return null
+
+  function CourseButton({ tab, isActive, onClick }: { tab: AttendanceVariantTab; isActive: boolean; onClick: (key: string) => void }) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => onClick(tab.key)}
+            className={`group flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left transition-all ${
+              isActive
+                ? "border-violet-300 bg-gradient-to-r from-violet-500 to-fuchsia-500 shadow-md shadow-violet-500/20"
+                : "border-slate-200/80 bg-white hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
+            }`}
+          >
+            <span className={`min-w-0 flex-1 truncate text-xs font-semibold ${isActive ? "text-white" : "text-slate-700 group-hover:text-violet-700"}`}>
+              {tab.label}
+            </span>
+            <Badge
+              variant="secondary"
+              className={`shrink-0 rounded px-1.5 py-0 text-[10px] font-bold leading-tight ${
+                isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600"
+              }`}
+            >
+              {tab.count}
+            </Badge>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>{tab.label}</p>
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
 
   return (
     <div className="rounded-2xl border border-white/40 bg-white/70 shadow-lg shadow-black/5 backdrop-blur-xl">
@@ -132,44 +168,33 @@ export default function AttendanceCourseBrowser({
             )}
           </div>
         ) : (
-          <ScrollArea className="max-h-[280px]">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-              {filteredVariantTabs.map((tab) => {
-                const isActive = variantFilter === tab.key
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onVariantFilterChange(tab.key)}
-                    className={`group flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left transition-all ${
-                      isActive
-                        ? "border-violet-300 bg-gradient-to-r from-violet-500 to-fuchsia-500 shadow-md shadow-violet-500/20"
-                        : "border-slate-200/80 bg-white hover:border-violet-200 hover:bg-violet-50/50 hover:shadow-sm"
-                    }`}
-                    title={tab.label}
-                  >
-                    <span
-                      className={`min-w-0 flex-1 truncate text-xs font-semibold ${
-                        isActive ? "text-white" : "text-slate-700 group-hover:text-violet-700"
-                      }`}
-                    >
-                      {tab.label}
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className={`shrink-0 rounded px-1.5 py-0 text-[10px] font-bold leading-tight ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600"
-                      }`}
-                    >
-                      {tab.count}
-                    </Badge>
-                  </button>
-                )
-              })}
-            </div>
+          <TooltipProvider delayDuration={300}>
+          <ScrollArea>
+            {todayOnly && timeGroupedTabs && timeGroupedTabs.length > 0 ? (
+              <div className="space-y-3">
+                {timeGroupedTabs.map((group) => (
+                  <div key={group.time}>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-400">{group.label}</span>
+                      <div className="h-px flex-1 bg-slate-200/60" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                      {group.tabs.map((tab) => (
+                        <CourseButton key={tab.key} tab={tab} isActive={variantFilter === tab.key} onClick={onVariantFilterChange} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                {filteredVariantTabs.map((tab) => (
+                  <CourseButton key={tab.key} tab={tab} isActive={variantFilter === tab.key} onClick={onVariantFilterChange} />
+                ))}
+              </div>
+            )}
           </ScrollArea>
+          </TooltipProvider>
         )}
       </div>
     </div>

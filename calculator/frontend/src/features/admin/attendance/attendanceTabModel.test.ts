@@ -24,8 +24,8 @@ function resolveCourseDays(courseName?: string) {
 }
 
 describe("attendanceTabModel", () => {
-  it("treats courses without day metadata as visible today", () => {
-    expect(isCourseScheduledToday([], 1)).toBe(true)
+  it("treats courses without day metadata as not scheduled today", () => {
+    expect(isCourseScheduledToday([], 1)).toBe(false)
     expect(isCourseScheduledToday([2, 4], 1)).toBe(false)
     expect(isCourseScheduledToday([1, 4], 1)).toBe(true)
   })
@@ -39,7 +39,7 @@ describe("attendanceTabModel", () => {
         todayDayOfWeek: 1,
         resolveCourseDays,
       }).map((tab) => tab.label)
-    ).toEqual(["수학", "과학"])
+    ).toEqual(["수학"])
 
     expect(
       filterAttendanceVariantTabs({
@@ -59,6 +59,6 @@ describe("attendanceTabModel", () => {
         todayDayOfWeek: 1,
         resolveCourseDays,
       })
-    ).toBe(2)
+    ).toBe(1)
   })
 })

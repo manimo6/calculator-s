@@ -1,11 +1,9 @@
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
-import { Calendar, ChevronLeft, ChevronRight, EyeOff, Paintbrush } from "lucide-react"
+import { Calendar, CalendarCheck, ChevronLeft, ChevronRight, EyeOff, Paintbrush } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { CardHeader } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 
 import { ATTENDANCE_BOARD_COPY as COPY } from "./attendanceBoardCopy"
 import {
@@ -16,20 +14,24 @@ import {
 type AttendanceBoardHeaderProps = {
   month: Date
   hideInactive: boolean
+  todayPaintableOnly: boolean
   paintStatus: AttendanceStatusKey
   onPrevMonth: () => void
   onNextMonth: () => void
   onHideInactiveChange: (value: boolean) => void
+  onTodayPaintableOnlyChange: (value: boolean) => void
   onPaintStatusChange: (status: AttendanceStatusKey) => void
 }
 
 export default function AttendanceBoardHeader({
   month,
   hideInactive,
+  todayPaintableOnly,
   paintStatus,
   onPrevMonth,
   onNextMonth,
   onHideInactiveChange,
+  onTodayPaintableOnlyChange,
   onPaintStatusChange,
 }: AttendanceBoardHeaderProps) {
   return (
@@ -64,16 +66,31 @@ export default function AttendanceBoardHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/80 px-4 py-2.5 shadow-sm">
-          <EyeOff className="h-4 w-4 text-slate-400" />
-          <Switch
-            id="attendance-hide-inactive"
-            checked={hideInactive}
-            onCheckedChange={onHideInactiveChange}
-          />
-          <Label htmlFor="attendance-hide-inactive" className="cursor-pointer text-sm font-medium text-slate-600">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onHideInactiveChange(!hideInactive)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+              hideInactive
+                ? "border-slate-300 bg-slate-700 text-white shadow-sm"
+                : "border-slate-200/60 bg-white/80 text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <EyeOff className="h-3.5 w-3.5" />
             {COPY.hideInactive}
-          </Label>
+          </button>
+          <button
+            type="button"
+            onClick={() => onTodayPaintableOnlyChange(!todayPaintableOnly)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+              todayPaintableOnly
+                ? "border-emerald-300 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                : "border-slate-200/60 bg-white/80 text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <CalendarCheck className="h-3.5 w-3.5" />
+            오늘 출석 인원만
+          </button>
         </div>
       </div>
 

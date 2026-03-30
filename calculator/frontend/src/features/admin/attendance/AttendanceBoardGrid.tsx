@@ -48,7 +48,7 @@ export default function AttendanceBoardGrid({
   return (
     <CardContent className="p-0">
       <div className="rounded-b-2xl bg-white/60">
-        <div className="max-h-[600px] overflow-auto no-scrollbar">
+        <div className="overflow-auto no-scrollbar">
           <div style={{ minWidth }} className="select-none">
             <div
               className="sticky top-0 z-20 grid border-b border-slate-200/60 bg-gradient-to-b from-slate-50 to-white/95 backdrop-blur-lg"
