@@ -313,5 +313,21 @@ model CalendarNote {
   @@map("calendar_notes")
 }
 
+model SmsDeposit {
+  id             String    @id @db.Uuid
+  rawBody        String
+  sender         String    @default("")
+  depositorName  String    @default("")
+  amount         Int       @default(0)
+  balance        Int?
+  registrationId String?   @db.Uuid
+  matchStatus    String    @default("unmatched")
+  receivedAt     DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
 
+  @@index([depositorName])
+  @@index([matchStatus])
+  @@index([receivedAt])
+  @@map("sms_deposits")
+}
 

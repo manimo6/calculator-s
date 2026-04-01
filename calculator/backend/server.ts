@@ -29,6 +29,7 @@ const courseNotesRoutes = require('./routes/courseNotes');
 const calendarNotesRoutes = require('./routes/calendarNotes');
 const attendanceRoutes = require('./routes/attendance');
 const registrationExtensionsRoutes = require('./routes/registrationExtensions');
+const smsWebhookRoutes = require('./routes/smsWebhook');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -67,6 +68,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(requestLogger);
+// SMS webhook은 외부 요청이므로 CSRF 면제 (시크릿 키로 인증)
+app.use('/api/sms-hook', smsWebhookRoutes);
+
 app.use(csrfMiddleware);
 
 app.use('/api/students', studentRoutes);
