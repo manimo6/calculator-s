@@ -321,6 +321,7 @@ model SmsDeposit {
   amount         Int       @default(0)
   balance        Int?
   registrationId String?   @db.Uuid
+  dedupeHash     String    @default("")
   matchStatus    String    @default("unmatched")
   receivedAt     DateTime  @default(now()) @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)
@@ -328,6 +329,7 @@ model SmsDeposit {
   @@index([depositorName])
   @@index([matchStatus])
   @@index([receivedAt])
+  @@index([dedupeHash, createdAt])
   @@map("sms_deposits")
 }
 

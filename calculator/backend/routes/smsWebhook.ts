@@ -1,7 +1,10 @@
 const express = require('express') as typeof import('express');
+const crypto = require('crypto') as typeof import('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { getSafeErrorMessage } = require('../utils/apiError');
+const { authMiddleware } = require('../middleware/authMiddleware');
+const { requireAnyPermissions } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
 
@@ -66,6 +69,16 @@ router.post(WEBHOOK_PATH, async (req, res) => {
       return res.json({ status: 'success', message: '입금 문자가 아닙니다.', saved: false });
     }
 
+    // 중복 방지: rawBody + sender 해시로 5분 내 동일 문자 무시
+    const dedupeKey = crypto.createHash('sha256').update(`${smsBody}|${sender || ''}`).digest('hex');
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const duplicate = await prisma.smsDeposit.findFirst({
+      where: { dedupeHash: dedupeKey, createdAt: { gte: fiveMinAgo } },
+    });
+    if (duplicate) {
+      return res.json({ status: 'success', message: '중복 문자입니다.', saved: false });
+    }
+
     // DB 저장
     const deposit = await prisma.smsDeposit.create({
       data: {
@@ -75,6 +88,7 @@ router.post(WEBHOOK_PATH, async (req, res) => {
         depositorName: parsed.depositorName,
         amount: parsed.amount,
         balance: parsed.balance,
+        dedupeHash: dedupeKey,
         matchStatus: 'unmatched',
         receivedAt: time ? new Date(time) : new Date(),
       },
@@ -100,8 +114,8 @@ router.post(WEBHOOK_PATH, async (req, res) => {
   }
 });
 
-// GET /api/sms-hook/deposits — 입금 목록 조회 (인증 필요)
-router.get('/deposits', async (req, res) => {
+// GET /api/sms-hook/deposits — 입금 목록 조회 (인증 + 권한 필요)
+router.get('/deposits', authMiddleware(), requireAnyPermissions(['tabs.registrations']), async (req, res) => {
   try {
     const rows = await prisma.smsDeposit.findMany({
       orderBy: { receivedAt: 'desc' },
