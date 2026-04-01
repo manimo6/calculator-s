@@ -9,7 +9,7 @@ const { requireAnyPermissions } = require('../middleware/permissionMiddleware');
 const router = express.Router();
 
 const WEBHOOK_SECRET = process.env.SMS_WEBHOOK_SECRET || '';
-const WEBHOOK_PATH = '/8229f3b7177e08cc3ddca5fe2c7a27b3';
+const WEBHOOK_PATH = process.env.SMS_WEBHOOK_PATH || '/8229f3b7177e08cc3ddca5fe2c7a27b3';
 
 /**
  * 신한은행 입금 문자 파싱
@@ -69,30 +69,31 @@ router.post(WEBHOOK_PATH, async (req, res) => {
       return res.json({ status: 'success', message: '입금 문자가 아닙니다.', saved: false });
     }
 
-    // 중복 방지: rawBody + sender 해시로 5분 내 동일 문자 무시
+    // 중복 방지: rawBody + sender 해시 기반, DB 유니크 제약으로 race condition 방지
     const dedupeKey = crypto.createHash('sha256').update(`${smsBody}|${sender || ''}`).digest('hex');
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const duplicate = await prisma.smsDeposit.findFirst({
-      where: { dedupeHash: dedupeKey, createdAt: { gte: fiveMinAgo } },
-    });
-    if (duplicate) {
-      return res.json({ status: 'success', message: '중복 문자입니다.', saved: false });
-    }
 
-    // DB 저장
-    const deposit = await prisma.smsDeposit.create({
-      data: {
-        id: uuidv4(),
-        rawBody: smsBody,
-        sender: String(sender || ''),
-        depositorName: parsed.depositorName,
-        amount: parsed.amount,
-        balance: parsed.balance,
-        dedupeHash: dedupeKey,
-        matchStatus: 'unmatched',
-        receivedAt: time ? new Date(time) : new Date(),
-      },
-    });
+    let deposit;
+    try {
+      deposit = await prisma.smsDeposit.create({
+        data: {
+          id: uuidv4(),
+          rawBody: smsBody,
+          sender: String(sender || ''),
+          depositorName: parsed.depositorName,
+          amount: parsed.amount,
+          balance: parsed.balance,
+          dedupeHash: dedupeKey,
+          matchStatus: 'unmatched',
+          receivedAt: time ? new Date(time) : new Date(),
+        },
+      });
+    } catch (err: unknown) {
+      const code = (err as Record<string, unknown>)?.code;
+      if (code === 'P2002') {
+        return res.json({ status: 'success', message: '중복 문자입니다.', saved: false });
+      }
+      throw err;
+    }
 
     console.log(
       `[SMS] 입금 감지: ${parsed.depositorName} ${parsed.amount.toLocaleString()}원 (id: ${deposit.id.slice(0, 8)})`

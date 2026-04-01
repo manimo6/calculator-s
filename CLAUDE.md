@@ -31,7 +31,7 @@ calculator/
 │   ├── auth.ts / auth-store.ts / auth-context.tsx / auth-routing.ts
 │   └── ProtectedRoute.tsx
 ├── backend/
-│   ├── routes/             # 19개 라우트 파일 (registrations → 5개 분리)
+│   ├── routes/             # 20개 라우트 파일 (registrations → 5개 분리, smsWebhook)
 │   ├── services/           # 15+ 서비스 (인증, 권한, 등록, 전반, 메모 등)
 │   ├── middleware/         # Auth, CSRF, Permission, Reauth, ErrorHandler, RequestLogger, InputValidator
 │   ├── utils/              # apiError, shutdown, processErrorHandlers, dateUtils, parsers
@@ -50,7 +50,7 @@ calculator/
 npm run dev              # Vite dev 서버
 npm run build            # 프로덕션 빌드
 npm run typecheck        # 타입 체크
-npm run test             # Vitest (120개 테스트)
+npm run test             # Vitest (143개 테스트)
 
 # Backend (calculator/backend/)
 npm run build            # TS → dist/ 컴파일
@@ -78,7 +78,8 @@ npm run prisma:migrate:dev  # 마이그레이션
 | main | 메인 (origin 연결) |
 | 개발 | 개발 (origin 연결) |
 | 버그-수정 | 로컬 버그수정 |
-| 재활 | 현재 작업 브랜치 — UI 리디자인 + 안정화 |
+| 재활 | UI 리디자인 + 안정화 (main에 머지 완료) |
+| 은행연동 | SMS 입금 webhook + 납부현황 |
 
 ## 권한 체계
 
@@ -115,7 +116,7 @@ npm run prisma:migrate:dev  # 마이그레이션
 
 ## 검증 기준
 
-- `npm run test` (프론트) — Vitest 120개 테스트 통과
+- `npm run test` (프론트) — Vitest 143개 테스트 통과
 - `npm run typecheck` (프론트) — 타입 에러 0개
 - `npm run build` (백엔드) — 컴파일 에러 없음
 
@@ -127,6 +128,21 @@ npm run prisma:migrate:dev  # 마이그레이션
 | **ESM 전환** | 백엔드 CJS → ESM import 전환 | 백엔드 구조 변경 시 |
 | **상태 관리 통합** | auth 4파일(auth.ts, auth-store.ts, auth-context.tsx, auth-routing.ts) 통합 | auth 관련 기능 확장 시 |
 | **HTTP Rate Limiter Redis 연동** | 인메모리 → Redis 기반으로 전환 | 다중 인스턴스 배포 시 |
+
+## 새 엔드포인트 추가 시 필수 체크리스트
+
+**빠뜨리면 안 되는 항목 — 하나라도 누락 시 배포 금지**
+
+| # | 항목 | 설명 |
+|---|------|------|
+| 1 | **인증/권한** | 모든 조회·수정 엔드포인트에 `authMiddleware` + 권한 체크. 외부 webhook은 시크릿 키 검증 |
+| 2 | **CSRF** | 외부 webhook만 CSRF 면제, 나머지는 반드시 CSRF 뒤에 마운트 |
+| 3 | **중복 방지** | 외부 입력(webhook, 문자, 결제 등)은 idempotency 키 또는 해시 기반 중복 체크 |
+| 4 | **DB 마이그레이션** | 스키마 변경 시 마이그레이션 파일 생성 또는 배포 스크립트에 SQL 포함 |
+| 5 | **입력 검증** | 요청 body/query 파라미터 타입·범위 검증 |
+| 6 | **민감 데이터** | 금융·개인정보는 응답에서 필요한 필드만 노출, 로그에 원문 남기지 않기 |
+
+> 이 체크리스트는 SMS webhook에서 조회 엔드포인트를 인증 없이 공개하고, 중복 수신 방지와 마이그레이션을 누락한 사고에서 비롯됨.
 
 ## 주의사항
 
