@@ -329,7 +329,7 @@ model SmsDeposit {
   @@index([depositorName])
   @@index([matchStatus])
   @@index([receivedAt])
-  @@index([dedupeHash])
+  @@unique([dedupeHash])
   @@map("sms_deposits")
 }
 
