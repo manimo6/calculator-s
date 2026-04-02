@@ -90,10 +90,13 @@ router.post(WEBHOOK_PATH, rawBodyParser, async (req, res) => {
       return res.status(403).json({ status: 'fail', message: '인증 실패' });
     }
 
-    const reqBody = safeParseBody((req as any).rawBody || '');
+    const rawStr = (req as any).rawBody || '';
+    console.log('[SMS] raw body:', rawStr.slice(0, 200));
+    const reqBody = safeParseBody(rawStr);
     const smsBody = String(reqBody.body || '');
     const sender = String(reqBody.sender || '');
     const time = reqBody.time ? String(reqBody.time) : undefined;
+    console.log('[SMS] parsed:', { smsBody: smsBody.slice(0, 100), sender, hasBody: !!smsBody });
 
     if (!smsBody) {
       return res.status(400).json({ status: 'fail', message: '문자 내용이 없습니다.' });
