@@ -108,31 +108,27 @@ router.post(WEBHOOK_PATH, rawBodyParser, async (req, res) => {
       return res.json({ status: 'success', message: '입금 문자가 아닙니다.', saved: false });
     }
 
-    // 중복 방지: rawBody + sender 해시 기반, DB 유니크 제약으로 race condition 방지
-    const dedupeKey = crypto.createHash('sha256').update(`${smsBody}|${sender || ''}`).digest('hex');
-
-    let deposit;
-    try {
-      deposit = await prisma.smsDeposit.create({
-        data: {
-          id: uuidv4(),
-          rawBody: smsBody,
-          sender: String(sender || ''),
-          depositorName: parsed.depositorName,
-          amount: parsed.amount,
-          balance: parsed.balance,
-          dedupeHash: dedupeKey,
-          matchStatus: 'unmatched',
-          receivedAt: time ? new Date(time) : new Date(),
-        },
-      });
-    } catch (err: unknown) {
-      const code = (err as Record<string, unknown>)?.code;
-      if (code === 'P2002') {
-        return res.json({ status: 'success', message: '중복 문자입니다.', saved: false });
-      }
-      throw err;
+    // 중복 방지: rawBody + sender + 날짜 해시 (같은 문자도 다른 날이면 허용)
+    const today = new Date().toISOString().slice(0, 10);
+    const dedupeKey = crypto.createHash('sha256').update(`${smsBody}|${sender || ''}|${today}`).digest('hex');
+    const existing = await prisma.smsDeposit.findFirst({ where: { dedupeHash: dedupeKey } });
+    if (existing) {
+      return res.json({ status: 'success', message: '중복 문자입니다.', saved: false });
     }
+
+    const deposit = await prisma.smsDeposit.create({
+      data: {
+        id: uuidv4(),
+        rawBody: smsBody,
+        sender: String(sender || ''),
+        depositorName: parsed.depositorName,
+        amount: parsed.amount,
+        balance: parsed.balance,
+        dedupeHash: dedupeKey,
+        matchStatus: 'unmatched',
+        receivedAt: time ? new Date(time) : new Date(),
+      },
+    });
 
     console.log(
       `[SMS] 입금 감지: ${parsed.depositorName} ${parsed.amount.toLocaleString()}원 (id: ${deposit.id.slice(0, 8)})`

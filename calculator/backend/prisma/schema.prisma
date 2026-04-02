@@ -260,7 +260,7 @@ model Notice {
   title     String
   body      String
   targets   String[] @default([])
-  author    String
+  author    String
   updatedBy String   @default("")
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -290,7 +290,7 @@ model CourseNote {
   title     String
   content   String   @default("")
   tags      String[] @default([])
-  author    String   @default("") // 작성자 ID 추가
+  author    String   @default("") // 작성자 ID 추가
   updatedBy String   @default("")
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -304,7 +304,7 @@ model CalendarNote {
   id        String   @id @db.Uuid
   date      DateTime @db.Date
   content   String   @default("")
-  author    String   @default("")
+  author    String   @default("")
   updatedBy String   @default("")
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -329,7 +329,7 @@ model SmsDeposit {
   @@index([depositorName])
   @@index([matchStatus])
   @@index([receivedAt])
-  @@unique([dedupeHash])
+  @@index([dedupeHash])
   @@map("sms_deposits")
 }
 
