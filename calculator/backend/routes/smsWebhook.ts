@@ -3,8 +3,6 @@ const crypto = require('crypto') as typeof import('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../db/prisma');
 const { getSafeErrorMessage } = require('../utils/apiError');
-const { authMiddleware } = require('../middleware/authMiddleware');
-const { requireAnyPermissions } = require('../middleware/permissionMiddleware');
 
 const router = express.Router();
 
@@ -49,8 +47,33 @@ function parseShinhanSms(body: string): {
   return { amount, depositorName, balance };
 }
 
-// POST /api/sms-hook/8229f3b7177e08cc3ddca5fe2c7a27b3
-router.post(WEBHOOK_PATH, async (req, res) => {
+// raw text 파서 (MacroDroid가 보내는 JSON에 제어문자가 포함될 수 있음)
+function safeParseBody(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // 제어문자 제거 후 재시도
+    const cleaned = raw.replace(/[\x00-\x1f\x7f]/g, (ch) => ch === '\n' ? ' ' : '');
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      return {};
+    }
+  }
+}
+
+// raw body 수집 미들웨어 (express.json 전에 마운트되므로 직접 읽기)
+function rawBodyParser(req: any, _res: any, next: any) {
+  const chunks: Buffer[] = [];
+  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('end', () => {
+    req.rawBody = Buffer.concat(chunks).toString('utf-8');
+    next();
+  });
+}
+
+// POST /api/sms-hook/...
+router.post(WEBHOOK_PATH, rawBodyParser, async (req, res) => {
   try {
     // 시크릿 키 검증
     const secret = req.headers['x-webhook-secret'];
@@ -58,8 +81,12 @@ router.post(WEBHOOK_PATH, async (req, res) => {
       return res.status(403).json({ status: 'fail', message: '인증 실패' });
     }
 
-    const { body: smsBody, sender, time } = req.body || {};
-    if (!smsBody || typeof smsBody !== 'string') {
+    const reqBody = safeParseBody((req as any).rawBody || '');
+    const smsBody = String(reqBody.body || '');
+    const sender = String(reqBody.sender || '');
+    const time = reqBody.time ? String(reqBody.time) : undefined;
+
+    if (!smsBody) {
       return res.status(400).json({ status: 'fail', message: '문자 내용이 없습니다.' });
     }
 
@@ -115,31 +142,6 @@ router.post(WEBHOOK_PATH, async (req, res) => {
   }
 });
 
-// GET /api/sms-hook/deposits — 입금 목록 조회 (인증 + 권한 필요)
-router.get('/deposits', authMiddleware(), requireAnyPermissions(['tabs.registrations']), async (req, res) => {
-  try {
-    const rows = await prisma.smsDeposit.findMany({
-      orderBy: { receivedAt: 'desc' },
-      take: 100,
-    });
-
-    const results = rows.map((row: any) => ({
-      id: row.id,
-      depositorName: row.depositorName,
-      amount: row.amount,
-      balance: row.balance,
-      matchStatus: row.matchStatus,
-      registrationId: row.registrationId,
-      receivedAt: row.receivedAt?.toISOString() || '',
-      rawBody: row.rawBody,
-    }));
-
-    return res.json({ status: 'success', results });
-  } catch (error) {
-    const message = getSafeErrorMessage(error, '입금 내역을 불러오지 못했습니다.');
-    console.error('[SMS] 입금 목록 조회 오류:', error);
-    return res.status(500).json({ status: 'fail', message });
-  }
-});
+// deposits 조회는 smsDeposits.ts에서 별도 라우트로 분리 (CSRF/auth 뒤에 마운트)
 
 module.exports = router;

@@ -30,6 +30,7 @@ const calendarNotesRoutes = require('./routes/calendarNotes');
 const attendanceRoutes = require('./routes/attendance');
 const registrationExtensionsRoutes = require('./routes/registrationExtensions');
 const smsWebhookRoutes = require('./routes/smsWebhook');
+const smsDepositsRoutes = require('./routes/smsDeposits');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -65,11 +66,13 @@ const SERVER_READY_BANNER = `
   `;
 
 app.use(cors(corsOptions));
+
+// SMS webhook은 express.json() / CSRF 전에 마운트 (외부 요청, 자체 파싱)
+app.use('/api/sms-hook', smsWebhookRoutes);
+
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(requestLogger);
-// SMS webhook은 외부 요청이므로 CSRF 면제 (시크릿 키로 인증)
-app.use('/api/sms-hook', smsWebhookRoutes);
 
 app.use(csrfMiddleware);
 
@@ -88,6 +91,7 @@ app.use('/api/course-notes', courseNotesRoutes);
 app.use('/api/calendar-notes', calendarNotesRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/registration-extensions', registrationExtensionsRoutes);
+app.use('/api/sms-deposits', smsDepositsRoutes);
 
 app.use(globalErrorHandler);
 
