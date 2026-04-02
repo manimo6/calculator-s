@@ -62,10 +62,19 @@ function safeParseBody(raw: string): Record<string, unknown> {
   }
 }
 
-// raw body 수집 미들웨어 (express.json 전에 마운트되므로 직접 읽기)
-function rawBodyParser(req: any, _res: any, next: any) {
+// raw body 수집 미들웨어 (express.json 전에 마운트되므로 직접 읽기, 64KB 제한)
+const RAW_BODY_LIMIT = 64 * 1024;
+function rawBodyParser(req: any, res: any, next: any) {
+  let size = 0;
   const chunks: Buffer[] = [];
-  req.on('data', (chunk: Buffer) => chunks.push(chunk));
+  req.on('data', (chunk: Buffer) => {
+    size += chunk.length;
+    if (size > RAW_BODY_LIMIT) {
+      req.destroy();
+      return res.status(413).json({ status: 'fail', message: '요청이 너무 큽니다.' });
+    }
+    chunks.push(chunk);
+  });
   req.on('end', () => {
     req.rawBody = Buffer.concat(chunks).toString('utf-8');
     next();

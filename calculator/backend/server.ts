@@ -68,7 +68,7 @@ const SERVER_READY_BANNER = `
 app.use(cors(corsOptions));
 
 // SMS webhook은 express.json() / CSRF 전에 마운트 (외부 요청, 자체 파싱)
-app.use('/api/sms-hook', smsWebhookRoutes);
+app.use('/api/sms-hook', requestLogger, smsWebhookRoutes);
 
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
