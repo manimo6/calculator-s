@@ -7,7 +7,8 @@ const { getSafeErrorMessage } = require('../utils/apiError');
 const router = express.Router();
 
 const WEBHOOK_SECRET = process.env.SMS_WEBHOOK_SECRET || '';
-const WEBHOOK_PATH = process.env.SMS_WEBHOOK_PATH || '/8229f3b7177e08cc3ddca5fe2c7a27b3';
+const rawPath = process.env.SMS_WEBHOOK_PATH || '8229f3b7177e08cc3ddca5fe2c7a27b3';
+const WEBHOOK_PATH = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
 
 /**
  * 신한은행 입금 문자 파싱
