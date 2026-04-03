@@ -22,23 +22,29 @@ function parseShinhanSms(body: string): {
 } | null {
   if (!body || !body.includes('입금')) return null;
 
-  // 금액 추출: "입금 150,000원" 또는 "입금150,000원"
-  const amountMatch = body.match(/입금\s*([\d,]+)\s*원/);
+  // 금액 추출:
+  // 형식1: "입금 150,000원"
+  // 형식2: "입금   1,000,000 채윤서" (원 없음, 공백 여러 개)
+  const amountMatch = body.match(/입금\s+([\d,]+)\s*원?/);
   const amount = amountMatch ? Number(amountMatch[1].replace(/,/g, '')) : 0;
   if (!amount) return null;
 
   // 잔액 추출: "잔액 1,234,567원" 또는 "잔액1,234,567원"
-  const balanceMatch = body.match(/잔액\s*([\d,]+)\s*원/);
+  const balanceMatch = body.match(/잔액\s*([\d,]+)\s*원?/);
   const balance = balanceMatch ? Number(balanceMatch[1].replace(/,/g, '')) : null;
 
-  // 입금자명 추출: 금액/잔액/날짜/시간/은행명 제외한 나머지 한글 이름
+  // 입금자명 추출: 금액 뒤의 한글 이름
+  // "[Web발신] 신한04/03 14:37 140-009-205058 입금   1,000,000 채윤서"
   let cleaned = body
     .replace(/\[.*?\]/g, '')
-    .replace(/입금\s*[\d,]+\s*원/g, '')
-    .replace(/잔액\s*[\d,]+\s*원/g, '')
+    .replace(/입금\s+[\d,]+\s*원?/g, '')
+    .replace(/잔액\s*[\d,]+\s*원?/g, '')
+    .replace(/\d{2}\/\d{2}/g, '')
     .replace(/\d{2}:\d{2}/g, '')
     .replace(/\d{4}[-/.]\d{2}[-/.]\d{2}/g, '')
+    .replace(/[\d-]{6,}/g, '')
     .replace(/신한은행|신한/g, '')
+    .replace(/Web발신/g, '')
     .trim();
 
   // 남은 텍스트에서 한글 이름 추출 (2~4자)
