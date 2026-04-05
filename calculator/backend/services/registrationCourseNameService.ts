@@ -166,13 +166,11 @@ async function renameCourseNames(
   });
   if (courseConfig?.data && typeof courseConfig.data === 'object') {
     const cfgData = JSON.parse(JSON.stringify(courseConfig.data));
-    if (cfgData.courseConfigSetName === courseConfigSetName) {
-      if (applyCourseRenameToData(cfgData, changeMap)) {
-        await prisma.courseConfig.update({
-          where: { key: 'courses' },
-          data: { data: cfgData },
-        });
-      }
+    if (applyCourseRenameToData(cfgData, changeMap)) {
+      await prisma.courseConfig.update({
+        where: { key: 'courses' },
+        data: { data: cfgData },
+      });
     }
   }
 
