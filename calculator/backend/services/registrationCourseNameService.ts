@@ -147,13 +147,22 @@ async function renameCourseNames(
 
   // CourseConfigSet + CourseConfig의 courseTree/timeTable도 동기화
   const changeMap = new Map(normalizedChanges.map((c) => [c.from, c.to]));
+  console.log('[DEBUG rename] courseConfigSetName:', courseConfigSetName);
+  console.log('[DEBUG rename] changeMap:', Array.from(changeMap.entries()));
 
   const configSet = await prisma.courseConfigSet.findUnique({
     where: { name: courseConfigSetName },
   });
+  console.log('[DEBUG rename] configSet found:', !!configSet);
   if (configSet?.data && typeof configSet.data === 'object') {
     const setData = JSON.parse(JSON.stringify(configSet.data));
-    if (applyCourseRenameToData(setData, changeMap)) {
+    const labels = Array.isArray(setData.courseTree)
+      ? setData.courseTree.flatMap((g: any) => (g.items || []).map((i: any) => i.label))
+      : [];
+    console.log('[DEBUG rename] configSet courseTree labels:', labels);
+    const setChanged = applyCourseRenameToData(setData, changeMap);
+    console.log('[DEBUG rename] configSet changed:', setChanged);
+    if (setChanged) {
       await prisma.courseConfigSet.update({
         where: { name: courseConfigSetName },
         data: { data: setData },
@@ -164,9 +173,16 @@ async function renameCourseNames(
   const courseConfig = await prisma.courseConfig.findUnique({
     where: { key: 'courses' },
   });
+  console.log('[DEBUG rename] courseConfig found:', !!courseConfig);
   if (courseConfig?.data && typeof courseConfig.data === 'object') {
     const cfgData = JSON.parse(JSON.stringify(courseConfig.data));
-    if (applyCourseRenameToData(cfgData, changeMap)) {
+    const labels = Array.isArray(cfgData.courseTree)
+      ? cfgData.courseTree.flatMap((g: any) => (g.items || []).map((i: any) => i.label))
+      : [];
+    console.log('[DEBUG rename] courseConfig courseTree labels:', labels);
+    const cfgChanged = applyCourseRenameToData(cfgData, changeMap);
+    console.log('[DEBUG rename] courseConfig changed:', cfgChanged);
+    if (cfgChanged) {
       await prisma.courseConfig.update({
         where: { key: 'courses' },
         data: { data: cfgData },
