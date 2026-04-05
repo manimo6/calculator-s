@@ -80,6 +80,42 @@ async function findForbiddenCourseName(
   );
 }
 
+function applyCourseRenameToData(
+  data: Record<string, unknown>,
+  changeMap: Map<string, string>
+) {
+  let changed = false;
+
+  // courseTree: update item labels
+  const courseTree = data.courseTree;
+  if (Array.isArray(courseTree)) {
+    for (const group of courseTree) {
+      if (!Array.isArray(group?.items)) continue;
+      for (const item of group.items) {
+        const newLabel = changeMap.get(item?.label);
+        if (newLabel) {
+          item.label = newLabel;
+          changed = true;
+        }
+      }
+    }
+  }
+
+  // timeTable: rename keys
+  const timeTable = data.timeTable;
+  if (timeTable && typeof timeTable === 'object') {
+    for (const [from, to] of changeMap) {
+      if ((timeTable as Record<string, unknown>)[from] !== undefined) {
+        (timeTable as Record<string, unknown>)[to] = (timeTable as Record<string, unknown>)[from];
+        delete (timeTable as Record<string, unknown>)[from];
+        changed = true;
+      }
+    }
+  }
+
+  return changed;
+}
+
 async function renameCourseNames(
   courseConfigSetName: string,
   normalizedChanges: Array<{ from: string; to: string }>
@@ -108,6 +144,37 @@ async function renameCourseNames(
         AND "course" IN (${Prisma.join(inItems)});
     `
   );
+
+  // CourseConfigSet + CourseConfig의 courseTree/timeTable도 동기화
+  const changeMap = new Map(normalizedChanges.map((c) => [c.from, c.to]));
+
+  const configSet = await prisma.courseConfigSet.findUnique({
+    where: { name: courseConfigSetName },
+  });
+  if (configSet?.data && typeof configSet.data === 'object') {
+    const setData = JSON.parse(JSON.stringify(configSet.data));
+    if (applyCourseRenameToData(setData, changeMap)) {
+      await prisma.courseConfigSet.update({
+        where: { name: courseConfigSetName },
+        data: { data: setData },
+      });
+    }
+  }
+
+  const courseConfig = await prisma.courseConfig.findUnique({
+    where: { key: 'courses' },
+  });
+  if (courseConfig?.data && typeof courseConfig.data === 'object') {
+    const cfgData = JSON.parse(JSON.stringify(courseConfig.data));
+    if (cfgData.courseConfigSetName === courseConfigSetName) {
+      if (applyCourseRenameToData(cfgData, changeMap)) {
+        await prisma.courseConfig.update({
+          where: { key: 'courses' },
+          data: { data: cfgData },
+        });
+      }
+    }
+  }
 
   const details = normalizedChanges.map((item) => {
     const match = counts.find((row) => row.course === item.from);
