@@ -76,7 +76,7 @@ export function buildCourseGroupMaps({
         if (!map.has(courseKey)) map.set(courseKey, [])
         map.get(courseKey)?.push({
           ...chainRegistration,
-          isTransferredOut: true,
+          isTransferredOut: Boolean(chainRegistration.transferToId),
         })
       }
     }

@@ -690,23 +690,32 @@ const StudentForm = () => {
     }, [state.mainCourseKey, state.discount, state.singleCourseInputs]);
 
     // ── Transfer (전반) ──
-    const transferCourseOptions = useMemo(() => {
-        return (courseTree || []).flatMap((group) =>
-            (group.items || []).map((item) => ({
-                value: item?.val || "",
-                label: item?.label || "",
-            }))
-        ).filter((o) => o.value && o.label);
-    }, [courseTree.length, selectedCourseConfigSet]);
+    const [transferConfigSetName, setTransferConfigSetName] = useState<any>("");
 
     const selectedCourseConfigSetObj = useMemo(() => {
         if (!selectedCourseConfigSet || !courseConfigSetMap[selectedCourseConfigSet]) return null;
         return { name: selectedCourseConfigSet, data: courseConfigSetMap[selectedCourseConfigSet] };
     }, [selectedCourseConfigSet, courseConfigSetMap]);
 
+    const transferConfigSetObj = useMemo(() => {
+        const name = transferConfigSetName || selectedCourseConfigSet;
+        if (!name || !courseConfigSetMap[name]) return null;
+        return { name, data: courseConfigSetMap[name] };
+    }, [transferConfigSetName, selectedCourseConfigSet, courseConfigSetMap]);
+
+    const transferCourseOptions = useMemo(() => {
+        const tree = (transferConfigSetObj?.data as any)?.courseTree || courseTree || [];
+        return (tree || []).flatMap((group: any) =>
+            (group.items || []).map((item: any) => ({
+                value: item?.val || "",
+                label: item?.label || "",
+            }))
+        ).filter((o: any) => o.value && o.label);
+    }, [transferConfigSetObj, courseTree]);
+
     const resolveCourseDays = useCallback(
-        (courseName: string) => getCourseDaysByName(courseName, selectedCourseConfigSetObj),
-        [selectedCourseConfigSetObj]
+        (courseName: string) => getCourseDaysByName(courseName, transferConfigSetObj || selectedCourseConfigSetObj),
+        [transferConfigSetObj, selectedCourseConfigSetObj]
     );
 
     const [transferError, setTransferError] = useState("");
@@ -734,16 +743,18 @@ const StudentForm = () => {
     } = useTransfer({
         courseOptions: transferCourseOptions,
         registrations: historyRegistrations,
-        selectedCourseConfigSetObj,
-        selectedCourseConfigSet,
+        selectedCourseConfigSetObj: transferConfigSetObj,
+        selectedCourseConfigSet: transferConfigSetName || selectedCourseConfigSet,
         onTransferSuccess: () => {
             setIsHistoryOpen(false);
+            setTransferConfigSetName("");
         },
         setError: setTransferError,
         resolveCourseDays,
     });
 
     const handleHistoryTransfer = useCallback((item: Record<string, unknown>) => {
+        setTransferConfigSetName(String(item.courseConfigSetName || ""));
         setIsHistoryOpen(false);
         openTransferDialog(item as Parameters<typeof openTransferDialog>[0]);
     }, [openTransferDialog]);
@@ -1344,7 +1355,7 @@ const StudentForm = () => {
 
                 <TransferDialog
                     open={transferDialogOpen}
-                    onClose={closeTransferDialog}
+                    onClose={() => { closeTransferDialog(); setTransferConfigSetName(""); }}
                     target={transferTarget}
                     date={transferDate}
                     onDateChange={setTransferDate}
